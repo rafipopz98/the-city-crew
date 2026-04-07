@@ -1,26 +1,34 @@
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@font-face {
+  font-family: one;
+  src: url(/68805858e095a766b86eb9f6_SuisseIntl-SemiBold-WebM.ttf);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@font-face {
+  font-family: two;
+  src: url(/6882e67a90d89df1a9887176_SuisseIntl-Medium-WebM.ttf);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@font-face {
+  font-family: three;
+  src: url(/6892c333bf67b1d5eafe58a0_Obviously-CondensedBlack.ttf);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.nav {
+  font-family: three;
+}
+.nav2 {
+  font-family: one;
+}
+
+.nav3 {
+  font-family: one;
+}
+
+.head {
+  font-family: three;
+}
+
+.para {
+  font-family: two;
 }
