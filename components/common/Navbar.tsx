@@ -43,7 +43,7 @@ const Navbar = () => {
     ? "bg-transparent text-[#ece1cf] border-[#ece1cf]/20"
     : "bg-transparent text-black border-black/20";
 
-  const navItems = ["blogs", "polls", "about-us"];
+  const navItems = ["blogs", "polls", "about-us", "player-stats"];
 
   return (
     <nav
@@ -73,7 +73,7 @@ const Navbar = () => {
             <Link
               key={item}
               href={`/${item}`}
-              className={`${buttonStyle} border rounded-[5px] py-3 px-6 uppercase transition-all duration-300 hover:-rotate-6 shadow-sm hover:bg-[#e09225] hover:text-black ${
+              className={`${buttonStyle} border rounded-[5px] py-2 px-4 uppercase transition-all duration-300 hover:-rotate-6 shadow-sm hover:bg-[#e09225] hover:text-black ${
                 isActive ? "bg-[#e09225] text-black border-[#e09225]" : ""
               }`}
             >
@@ -108,7 +108,7 @@ const Navbar = () => {
             <Link
               key={item}
               href={`/${item}`}
-              className="w-11/12 text-center bg-[#e09225] text-black py-3 uppercase rounded-[5px]"
+              className="w-11/12 text-center bg-[#e09225] text-black py-2 uppercase rounded-[5px]"
               onClick={() => setMenuOpen(false)}
             >
               {item.replace("-", " ")}
