@@ -2,13 +2,7 @@
 
 import Image from "next/image";
 import { useState, useRef } from "react";
-import {
-  motion,
-  AnimatePresence,
-  useMotionValue,
-  useTransform,
-  animate,
-} from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Player = {
   name: string;
@@ -19,8 +13,9 @@ type Player = {
   goals: number;
   assists: number;
   cleanSheets: number;
+  games: number;
+  rating: number;
 };
-
 const PLAYERS: Player[] = [
   {
     name: "Erling Haaland",
@@ -32,6 +27,8 @@ const PLAYERS: Player[] = [
     goals: 22,
     assists: 7,
     cleanSheets: 0,
+    games: 28,
+    rating: 4.6,
   },
   {
     name: "Phil Foden",
@@ -43,6 +40,8 @@ const PLAYERS: Player[] = [
     goals: 7,
     assists: 3,
     cleanSheets: 0,
+    games: 18,
+    rating: 4.2,
   },
   {
     name: "Rodri",
@@ -53,6 +52,8 @@ const PLAYERS: Player[] = [
     goals: 4,
     assists: 5,
     cleanSheets: 0,
+    games: 21,
+    rating: 3.2,
   },
   {
     name: "Jérémy Doku",
@@ -64,6 +65,8 @@ const PLAYERS: Player[] = [
     goals: 5,
     assists: 4,
     cleanSheets: 0,
+    games: 17,
+    rating: 3.7,
   },
   {
     name: "Rayan Cherki",
@@ -75,6 +78,8 @@ const PLAYERS: Player[] = [
     goals: 3,
     assists: 8,
     cleanSheets: 0,
+    games: 12,
+    rating: 1.4,
   },
   {
     name: "Antoine Semenyo",
@@ -85,6 +90,8 @@ const PLAYERS: Player[] = [
     goals: 15,
     assists: 4,
     cleanSheets: 0,
+    games: 26,
+    rating: 4.2,
   },
   {
     name: "Rayan Ait-Nouri",
@@ -96,6 +103,8 @@ const PLAYERS: Player[] = [
     goals: 4,
     assists: 2,
     cleanSheets: 0,
+    games: 16,
+    rating: 2.4,
   },
   {
     name: "James Trafford",
@@ -107,6 +116,8 @@ const PLAYERS: Player[] = [
     goals: 0,
     assists: 0,
     cleanSheets: 14,
+    games: 14,
+    rating: 4.6,
   },
   {
     name: "Gianluigi Donnarumma",
@@ -118,6 +129,8 @@ const PLAYERS: Player[] = [
     goals: 0,
     assists: 0,
     cleanSheets: 14,
+    games: 14,
+    rating: 4.1,
   },
   {
     name: "Ruben Dias",
@@ -127,8 +140,10 @@ const PLAYERS: Player[] = [
     image:
       "https://www.mancity.com/meta/media/fk4lwkni/ruben-dias-elec-blue.png?width=900&quality=100",
     goals: 0,
-    assists: 0,
+    assists: 1,
     cleanSheets: 14,
+    games: 14,
+    rating: 4.1,
   },
   {
     name: "Josko Gvardiol",
@@ -140,6 +155,8 @@ const PLAYERS: Player[] = [
     goals: 1,
     assists: 2,
     cleanSheets: 0,
+    games: 14,
+    rating: 3.4,
   },
 ];
 
@@ -180,6 +197,22 @@ export default function PlayerCarousel() {
   };
 
   const active = PLAYERS[activeIndex];
+
+  const stats = [
+    { label: "Games", value: active.games },
+    { label: "Rating", value: active.rating.toFixed(1) },
+    active.position === "Goal Keeper"
+      ? { label: "Clean Sheets", value: active.cleanSheets }
+      : null,
+    active.position !== "Goal Keeper"
+      ? { label: "Goals", value: active.goals }
+      : null,
+    active.position !== "Goal Keeper"
+      ? { label: "Assists", value: active.assists }
+      : null,
+  ]
+    .filter(Boolean)
+    .filter((s) => Number(s!.value) !== 0);
 
   return (
     <section className="relative w-full min-h-screen bg-[#FFF5E5] flex flex-col items-center justify-center overflow-hidden select-none">
@@ -274,18 +307,29 @@ export default function PlayerCarousel() {
             <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#e09225] mb-1">
               {active.position} · {active.country}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-black uppercase text-[#06182e] leading-tight mb-6">
+            <h2 className="text-3xl sm:text-4xl font-black uppercase text-[#06182e] leading-tight">
               {active.name}
             </h2>
-            <div className="flex gap-10 sm:gap-14">
-              {active.cleanSheets > 0 ? (
-                <Stat label="Clean Sheets" value={active.cleanSheets} />
-              ) : (
-                <>
-                  <Stat label="Goals" value={active.goals} />
-                  <Stat label="Assists" value={active.assists} />
-                </>
-              )}
+            <div className="flex flex-col items-center gap-3">
+              <StarRating rating={active.rating} />
+
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-center w-full max-w-55">
+                {stats.map((stat, i) => {
+                  const isLastOdd =
+                    stats.length % 2 !== 0 && i === stats.length - 1;
+
+                  return (
+                    <div
+                      key={i}
+                      className={
+                        isLastOdd ? "col-span-2 flex justify-center" : ""
+                      }
+                    >
+                      <Stat label={stat!.label} value={stat!.value} />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -328,15 +372,34 @@ export default function PlayerCarousel() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="flex flex-col items-center">
-      <span className="text-4xl sm:text-5xl font-black text-[#06182e]">
+    <div className="flex flex-col items-center leading-tight">
+      <span className="text-2xl sm:text-3xl font-black text-[#06182e]">
         {value}
       </span>
-      <span className="text-[10px] font-semibold tracking-[0.15em] uppercase text-[#e09225] mt-1">
+      <span className="text-[9px] font-semibold tracking-[0.12em] uppercase text-[#e09225] mt-0.5">
         {label}
       </span>
+    </div>
+  );
+}
+
+function StarRating({ rating }: { rating: number }) {
+  const fullStars = Math.round(rating);
+
+  return (
+    <div className="flex flex-col items-center leading-none">
+      <div className="flex gap-0.5 text-lg">
+        {[...Array(5)].map((_, i) => (
+          <span
+            key={i}
+            className={i < fullStars ? "text-[#e09225]" : "text-[#06182e]/20"}
+          >
+            ★
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
