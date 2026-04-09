@@ -73,7 +73,7 @@ const Navbar = () => {
             <Link
               key={item}
               href={`/${item}`}
-              className={`${buttonStyle} border rounded-[5px] py-2 px-4 uppercase transition-all duration-300 hover:-rotate-6 shadow-sm hover:bg-[#e09225] hover:text-black ${
+              className={`${buttonStyle} border rounded-[5px] py-2 px-4 uppercase transition-all duration-300 hover:-rotate-6 shadow-sm hover:bg-[#e09225] hover:text-[#FFF5E5] ${
                 isActive ? "bg-[#e09225] text-black border-[#e09225]" : ""
               }`}
             >
@@ -86,17 +86,17 @@ const Navbar = () => {
       {/* Desktop CTA */}
       <div className="hidden md:flex">
         <Link
-          href="/match-hub"
-          className="bg-[#e09225] text-black font-bold px-5 py-3 rounded-[5px] uppercase shadow-lg hover:scale-105 transition-all"
+          href="/login"
+          className="bg-[#e09225] text-[#FFF5E5] font-bold px-4 py-2 rounded-[5px] uppercase shadow-lg hover:scale-105 transition-all"
         >
-          Match Hub
+          Login
         </Link>
       </div>
 
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="md:hidden bg-[#e09225] text-black px-4 py-2 rounded-[5px] uppercase"
+        className="md:hidden bg-[#e09225] text-[#FFF5E5] px-4 py-2 rounded-[5px] uppercase"
       >
         Menu
       </button>
@@ -108,7 +108,7 @@ const Navbar = () => {
             <Link
               key={item}
               href={`/${item}`}
-              className="w-11/12 text-center bg-[#e09225] text-black py-2 uppercase rounded-[5px]"
+              className="w-11/12 text-center bg-[#e09225] text-[#FFF5E5] py-2 uppercase rounded-[5px]"
               onClick={() => setMenuOpen(false)}
             >
               {item.replace("-", " ")}
@@ -116,11 +116,11 @@ const Navbar = () => {
           ))}
 
           <Link
-            href="/match-hub"
-            className="w-11/12 text-center bg-[#e09225] text-black py-3 uppercase rounded-[5px]"
+            href="/login"
+            className="w-11/12 text-center bg-[#e09225] text-[#FFF5E5] py-2 uppercase rounded-[5px]"
             onClick={() => setMenuOpen(false)}
           >
-            Match Hub
+            Login
           </Link>
         </div>
       )}

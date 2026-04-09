@@ -152,11 +152,11 @@ const PLAYERS: Player[] = [
     country: "Croatia",
     image:
       "https://www.mancity.com/meta/media/afjd5irm/josko-gvardiol-elec-blue.png?width=900&quality=100",
-    goals: 1,
-    assists: 2,
+    goals: 0,
+    assists: 0,
     cleanSheets: 0,
-    games: 14,
-    rating: 3.4,
+    games: 0,
+    rating: 0,
   },
 ];
 
@@ -304,11 +304,20 @@ export default function PlayerCarousel() {
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="flex flex-col items-center"
           >
-            <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#e09225] mb-1">
-              {active.position} · {active.country}
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-black uppercase text-[#06182e] leading-tight">
+            {/* <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#e09225] mb-1">
+              {active.position} &bull; {active.country}
+            </p> */}
+            {/* <h2 className="text-3xl sm:text-4xl font-black uppercase text-[#06182e] leading-tight">
               {active.name}
+            </h2> */}
+            <span className="inline-block text-[9px] font-bold tracking-[0.25em] uppercase text-[#e09225] border border-[#e09225]/40 px-3 py-1 rounded-full mb-3">
+              {active.position} · {active.country}
+            </span>
+            <h2 className="text-2xl sm:text-2xl lg:text-4xl font-black uppercase text-[#06182e]/20 leading-none tracking-tight -mt-1">
+              {active.name.split(" ")[0]}
+            </h2>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase text-[#06182e] leading-none tracking-tight">
+              {active.name.split(" ").slice(1).join(" ")}
             </h2>
             <div className="flex flex-col items-center gap-3">
               <StarRating rating={active.rating} />
