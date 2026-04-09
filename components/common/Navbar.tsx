@@ -87,7 +87,7 @@ const Navbar = () => {
       <div className="hidden md:flex">
         <Link
           href="/login"
-          className="bg-[#e09225] text-[#FFF5E5] font-bold px-4 py-2 rounded-[5px] uppercase shadow-lg hover:scale-105 transition-all"
+          className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] uppercase shadow-lg hover:scale-105 transition-all"
         >
           Login
         </Link>
