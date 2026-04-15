@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { GlassInputWrapper } from "./GlassInputWrapper";
 import { Button } from "../common/Button";
 import Link from "next/link";
+import api from "@/lib/api/axios";
+import { useRouter } from "next/navigation";
 
 export const SignInPage = ({
   title = (
@@ -15,14 +16,39 @@ export const SignInPage = ({
   heroImageSrc = "https://i.pinimg.com/1200x/d8/c4/0a/d8c40a61ad22d8341ab00bc5ebfdd72d.jpg",
   onForgotPassword,
 }: any) => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
-  const handleSignIn = () => {
-    console.log(form, "login done");
+  const handleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      if (!form.email || !form.password) {
+        setError("Email and password are required");
+        return;
+      }
+
+      await api.post("/auth/login", {
+        email: form.email,
+        password: form.password,
+      });
+
+      // cookies already set by backend
+      router.push("/");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message || err?.message || "Invalid credentials",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -74,6 +100,9 @@ export const SignInPage = ({
                         setForm({ ...form, password: e.target.value })
                       }
                       className="w-full bg-transparent text-[#06182e] text-sm p-4 pr-12 rounded-2xl focus:outline-none placeholder:text-[#06182e]"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSignIn();
+                      }}
                     />
 
                     <button
@@ -111,9 +140,17 @@ export const SignInPage = ({
               </div>
 
               {/* BUTTON */}
-              <Button onClick={handleSignIn} className="w-full font-medium">
+              <Button
+                onClick={handleSignIn}
+                disabled={loading}
+                loading={loading}
+                className="w-full font-medium"
+              >
                 Sign In
               </Button>
+              {error && (
+                <p className="text-sm text-red-500 text-center">{error}</p>
+              )}
             </div>
 
             {/* DIVIDER */}

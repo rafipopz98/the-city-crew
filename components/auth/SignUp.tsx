@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { GlassInputWrapper } from "./GlassInputWrapper";
 import Link from "next/link";
 import { Button } from "../common/Button";
+import api from "@/lib/api/axios";
 
 export const SignUpPage = ({
   title = (
@@ -15,6 +16,8 @@ export const SignUpPage = ({
   description = "Join us today and start your journey.",
   heroImageSrc,
 }: any) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -29,8 +32,38 @@ export const SignUpPage = ({
   const passwordsMismatch =
     form.confirm_password.length > 0 && form.password !== form.confirm_password;
 
-  const handleSignUp = () => {
-    console.log(form, "signup");
+  const handleSignUp = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // basic frontend validation
+      if (!form.firstName || !form.lastName || !form.email || !form.password) {
+        setError("All fields are required");
+        return;
+      }
+
+      if (form.password !== form.confirm_password) {
+        setError("Passwords do not match");
+        return;
+      }
+
+      await api.post("/auth/register", {
+        first_name: form.firstName,
+        last_name: form.lastName,
+        email: form.email,
+        password: form.password,
+      });
+
+      window.location.href = "/";
+    } catch (err: any) {
+      console.log(err);
+      setError(
+        err?.response?.data?.message || err?.message || "Something went wrong",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -171,11 +204,15 @@ export const SignUpPage = ({
               {/* BUTTON */}
               <Button
                 onClick={handleSignUp}
-                disabled={passwordsMismatch}
+                disabled={passwordsMismatch || loading}
+                loading={loading}
                 className="w-full rounded-2xl bg-[#06182e] py-4 text-[#FFF5E5] font-medium hover:opacity-90 transition-all"
               >
                 Sign Up
               </Button>
+              {error && (
+                <p className="text-sm text-red-500 text-center">{error}</p>
+              )}
 
               {/* TERMS */}
               <p className="text-center text-xs text-[#06182e]/50">

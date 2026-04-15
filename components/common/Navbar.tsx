@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const Navbar = () => {
+  const [user, setUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [isAtTop, setIsAtTop] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -12,6 +14,25 @@ const Navbar = () => {
 
   const pathname = usePathname();
   const isHome = pathname === "/";
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+
+        const data = await res.json();
+        setUser(data.user);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     const controlNavbar = () => {
@@ -85,12 +106,19 @@ const Navbar = () => {
 
       {/* Desktop CTA */}
       <div className="hidden md:flex">
-        <Link
-          href="/login"
-          className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] uppercase shadow-lg hover:scale-105 transition-all"
-        >
-          Login
-        </Link>
+        {!loadingUser &&
+          (user ? (
+            <span className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] uppercase shadow-lg">
+              Hi, {user.first_name}
+            </span>
+          ) : (
+            <Link
+              href="/login"
+              className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] uppercase shadow-lg hover:scale-105 transition-all"
+            >
+              Login
+            </Link>
+          ))}
       </div>
 
       {/* Mobile Menu Button */}
@@ -114,14 +142,19 @@ const Navbar = () => {
               {item.replace("-", " ")}
             </Link>
           ))}
-
-          <Link
-            href="/login"
-            className="w-11/12 text-center bg-[#e09225] text-[#FFF5E5] py-2 uppercase rounded-[5px]"
-            onClick={() => setMenuOpen(false)}
-          >
-            Login
-          </Link>
+          {user ? (
+            <div className="w-11/12 text-center bg-[#e09225] text-[#FFF5E5] py-2 uppercase rounded-[5px]">
+              Hi, {user.first_name}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="w-11/12 text-center bg-[#e09225] text-[#FFF5E5] py-2 uppercase rounded-[5px]"
+              onClick={() => setMenuOpen(false)}
+            >
+              Login
+            </Link>
+          )}
         </div>
       )}
     </nav>
