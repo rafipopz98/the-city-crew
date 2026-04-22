@@ -1,14 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import { PollModel } from "@/lib/models/Polls";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
 
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
+
+    const { id } = await context.params; // ✅ fix
 
     // 🔐 Auth
     const user = await getUserFromRequest();
@@ -24,7 +26,7 @@ export async function PUT(
 
     const { title, badge, options } = await req.json();
 
-    const poll = await PollModel.findById(params.id);
+    const poll = await PollModel.findById(id); // ✅ use id
 
     if (!poll) {
       return NextResponse.json({ message: "Poll not found" }, { status: 404 });
@@ -37,7 +39,6 @@ export async function PUT(
     // 🧠 Safe options handling
     const updatedOptions: any[] = [];
 
-    // Loop existing options
     for (const existing of poll.options) {
       const incoming = options.find(
         (o: any) => o._id?.toString() === existing._id.toString(),
@@ -51,7 +52,6 @@ export async function PUT(
             { status: 400 },
           );
         }
-        // safe delete → skip
         continue;
       }
 

@@ -1,13 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import { VoteModel } from "@/lib/models/Votes";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
+
+    const { id } = await context.params; // ✅ fix
 
     const { searchParams } = new URL(req.url);
 
@@ -25,7 +27,7 @@ export async function GET(
     const skip = (page - 1) * limit;
 
     const votes = await VoteModel.find({
-      poll_id: params.id,
+      poll_id: id, // ✅ use id
       option_id,
     })
       .populate("user_id", "first_name last_name email")
@@ -34,7 +36,7 @@ export async function GET(
       .limit(limit);
 
     const total = await VoteModel.countDocuments({
-      poll_id: params.id,
+      poll_id: id, // ✅ use id
       option_id,
     });
 
