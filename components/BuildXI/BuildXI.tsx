@@ -631,7 +631,7 @@ const BuildXI = () => {
                 />
               ))}
             </div>
-            {playersOnPitch.length >= 0 && (
+            {playersOnPitch.length === 11 && (
               <div className="w-full flex justify-center">
                 <Button
                   onClick={handleDownload}
