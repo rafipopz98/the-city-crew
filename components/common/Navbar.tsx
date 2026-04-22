@@ -18,9 +18,12 @@ const Navbar = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("/api/auth/me", {
-          credentials: "include",
-        });
+        let res = await fetch("/api/auth/me");
+
+        if (res.status === 401) {
+          await fetch("/api/auth/refresh", { method: "POST" });
+          res = await fetch("/api/auth/me"); // retry
+        }
 
         const data = await res.json();
         setUser(data.user);

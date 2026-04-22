@@ -4,29 +4,31 @@ import { verifyToken } from "@/lib/auth/jwt";
 
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get("accessToken")?.value;
-
+  const refreshToken = req.cookies.get("refreshToken")?.value;
   const { pathname } = req.nextUrl;
 
-  // public routes
   const publicRoutes = ["/login", "/register"];
 
   if (publicRoutes.includes(pathname)) {
     return NextResponse.next();
   }
 
-  // no token → block
-  if (!token) {
+  // ❌ no tokens at all → block
+  if (!token && !refreshToken) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // verify token
-  const payload = await verifyToken(token);
+  // ⚠️ access expired but refresh exists → allow
+  if (!token && refreshToken) {
+    return NextResponse.next();
+  }
+
+  const payload = await verifyToken(token!);
 
   if (!payload) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.next();
   }
 
-  // role-based protection (example)
   if (pathname.startsWith("/admin") && payload.role !== "admin") {
     return NextResponse.redirect(new URL("/", req.url));
   }
@@ -35,5 +37,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/blog/edit/:path*", "/blog/add", "/admin/:path*"],
+  matcher: ["/admin/:path*"],
 };

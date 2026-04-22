@@ -1,6 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import DraggablePlayer from "./DraggablePlayer";
+import * as htmlToImage from "html-to-image";
+import { Button } from "../common/Button";
+
+const getProxyImage = (url: string) =>
+  `/api/image-proxy?url=${encodeURIComponent(url)}`;
 
 interface Player {
   id: number;
@@ -53,108 +58,156 @@ const FORMATION_LIST = [
   "Free form",
 ];
 
-const ALL_PLAYERS: PlayerTemplate[] = [
+const RAW_PLAYERS: PlayerTemplate[] = [
   {
-    name: "Ederson",
+    name: "James Trafford",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=11",
+    image: "https://images.fotmob.com/image_resources/playerimages/1187213.png",
   },
   {
-    name: "Ortega",
+    name: "Marcus Bettinelli",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=12",
+    image: "https://images.fotmob.com/image_resources/playerimages/363357.png",
   },
   {
-    name: "Walker",
+    name: "Gianluigi Donnarumma",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=13",
+    image: "https://images.fotmob.com/image_resources/playerimages/618878.png",
   },
-  {
-    name: "Akanji",
-    club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=14",
-  },
+
   {
     name: "Rúben Dias",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=15",
+    image: "https://images.fotmob.com/image_resources/playerimages/614006.png",
   },
   {
-    name: "Gvardiol",
+    name: "John Stones",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=16",
+    image: "https://images.fotmob.com/image_resources/playerimages/263653.png",
   },
   {
-    name: "Aké",
+    name: "Nathan Aké",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=17",
+    image: "https://images.fotmob.com/image_resources/playerimages/417068.png",
+  },
+  {
+    name: "Marc Guéhi",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/844425.png",
+  },
+  {
+    name: "Rayan Aït-Nouri",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/933845.png",
+  },
+  {
+    name: "Josko Gvardiol",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/1070712.png",
+  },
+  {
+    name: "Matheus Nunes",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/955529.png",
+  },
+  {
+    name: "Nico O'Reilly",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/1300526.png",
+  },
+  {
+    name: "Abdukodir Khusanov",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/1362998.png",
+  },
+  {
+    name: "Max Alleyne",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/1414691.png",
   },
   {
     name: "Rico Lewis",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=18",
+    image: "https://images.fotmob.com/image_resources/playerimages/1288450.png",
+  },
+
+  {
+    name: "Tijjani Reijnders",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/868344.png",
+  },
+  {
+    name: "Mateo Kovacic",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/239219.png",
+  },
+  {
+    name: "Rayan Cherki",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/1104053.png",
+  },
+  {
+    name: "Nico González",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/1280132.png",
   },
   {
     name: "Rodri",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=19",
+    image: "https://images.fotmob.com/image_resources/playerimages/675088.png",
   },
   {
-    name: "Kovačić",
+    name: "Bernardo Silva",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=20",
+    image: "https://images.fotmob.com/image_resources/playerimages/488139.png",
   },
   {
-    name: "Gündogan",
+    name: "Sverre Halseth Nypan",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=21",
+    image: "https://images.fotmob.com/image_resources/playerimages/1355509.png",
   },
   {
-    name: "Silva",
+    name: "Phil Foden",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=22",
+    image: "https://images.fotmob.com/image_resources/playerimages/815006.png",
+  },
+
+  {
+    name: "Ryan McAidoo",
+    club: "Manchester City",
+    image: "https://images.fotmob.com/image_resources/playerimages/1680328.png",
   },
   {
-    name: "De Bruyne",
+    name: "Omar Marmoush",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=23",
+    image: "https://images.fotmob.com/image_resources/playerimages/839204.png",
   },
   {
-    name: "Foden",
+    name: "Erling Haaland",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=24",
+    image: "https://images.fotmob.com/image_resources/playerimages/737066.png",
   },
   {
-    name: "Doku",
+    name: "Jérémy Doku",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=25",
+    image: "https://images.fotmob.com/image_resources/playerimages/942368.png",
   },
   {
     name: "Savinho",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=26",
+    image: "https://images.fotmob.com/image_resources/playerimages/1174337.png",
   },
   {
-    name: "Grealish",
+    name: "Antoine Semenyo",
     club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=27",
-  },
-  {
-    name: "Haaland",
-    club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=28",
-  },
-  {
-    name: "McAtee",
-    club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=29",
-  },
-  {
-    name: "Nunes",
-    club: "Manchester City",
-    image: "https://i.pravatar.cc/150?img=30",
+    image: "https://images.fotmob.com/image_resources/playerimages/933576.png",
   },
 ];
+
+const ALL_PLAYERS: PlayerTemplate[] = RAW_PLAYERS.map((p) => ({
+  ...p,
+  image: getProxyImage(p.image),
+}));
 
 const generateCoords = (formation: string): [number, number][] => {
   if (formation === "Free form") return [];
@@ -269,6 +322,33 @@ const BuildXI = () => {
   const [lineupName, setLineupName] = useState("");
   const [isFreeMove, setIsFreeMove] = useState(false);
   const [lastFormation, setLastFormation] = useState("4-3-3");
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    const pitch = document.getElementById("pitch");
+    if (!pitch) return;
+
+    try {
+      setIsDownloading(true);
+
+      // optional small delay so loading UI shows
+      await new Promise((r) => setTimeout(r, 200));
+
+      const dataUrl = await htmlToImage.toPng(pitch, {
+        cacheBust: true,
+        pixelRatio: 2, // 🔥 higher quality (2x resolution)
+      });
+
+      const link = document.createElement("a");
+      link.download = `${lineupName || "tcc-lineup"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Download failed", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   useEffect(() => {
     const coords = generateCoords(formation);
@@ -502,7 +582,7 @@ const BuildXI = () => {
         </div>
 
         {/* RIGHT SIDE (60%) */}
-        <div className="w-full lg:w-[60%] flex justify-center">
+        <div className="w-full lg:w-[60%] flex flex-col items-center">
           <div className="w-full max-w-2xl">
             <div
               id="pitch"
@@ -551,6 +631,18 @@ const BuildXI = () => {
                 />
               ))}
             </div>
+            {playersOnPitch.length >= 0 && (
+              <div className="w-full flex justify-center">
+                <Button
+                  onClick={handleDownload}
+                  className="mt-4 px-6 py-3 cursor-pointer rounded-xl bg-[#e09225] text-[#06182e] font-semibold shadow-lg hover:shadow-xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
+                  loading={isDownloading}
+                  disabled={isDownloading}
+                >
+                  Download Lineup Image
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
