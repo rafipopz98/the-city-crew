@@ -7,7 +7,7 @@ export const POST = async (req: NextRequest) => {
   try {
     await connectDB();
 
-    const user = await getUserFromRequest(); // better to pass req
+    const user = await getUserFromRequest(req);
 
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

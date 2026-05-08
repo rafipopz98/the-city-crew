@@ -2,33 +2,113 @@
 
 import { useState } from "react";
 
-const CreatePollModal = ({ open, onClose }: any) => {
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+};
+
+type PollOption = {
+  id: string;
+  text: string;
+};
+
+const CreatePollModal = ({ open, onClose, onSuccess }: Props) => {
   const [title, setTitle] = useState("");
   const [badge, setBadge] = useState("");
-  const [options, setOptions] = useState([
-    { id: "1", text: "", isNew: true },
-    { id: "2", text: "", isNew: true },
+
+  const [loading, setLoading] = useState(false);
+
+  const [options, setOptions] = useState<PollOption[]>([
+    { id: "1", text: "" },
+    { id: "2", text: "" },
   ]);
 
   if (!open) return null;
 
-  const addOption = () => {
+  const resetForm = () => {
+    setTitle("");
+    setBadge("");
+
     setOptions([
-      ...options,
-      { id: Date.now().toString(), text: "", isNew: true },
+      { id: "1", text: "" },
+      { id: "2", text: "" },
+    ]);
+  };
+
+  const addOption = () => {
+    setOptions((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        text: "",
+      },
     ]);
   };
 
   const updateOption = (val: string, index: number) => {
-    const copy = [...options];
-    copy[index].text = val;
-    setOptions(copy);
+    setOptions((prev) => {
+      const copy = [...prev];
+      copy[index].text = val;
+      return copy;
+    });
   };
 
   const removeOption = (index: number) => {
-    const copy = [...options];
-    copy.splice(index, 1);
-    setOptions(copy);
+    setOptions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCreatePoll = async () => {
+    try {
+      const cleanedOptions = options
+        .map((item) => item.text.trim())
+        .filter(Boolean);
+
+      if (!title.trim()) {
+        return alert("Question is required");
+      }
+
+      if (!badge.trim()) {
+        return alert("Badge is required");
+      }
+
+      if (cleanedOptions.length < 2) {
+        return alert("Minimum 2 options required");
+      }
+
+      setLoading(true);
+
+      const res = await fetch("/api/polls/create", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          badge,
+          options: cleanedOptions,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create poll");
+      }
+
+      resetForm();
+
+      onClose();
+
+      onSuccess?.();
+    } catch (error) {
+      console.error(error);
+
+      alert(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,21 +118,23 @@ const CreatePollModal = ({ open, onClose }: any) => {
           {/* Header */}
           <div className="p-5 border-b border-[#06182e]/10 flex justify-between items-center">
             <h2 className="text-lg font-bold text-[#06182e]">Create Poll</h2>
+
             <button onClick={onClose}>✕</button>
           </div>
 
           {/* Body */}
-          <div className="p-5 overflow-y-auto flex-1 min-h-0 flex flex-col gap-6">
+          <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-6">
             {/* Badge */}
             <div>
               <label className="text-xs font-semibold text-[#06182e]/50 uppercase">
                 Badge
               </label>
+
               <input
                 value={badge}
                 onChange={(e) => setBadge(e.target.value)}
-                className="mt-1 w-full border border-[#06182e]/10 rounded-md px-3 py-2 text-sm outline-none focus:border-[#e09225]"
                 placeholder="Trending"
+                className="mt-1 w-full border border-[#06182e]/10 rounded-md px-3 py-2 text-sm"
               />
             </div>
 
@@ -61,11 +143,12 @@ const CreatePollModal = ({ open, onClose }: any) => {
               <label className="text-xs font-semibold text-[#06182e]/50 uppercase">
                 Question
               </label>
+
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 w-full border border-[#06182e]/10 rounded-md px-3 py-2 text-sm outline-none focus:border-[#e09225]"
                 placeholder="Enter poll question"
+                className="mt-1 w-full border border-[#06182e]/10 rounded-md px-3 py-2 text-sm"
               />
             </div>
 
@@ -86,19 +169,18 @@ const CreatePollModal = ({ open, onClose }: any) => {
 
               <div className="flex flex-col gap-3">
                 {options.map((opt, i) => (
-                  <div key={opt.id} className="flex items-center gap-2">
+                  <div key={opt.id} className="flex gap-2">
                     <input
                       value={opt.text}
                       onChange={(e) => updateOption(e.target.value, i)}
-                      className="flex-1 border border-[#06182e]/10 rounded-md px-3 py-2 text-sm outline-none focus:border-[#e09225]"
                       placeholder={`Option ${i + 1}`}
+                      className="flex-1 border border-[#06182e]/10 rounded-md px-3 py-2 text-sm"
                     />
 
-                    {/* Allow delete only if more than 2 options */}
                     {options.length > 2 && (
                       <button
                         onClick={() => removeOption(i)}
-                        className="text-xs text-[#06182e]/40 hover:text-red-500 transition"
+                        className="text-xs text-red-500"
                       >
                         Remove
                       </button>
@@ -111,12 +193,20 @@ const CreatePollModal = ({ open, onClose }: any) => {
 
           {/* Footer */}
           <div className="p-5 border-t border-[#06182e]/10 flex justify-end gap-3">
-            <button onClick={onClose} className="text-sm text-[#06182e]/50">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="text-sm text-[#06182e]/50"
+            >
               Cancel
             </button>
 
-            <button className="bg-[#06182e] text-[#ece1cf] px-5 py-2 rounded-md text-sm font-semibold hover:opacity-90">
-              Create Poll
+            <button
+              onClick={handleCreatePoll}
+              disabled={loading}
+              className="bg-[#06182e] text-[#ece1cf] px-5 py-2 rounded-md text-sm font-semibold"
+            >
+              {loading ? "Creating..." : "Create Poll"}
             </button>
           </div>
         </div>

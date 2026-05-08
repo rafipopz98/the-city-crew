@@ -14,27 +14,46 @@ export async function POST(req: Request) {
 
     const { email, password } = await req.json();
 
-    const user = await UserModel.findOne({ email });
+    // validation
+    if (!email || !password) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email and password are required.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const user = await UserModel.findOne({
+      email: email.toLowerCase().trim(),
+    });
 
     if (!user) {
       return NextResponse.json(
-        { message: "Invalid credentials" },
+        {
+          success: false,
+          message: "Email or password is incorrect.",
+        },
         { status: 401 },
       );
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    if (!isValid) {
+    if (!isPasswordValid) {
       return NextResponse.json(
-        { message: "Invalid credentials" },
+        {
+          success: false,
+          message: "Email or password is incorrect.",
+        },
         { status: 401 },
       );
     }
 
     const userId = user._id.toString();
 
-    // tokens
+    // generate tokens
     const accessToken = await signAccessToken({
       userId,
       role: user.role,
@@ -42,25 +61,35 @@ export async function POST(req: Request) {
 
     const refreshToken = await signRefreshToken({
       userId,
+      role: user.role,
     });
 
-    // store session
+    // create session
     await createSession(userId, hashToken(refreshToken));
 
-    // cookies
+    // set cookies
     await setAuthCookies(accessToken, refreshToken);
 
-    return NextResponse.json({
-      message: "Login successful",
-      user: {
-        id: userId,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  } catch (error) {
     return NextResponse.json(
-      { message: "Something went wrong" },
+      {
+        success: true,
+        message: "Logged in successfully.",
+        data: {
+          id: userId,
+          email: user.email,
+          role: user.role,
+        },
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("LOGIN_ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Something went wrong. Please try again.",
+      },
       { status: 500 },
     );
   }

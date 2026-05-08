@@ -32,3 +32,64 @@
 .para {
   font-family: two;
 }
+
+.transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100svh;
+  display: flex;
+  pointer-events: none;
+  z-index: 999999;
+}
+
+.block {
+  flex: 1;
+  height: 100%;
+  background: #222;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.logo-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: #f7ebd8;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 999999;
+
+  opacity: 0;
+  pointer-events: none;
+}
+
+.logo-container {
+  width: 200px;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.block:nth-child(3n) {
+  background: #f7ebd8;
+}
+
+.block:nth-child(3n + 1) {
+  background: #fff5e5;
+}
+
+.block:nth-child(3n + 2) {
+  background: #fff9f0;
+}
+
+.logo-container img,
+.logo-container svg {
+  filter: drop-shadow(0 8px 18px rgba(224, 146, 37, 0.25));
+}

@@ -1,31 +1,87 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import VotersModal from "@/components/Admin/Polls/VotersModal";
 import EditPollModal from "@/components/Admin/Polls/EditPollModal";
 
-const dummyPoll = {
-  badge: "Trending",
-  title: "Some Question 101?",
-  total_votes: 1240,
-  options: [
-    { id: "1", text: "01.01", votes: 800 },
-    { id: "2", text: "02.02", votes: 440 },
-  ],
+type PollOption = {
+  _id: string;
+  text: string;
+  votes: number;
 };
 
-const PollDetailsPage = () => {
-  const [open, setOpen] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<any>(null);
+type Poll = {
+  _id: string;
+  title: string;
+  badge_text: string;
+  total_votes: number;
+  options: PollOption[];
+};
+
+const PollDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
+  const [poll, setPoll] = useState<Poll | null>(null);
+
+  const [loading, setLoading] = useState(true);
+
+  const [votersOpen, setVotersOpen] = useState(false);
+
+  const [selectedOption, setSelectedOption] = useState<PollOption | null>(null);
+
   const [editOpen, setEditOpen] = useState(false);
 
-  const total = dummyPoll.options.reduce((a, o) => a + o.votes, 0);
+  const fetchPoll = async () => {
+    try {
+      setLoading(true);
 
-  const handleOpen = (opt: any) => {
-    setSelectedOption(opt);
-    setOpen(true);
+      const { id } = await params;
+
+      const res = await fetch(`/api/polls/${id}`, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      setPoll(data.poll || null);
+    } catch (error) {
+      console.error("Failed to fetch poll:", error);
+
+      setPoll(null);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchPoll();
+  }, []);
+
+  const handleOpenVoters = (option: PollOption) => {
+    setSelectedOption(option);
+
+    setVotersOpen(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <p className="text-[#06182e]/50">Loading poll...</p>
+      </div>
+    );
+  }
+
+  if (!poll) {
+    return (
+      <div className="p-6">
+        <p className="text-[#06182e]/50">Poll not found</p>
+      </div>
+    );
+  }
+
+  const totalVotes = poll.options.reduce(
+    (acc, option) => acc + option.votes,
+    0,
+  );
 
   return (
     <div className="flex flex-col">
@@ -33,6 +89,7 @@ const PollDetailsPage = () => {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[#06182e]">Polls</h1>
+
           <p className="text-sm text-[#06182e]/50 mt-1">
             Create and manage community polls
           </p>
@@ -46,10 +103,10 @@ const PollDetailsPage = () => {
         </button>
       </div>
 
-      {/* Centered Container */}
+      {/* Content */}
       <div className="w-full max-w-4xl mx-auto">
-        {/* Back + Edit */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Back */}
+        <div className="mb-6">
           <Link
             href="/admin/polls"
             className="text-sm text-[#06182e]/50 hover:text-[#06182e]"
@@ -58,56 +115,60 @@ const PollDetailsPage = () => {
           </Link>
         </div>
 
-        {/* Content */}
-
-        {/* Content */}
-        <div className="w-full max-w-4xl bg-white/70 rounded-xl p-6">
-          {/* Poll Header */}
+        {/* Poll Card */}
+        <div className="w-full bg-white/70 rounded-xl p-6">
+          {/* Poll Info */}
           <div className="mb-8">
             <span className="text-[10px] uppercase tracking-wider text-[#e09225] font-bold">
-              {dummyPoll.badge}
+              {poll.badge_text}
             </span>
 
-            <h2 className="text-2xl font-bold text-[#06182e] mt-2 leading-tight">
-              {dummyPoll.title}
+            <h2 className="text-2xl font-bold text-[#06182e] mt-2">
+              {poll.title}
             </h2>
 
             <p className="text-sm text-[#06182e]/50 mt-2">
-              {dummyPoll.total_votes} total votes
+              {poll.total_votes} total votes
             </p>
           </div>
 
-          {/* Options */}
+          {/* Poll Options */}
           <div className="flex flex-col gap-4">
-            {dummyPoll.options.map((opt) => {
-              const pct = Math.round((opt.votes / total) * 100);
+            {poll.options.map((option) => {
+              const percentage =
+                totalVotes > 0
+                  ? Math.round((option.votes / totalVotes) * 100)
+                  : 0;
 
               return (
                 <div
-                  key={opt.id}
+                  key={option._id}
                   className="rounded-lg p-4 hover:bg-white/80 transition"
                 >
                   {/* Top */}
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-[#06182e]">
-                      {opt.text}
+                      {option.text}
                     </span>
+
                     <span className="text-sm font-bold text-[#e09225]">
-                      {pct}%
+                      {percentage}%
                     </span>
                   </div>
 
-                  {/* Bar */}
+                  {/* Progress */}
                   <div className="w-full h-2 bg-[#06182e]/5 rounded mb-3 overflow-hidden">
                     <div
                       className="h-full bg-[#e09225] rounded transition-all duration-500"
-                      style={{ width: `${pct}%` }}
+                      style={{
+                        width: `${percentage}%`,
+                      }}
                     />
                   </div>
 
-                  {/* Voters */}
+                  {/* View voters */}
                   <button
-                    onClick={() => handleOpen(opt)}
+                    onClick={() => handleOpenVoters(option)}
                     className="text-xs text-[#06182e]/40 hover:text-[#e09225] transition"
                   >
                     View voters →
@@ -116,20 +177,24 @@ const PollDetailsPage = () => {
               );
             })}
           </div>
-
-          {/* Modal */}
-          <VotersModal
-            open={open}
-            onClose={() => setOpen(false)}
-            option={selectedOption}
-          />
-          <EditPollModal
-            open={editOpen}
-            onClose={() => setEditOpen(false)}
-            poll={dummyPoll}
-          />
         </div>
       </div>
+
+      {/* Voters Modal */}
+      <VotersModal
+        open={votersOpen}
+        onClose={() => setVotersOpen(false)}
+        option={selectedOption}
+        pollId={poll._id}
+      />
+
+      {/* Edit Modal */}
+      <EditPollModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        poll={poll}
+        onSuccess={fetchPoll}
+      />
     </div>
   );
 };

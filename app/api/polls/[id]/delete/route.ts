@@ -13,7 +13,7 @@ export async function DELETE(
     const { id } = await context.params; // ✅ important fix
 
     // 🔐 Auth
-    const user = await getUserFromRequest();
+    const user = await getUserFromRequest(req);
 
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

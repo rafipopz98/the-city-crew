@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import { PollModel } from "@/lib/models/Polls";
 import { VoteModel } from "@/lib/models/Votes";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
     // 🔐 Auth
-    const user = await getUserFromRequest();
+    const user = await getUserFromRequest(req);
 
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

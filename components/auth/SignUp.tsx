@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { GlassInputWrapper } from "./GlassInputWrapper";
 import Link from "next/link";
@@ -16,6 +17,11 @@ export const SignUpPage = ({
   description = "Join us today and start your journey.",
   heroImageSrc,
 }: any) => {
+  const router = useRouter();
+
+  const searchParams = useSearchParams();
+
+  const redirect = searchParams.get("redirect") || "/";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -55,7 +61,7 @@ export const SignUpPage = ({
         password: form.password,
       });
 
-      window.location.href = "/";
+      router.push(redirect);
     } catch (err: any) {
       console.log(err);
       setError(
@@ -238,7 +244,10 @@ export const SignUpPage = ({
             {/* FOOTER */}
             <p className="text-center text-sm text-[#06182e]/50">
               Already have an account?{" "}
-              <Link href="/login" className="text-[#e09225] hover:underline">
+              <Link
+                className="text-[#e09225] hover:underline"
+                href={`/login?redirect=${encodeURIComponent(redirect)}`}
+              >
                 Sign In
               </Link>
             </p>

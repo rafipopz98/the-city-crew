@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SmoothScrollWrapper from "@/Wrapper/SmoothScrollWrapper";
 import QueryProvider from "@/components/providers/QueryProviders";
+import { Toaster } from "sonner";
+import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,9 +32,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SmoothScrollWrapper>
-          <QueryProvider>{children}</QueryProvider>
-        </SmoothScrollWrapper>
+        <AuthProvider>
+          <Toaster />
+          <SmoothScrollWrapper>
+            <QueryProvider>{children}</QueryProvider>
+          </SmoothScrollWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

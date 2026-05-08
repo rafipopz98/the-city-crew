@@ -1,6 +1,21 @@
 import Navbar from "@/components/common/Navbar";
 
-const layout = ({ children }: { children: React.ReactNode }) => {
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+import { verifyToken } from "@/lib/auth/jwt";
+
+const Layout = async ({ children }: { children: React.ReactNode }) => {
+  const accessToken = (await cookies()).get("accessToken")?.value;
+
+  if (accessToken) {
+    const payload = await verifyToken(accessToken);
+
+    if (payload) {
+      redirect("/");
+    }
+  }
+
   return (
     <div>
       <Navbar />
@@ -9,4 +24,4 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export default layout;
+export default Layout;

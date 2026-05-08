@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 type Poll = {
-  id: number;
+  id: string;
   title: string;
   badge: string;
   total_votes: number;

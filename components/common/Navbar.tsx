@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const Navbar = () => {
-  const [user, setUser] = useState<any>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const { user, loading } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const [isAtTop, setIsAtTop] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -14,28 +14,6 @@ const Navbar = () => {
 
   const pathname = usePathname();
   const isHome = pathname === "/";
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        let res = await fetch("/api/auth/me");
-
-        if (res.status === 401) {
-          await fetch("/api/auth/refresh", { method: "POST" });
-          res = await fetch("/api/auth/me"); // retry
-        }
-
-        const data = await res.json();
-        setUser(data.user);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoadingUser(false);
-      }
-    };
-
-    fetchUser();
-  }, []);
 
   useEffect(() => {
     const controlNavbar = () => {
@@ -108,16 +86,35 @@ const Navbar = () => {
       </div>
 
       {/* Desktop CTA */}
-      <div className="hidden md:flex">
-        {!loadingUser &&
+      <div className="hidden md:flex items-center gap-3">
+        {!loading &&
           (user ? (
-            <span className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] uppercase shadow-lg">
-              Hi, {user.first_name}
-            </span>
+            <>
+              {/* User badge */}
+              <span className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] capitalize shadow-lg">
+                Hi, {user.first_name}
+              </span>
+
+              {/* Admin dashboard */}
+              {user.role === "admin" && (
+                <Link
+                  href="/admin/dashboard"
+                  className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] capitalize shadow-lg"
+                >
+                  <span className="relative z-10">Admin Dashboard</span>
+                </Link>
+              )}
+            </>
           ) : (
             <Link
               href="/login"
-              className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] uppercase shadow-lg hover:scale-105 transition-all"
+              className="
+          bg-[#e09225] text-[#FFF5E5]
+          font-bold px-3 py-1.5
+          rounded-[5px] uppercase
+          shadow-lg hover:scale-105
+          transition-all
+        "
             >
               Login
             </Link>
@@ -145,6 +142,21 @@ const Navbar = () => {
               {item.replace("-", " ")}
             </Link>
           ))}
+          {user?.role === "admin" && (
+            <Link
+              href="/admin/dashboard"
+              className="
+      w-11/12 text-center
+      bg-[#06182e]
+      border border-[#e09225]
+      text-[#FFF5E5]
+      py-2 uppercase rounded-[5px]
+    "
+              onClick={() => setMenuOpen(false)}
+            >
+              Admin Dashboard
+            </Link>
+          )}
           {user ? (
             <div className="w-11/12 text-center bg-[#e09225] text-[#FFF5E5] py-2 uppercase rounded-[5px]">
               Hi, {user.first_name}

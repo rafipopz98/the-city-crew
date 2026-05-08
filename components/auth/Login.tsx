@@ -7,6 +7,9 @@ import { Button } from "../common/Button";
 import Link from "next/link";
 import api from "@/lib/api/axios";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useSearchParams } from "next/navigation";
 
 export const SignInPage = ({
   title = (
@@ -16,6 +19,9 @@ export const SignInPage = ({
   heroImageSrc = "https://i.pinimg.com/1200x/d8/c4/0a/d8c40a61ad22d8341ab00bc5ebfdd72d.jpg",
   onForgotPassword,
 }: any) => {
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/";
+  const { refreshUser } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,24 +34,40 @@ export const SignInPage = ({
   const handleSignIn = async () => {
     try {
       setLoading(true);
-      setError("");
 
       if (!form.email || !form.password) {
-        setError("Email and password are required");
+        toast.error("Email and password are required.");
         return;
       }
 
-      await api.post("/auth/login", {
-        email: form.email,
-        password: form.password,
+      await api.post("/auth/login", form);
+
+      // refresh global auth state
+      await refreshUser();
+
+      toast.success("Welcome back", {
+        description: "You have successfully signed in.",
       });
 
-      // cookies already set by backend
-      router.push("/");
+      router.push(redirect);
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || err?.message || "Invalid credentials",
-      );
+      const status = err?.response?.status;
+
+      const message = err?.response?.data?.message;
+
+      if (status === 400) {
+        toast.error("Missing Information", {
+          description: message || "Please enter your email and password.",
+        });
+      } else if (status === 401) {
+        toast.error("Sign In Failed", {
+          description: message || "Email or password is incorrect.",
+        });
+      } else {
+        toast.error("Something Went Wrong", {
+          description: "Please try again.",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -161,7 +183,10 @@ export const SignInPage = ({
             {/* FOOTER */}
             <p className="text-center text-sm text-[#06182e]/50">
               New here?{" "}
-              <Link href="/sign-up" className="text-[#e09225] hover:underline">
+              <Link
+                className="text-[#e09225] hover:underline"
+                href={`/sign-up?redirect=${encodeURIComponent(redirect)}`}
+              >
                 Create Account
               </Link>
             </p>

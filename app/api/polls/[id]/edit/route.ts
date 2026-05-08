@@ -13,11 +13,12 @@ export async function PUT(
     const { id } = await context.params; // ✅ fix
 
     // 🔐 Auth
-    const user = await getUserFromRequest();
+    const user = await getUserFromRequest(req);
 
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+    console.log(user);
 
     // 🔒 Admin only
     if (user.role !== "admin") {

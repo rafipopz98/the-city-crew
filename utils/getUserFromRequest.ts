@@ -1,15 +1,18 @@
-import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth/jwt";
+import { NextRequest } from "next/server";
 
-export const getUserFromRequest = async () => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("accessToken")?.value;
+export const getUserFromRequest = async (req: NextRequest) => {
+  const token = req.cookies.get("accessToken")?.value;
 
-  if (!token) return null;
+  if (!token) {
+    return null;
+  }
 
   const payload = await verifyToken(token);
 
-  if (!payload) return null;
+  if (!payload) {
+    return null;
+  }
 
   return {
     userId: payload.userId,

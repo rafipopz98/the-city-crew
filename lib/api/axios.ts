@@ -8,14 +8,22 @@ const api = axios.create({
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
+const AUTH_ROUTES = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/refresh",
+  "/auth/logout",
+];
+
 const processQueue = (error: any) => {
-  failedQueue.forEach((prom) => {
+  failedQueue.forEach((promise) => {
     if (error) {
-      prom.reject(error);
+      promise.reject(error);
     } else {
-      prom.resolve(null);
+      promise.resolve(null);
     }
   });
+
   failedQueue = [];
 };
 
@@ -24,10 +32,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    const isAuthRoute = AUTH_ROUTES.some((route) =>
+      originalRequest?.url?.includes(route),
+    );
+
+    // Let login/register errors go back to UI
+    if (isAuthRoute) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
+          failedQueue.push({
+            resolve,
+            reject,
+          });
         }).then(() => api(originalRequest));
       }
 
@@ -35,18 +55,23 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // call refresh endpoint
-        await axios.post("/api/auth/refresh", {}, { withCredentials: true });
+        await axios.post(
+          "/api/auth/refresh",
+          {},
+          {
+            withCredentials: true,
+          },
+        );
 
         processQueue(null);
-        return api(originalRequest); // retry original request
-      } catch (err) {
-        processQueue(err);
 
-        // optional: redirect to login
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError);
+
         window.location.href = "/login";
 
-        return Promise.reject(err);
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
