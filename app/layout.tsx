@@ -34,9 +34,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <Toaster />
-          <SmoothScrollWrapper>
+          {/* <SmoothScrollWrapper> */}
             <QueryProvider>{children}</QueryProvider>
-          </SmoothScrollWrapper>
+          {/* </SmoothScrollWrapper> */}
         </AuthProvider>
       </body>
     </html>

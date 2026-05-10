@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 type Props = {
   open: boolean;
@@ -65,15 +66,21 @@ const CreatePollModal = ({ open, onClose, onSuccess }: Props) => {
         .filter(Boolean);
 
       if (!title.trim()) {
-        return alert("Question is required");
+        return toast.warning("Question is required", {
+          description: "Please enter a question.",
+        });
       }
 
       if (!badge.trim()) {
-        return alert("Badge is required");
+        return toast.warning("Badge is required", {
+          description: "Please enter a badge.",
+        });
       }
 
       if (cleanedOptions.length < 2) {
-        return alert("Minimum 2 options required");
+        return toast.warning("At least 2 options required", {
+          description: "Please add at least 2 options.",
+        });
       }
 
       setLoading(true);
@@ -105,7 +112,9 @@ const CreatePollModal = ({ open, onClose, onSuccess }: Props) => {
     } catch (error) {
       console.error(error);
 
-      alert(error instanceof Error ? error.message : "Something went wrong");
+      toast.error("Failed to create poll", {
+        description: (error as Error).message,
+      });
     } finally {
       setLoading(false);
     }

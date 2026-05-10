@@ -1,26 +1,36 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function SmoothScrollWrapper({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     let locomotiveScroll: any;
 
-    // Dynamic import to avoid SSR errors
     (async () => {
       const LocomotiveScroll = (await import("locomotive-scroll")).default;
-      locomotiveScroll = new LocomotiveScroll();
+
+      if (scrollRef.current) {
+        locomotiveScroll = new LocomotiveScroll({
+          el: scrollRef.current,
+          smooth: true,
+        } as any);
+      }
     })();
 
-    // Optional: Cleanup on unmount
     return () => {
-      if (locomotiveScroll) locomotiveScroll.destroy();
+      locomotiveScroll?.destroy();
     };
   }, []);
 
-  return <>{children}</>;
+  return (
+    <div ref={scrollRef} data-scroll-container>
+      {children}
+    </div>
+  );
 }

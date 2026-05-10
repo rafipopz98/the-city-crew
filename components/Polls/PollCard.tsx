@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { toast } from "sonner";
 
 type Option = {
   _id: string;
@@ -83,7 +84,10 @@ const PollCard = ({ poll, onVoteSuccess }: Props) => {
 
       onVoteSuccess?.();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Vote failed");
+      console.error("Failed to vote:", error);
+      toast.error("Vote failed", {
+        description: error instanceof Error ? error.message : "Vote failed",
+      });
     }
   };
 

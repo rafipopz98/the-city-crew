@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 type PollOption = {
   _id?: string;
@@ -87,15 +88,21 @@ const EditPollModal = ({ open, onClose, poll, onSuccess }: Props) => {
       );
 
       if (!title.trim()) {
-        return alert("Question is required");
+        return toast.warning("Question is required", {
+          description: "Please enter a question.",
+        });
       }
 
       if (!badge.trim()) {
-        return alert("Badge is required");
+        return toast.warning("Badge is required", {
+          description: "Please enter a badge.",
+        });
       }
 
       if (cleanedOptions.length < 2) {
-        return alert("At least 2 options required");
+        return toast.warning("At least 2 options required", {
+          description: "Please add at least 2 options.",
+        });
       }
 
       const res = await fetch(`/api/polls/${poll._id}/edit`, {
@@ -123,7 +130,9 @@ const EditPollModal = ({ open, onClose, poll, onSuccess }: Props) => {
     } catch (error) {
       console.error(error);
 
-      alert(error instanceof Error ? error.message : "Something went wrong");
+      toast.error("Update failed", {
+        description: (error as Error).message,
+      });
     } finally {
       setLoading(false);
     }
