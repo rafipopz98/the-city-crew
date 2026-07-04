@@ -15,8 +15,8 @@ export const playerImages = [
   },
   {
     name: "Gianluigi Donnarumma",
-    verticalImage: "/players-image/gianluigi-donnarumma-vertical.webp",
-    roundImage: "/players-image/gianluigi-donnarumma-round.png",
+    verticalImage: "/players-image/donnaruma-vertical.webp",
+    roundImage: "/players-image/donnaruma-round.png",
     alt: "Gianluigi Donnarumma",
     value: "gianluigi-donnarumma",
   },
@@ -42,7 +42,7 @@ export const playerImages = [
     value: "vitor-reis",
   },
   {
-    name: "Rúben Dias",
+    name: "Ruben Dias",
     verticalImage: "/players-image/ruben-dias-vertical.webp",
     roundImage: "/players-image/ruben-dias-round.png",
     alt: "Rúben Dias",
@@ -84,7 +84,7 @@ export const playerImages = [
     value: "josh-wilson-esbrand",
   },
   {
-    name: "Rayan Aït-Nouri",
+    name: "Rayan Ait-Nouri",
     verticalImage: "/players-image/rayan-ait-nouri-vertical.webp",
     roundImage: "/players-image/rayan-ait-nouri-round.png",
     alt: "Rayan Aït-Nouri",
@@ -176,8 +176,8 @@ export const playerImages = [
   },
   {
     name: "Antoine Semenyo",
-    verticalImage: "/players-image/antoine-semenyo-vertical.webp",
-    roundImage: "/players-image/antoine-semenyo-round.png",
+    verticalImage: "/players-image/semenyo-vertical.webp",
+    roundImage: "/players-image/semenyo-round.png",
     alt: "Antoine Semenyo",
     value: "antoine-semenyo",
   },

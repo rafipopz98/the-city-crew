@@ -3,7 +3,11 @@
 import Image from "next/image";
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { playerImages } from "@/public/players-image";
 
+const playerImageMap = Object.fromEntries(
+  playerImages.map((player) => [player.name, player.verticalImage]),
+);
 type Player = {
   name: string;
   number: string;
@@ -22,8 +26,7 @@ const PLAYERS: Player[] = [
     number: "09",
     position: "Forward",
     country: "Norway",
-    image:
-      "https://www.mancity.com/meta/media/dkrjtgah/erling-haaland-elec-blue.png",
+    image: playerImageMap["Erling Haaland"],
     goals: 22,
     assists: 7,
     cleanSheets: 0,
@@ -35,8 +38,7 @@ const PLAYERS: Player[] = [
     number: "47",
     position: "Midfielder",
     country: "England",
-    image:
-      "https://www.mancity.com/meta/media/zojjpqqc/phil-foden-elec-blue.png",
+    image: playerImageMap["Phil Foden"],
     goals: 7,
     assists: 3,
     cleanSheets: 0,
@@ -48,7 +50,7 @@ const PLAYERS: Player[] = [
     number: "16",
     position: "Midfielder",
     country: "Spain",
-    image: "https://www.mancity.com/meta/media/g2levm42/rodri-elec-blue.png",
+    image: playerImageMap["Rodri"],
     goals: 4,
     assists: 5,
     cleanSheets: 0,
@@ -60,8 +62,7 @@ const PLAYERS: Player[] = [
     number: "11",
     position: "Winger",
     country: "Belgium",
-    image:
-      "https://www.mancity.com/meta/media/q5nblgds/jeremy-doku-elec-blue.png",
+    image: playerImageMap["Jérémy Doku"],
     goals: 5,
     assists: 4,
     cleanSheets: 0,
@@ -73,8 +74,7 @@ const PLAYERS: Player[] = [
     number: "10",
     position: "Midfielder",
     country: "France",
-    image:
-      "https://www.mancity.com/meta/media/zxxnrwdk/rayan-cherki-elec-blue.png",
+    image: playerImageMap["Rayan Cherki"],
     goals: 3,
     assists: 8,
     cleanSheets: 0,
@@ -86,7 +86,7 @@ const PLAYERS: Player[] = [
     number: "42",
     position: "Forward",
     country: "Ghana",
-    image: "https://www.mancity.com/meta/media/jucjgjfh/semenyo-elec-blue.png",
+    image: playerImageMap["Antoine Semenyo"],
     goals: 15,
     assists: 4,
     cleanSheets: 0,
@@ -98,8 +98,7 @@ const PLAYERS: Player[] = [
     number: "21",
     position: "Midfielder",
     country: "France",
-    image:
-      "https://www.mancity.com/meta/media/3yicpatt/rayan-ait-nouri-elec-blue.png?width=900&quality=100",
+    image: playerImageMap["Rayan Ait-Nouri"],
     goals: 4,
     assists: 2,
     cleanSheets: 0,
@@ -111,8 +110,7 @@ const PLAYERS: Player[] = [
     number: "1",
     position: "Goal Keeper",
     country: "England",
-    image:
-      "https://www.mancity.com/meta/media/r0ph5qs1/james-trafford-elec-blue.png?width=900&quality=100",
+    image: playerImageMap["James Trafford"],
     goals: 0,
     assists: 0,
     cleanSheets: 14,
@@ -124,8 +122,7 @@ const PLAYERS: Player[] = [
     number: "25",
     position: "Goal Keeper",
     country: "Italy",
-    image:
-      "https://www.mancity.com/meta/media/4run0q5j/donnaruma-elec-blue.png?width=900&quality=100",
+    image: playerImageMap["Gianluigi Donnarumma"],
     goals: 0,
     assists: 0,
     cleanSheets: 14,
@@ -137,8 +134,7 @@ const PLAYERS: Player[] = [
     number: "3",
     position: "Defender",
     country: "Portugal",
-    image:
-      "https://www.mancity.com/meta/media/fk4lwkni/ruben-dias-elec-blue.png?width=900&quality=100",
+    image: playerImageMap["Ruben Dias"],
     goals: 0,
     assists: 1,
     cleanSheets: 14,
@@ -150,8 +146,7 @@ const PLAYERS: Player[] = [
     number: "24",
     position: "Defender",
     country: "Croatia",
-    image:
-      "https://www.mancity.com/meta/media/afjd5irm/josko-gvardiol-elec-blue.png?width=900&quality=100",
+    image: playerImageMap["Josko Gvardiol"],
     goals: 0,
     assists: 0,
     cleanSheets: 0,
