@@ -11,41 +11,36 @@ const SettingRow = ({ label, children }: Props) => {
   return (
     <div
       className="
-        flex
-        flex-col
-        gap-4
+    flex
+    flex-col
+    gap-3
 
-        border-b
-        border-black/10
+    border-b
+    border-black/10
 
-        pb-6
+    pb-4
 
-        md:flex-row
-        md:items-center
-      "
+    md:flex-row
+    md:items-center
+  "
     >
-      {/* Label */}
-
       <div
         className="
-          w-full
-          shrink-0
+      w-full
+      shrink-0
 
-          md:w-56
-        "
+      md:w-52
+    "
       >
         <p
           className="
-            text-sm
-
-            text-black/60
-          "
+        text-sm
+        text-black/60
+      "
         >
           {label}
         </p>
       </div>
-
-      {/* Input */}
 
       <div className="flex-1">{children}</div>
     </div>
