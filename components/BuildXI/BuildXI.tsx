@@ -456,13 +456,7 @@ const BuildXI = () => {
               style={{ aspectRatio: "1/1" }}
             >
               <PitchSvg />
-              <Image
-                src={Logo}
-                alt="Logo"
-                priority
-                draggable={false}
-                className="absolute bottom-1 right-2 sm:bottom-6 sm:right-6 w-10 sm:w-20 opacity-80 pointer-events-none select-none"
-              />
+
 
               {slots.map((coord, i) => {
                 const isOccupied = playersOnPitch.some(

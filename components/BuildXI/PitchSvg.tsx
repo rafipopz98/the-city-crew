@@ -8,7 +8,6 @@ export default function PitchSvg() {
       preserveAspectRatio="none"
       className="absolute inset-0 w-full h-full"
     >
-      {/* Background */}
       <defs>
         <radialGradient id="pitchBg" cx="50%" cy="45%">
           <stop offset="0%" stopColor="#0b2242" />
@@ -18,7 +17,6 @@ export default function PitchSvg() {
 
       <rect width="1000" height="1000" fill="url(#pitchBg)" />
 
-      {/* Outer Border */}
       <rect
         x="12"
         y="12"
@@ -30,7 +28,6 @@ export default function PitchSvg() {
         strokeWidth="4"
       />
 
-      {/* Top Half Centre Circle */}
       <circle
         cx="500"
         cy="12"
@@ -40,7 +37,6 @@ export default function PitchSvg() {
         strokeWidth="4"
       />
 
-      {/* Bottom Penalty Area */}
       <rect
         x="250"
         y="750"
@@ -51,7 +47,6 @@ export default function PitchSvg() {
         strokeWidth="4"
       />
 
-      {/* Six Yard Box */}
       <rect
         x="385"
         y="890"
@@ -62,7 +57,6 @@ export default function PitchSvg() {
         strokeWidth="4"
       />
 
-      {/* Goal */}
       <rect
         x="470"
         y="988"
@@ -73,31 +67,30 @@ export default function PitchSvg() {
         strokeWidth="4"
       />
 
-      {/* Penalty Spot */}
       <circle cx="500" cy="820" r="4" fill={STROKE} />
 
-      {/* Penalty Arc */}
       <path
-        d="
-        M410 750
-        A90 90 0 0 1
-        590 750
-      "
+        d="M410 750 A90 90 0 0 1 590 750"
         fill="none"
         stroke={STROKE}
         strokeWidth="4"
       />
 
-      {/* Bottom Left Corner Arc */}
       <path
-        d="
-        M12 940
-        A48 48 0 0 1
-        60 988
-      "
+        d="M12 940 A48 48 0 0 1 60 988"
         fill="none"
         stroke={STROKE}
         strokeWidth="4"
+      />
+
+      <image
+        href="/logo.svg"
+        x="820"
+        y="825"
+        width="190"
+        height="150"
+        opacity="0.8"
+        preserveAspectRatio="xMidYMid meet"
       />
     </svg>
   );
