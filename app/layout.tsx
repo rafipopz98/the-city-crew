@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import SmoothScrollWrapper from "@/Wrapper/SmoothScrollWrapper";
 import QueryProvider from "@/components/providers/QueryProviders";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";

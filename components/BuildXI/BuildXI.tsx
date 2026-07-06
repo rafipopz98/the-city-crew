@@ -4,6 +4,7 @@ import DraggablePlayer from "./DraggablePlayer";
 import * as htmlToImage from "html-to-image";
 import { Button } from "../common/Button";
 import { playerImages } from "@/public/players-image";
+import PitchSvg from "./PitchSvg";
 
 const firstName = (fullName: string) => fullName.trim().split(" ")[0];
 
@@ -92,8 +93,8 @@ const EmptySlot = ({ x, y, index, onClick }: any) => (
     style={{ left: `${x}%`, top: `${y}%` }}
     className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center cursor-pointer group"
   >
-    <div className="w-13 h-13 rounded-full border-2 border-dashed border-[#e09225]/40 bg-[#e09225]/5 flex items-center justify-center group-hover:bg-[#e09225]/10 transition">
-      <span className="text-[#e09225] text-xl font-bold">+</span>
+    <div className="w-8 h-8 sm:w-13 sm:h-13 rounded-full border-2 border-dashed border-[#e09225]/40 bg-[#e09225]/5 flex items-center justify-center group-hover:bg-[#e09225]/10 transition">
+      <span className="text-[#e09225] text-sm sm:text-xl font-bold">+</span>
     </div>
   </div>
 );
@@ -213,37 +214,54 @@ const BuildXI = () => {
 
       const dataUrl = await htmlToImage.toPng(pitch, {
         cacheBust: true,
-        pixelRatio: 2,
+        pixelRatio: 3,
       });
 
       const blob = await (await fetch(dataUrl)).blob();
-      const fileName = `${lineupName || "tcc-lineup"}.png`;
-      const file = new File([blob], fileName, { type: "image/png" });
 
-      // On mobile, native share sheet is far more reliable than a
-      // programmatic <a download> click (iOS Safari often just no-ops it).
-      if (
-        typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [file] })
-      ) {
-        await navigator.share({ files: [file], title: fileName });
-        return;
-      }
-
-      // Desktop fallback
       const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = blobUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${lineupName || "tcc-lineup"}.png`;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
       URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      console.error("Download failed", err);
-      alert("Couldn't generate the image, please try again.");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!navigator.share) {
+      alert("Sharing isn't supported on this device.");
+      return;
+    }
+
+    const pitch = document.getElementById("pitch");
+    if (!pitch) return;
+
+    try {
+      const dataUrl = await htmlToImage.toPng(pitch, {
+        cacheBust: true,
+        pixelRatio: 3,
+      });
+
+      const blob = await (await fetch(dataUrl)).blob();
+
+      const file = new File([blob], `${lineupName || "tcc-lineup"}.png`, {
+        type: "image/png",
+      });
+
+      await navigator.share({
+        title: "My Manchester City XI",
+        files: [file],
+      });
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -432,14 +450,14 @@ const BuildXI = () => {
           <div className="w-full max-w-2xl">
             <div
               id="pitch"
-              className="relative w-full rounded-2xl overflow-hidden border border-[#e09225]/20 bg-[#06182e]/5"
+              className="relative w-full overflow-hidden border border-[#e09225]/20 bg-[#06182e]/5"
               style={{ aspectRatio: "1/1" }}
             >
+              <PitchSvg />
               <img
-                src="/pitch.jpg"
-                alt="pitch"
-                className="absolute inset-0 w-full h-full object-cover"
-                draggable={false}
+                src="/logo.png"
+                alt="The City Crew"
+                className="absolute bottom-1 right-2 sm:bottom-6 sm:right-6 w-10 sm:w-20 opacity-80 pointer-events-none select-none"
               />
 
               {slots.map((coord, i) => {
@@ -471,14 +489,22 @@ const BuildXI = () => {
             </div>
 
             {playersOnPitch.length === 11 && (
-              <div className="w-full flex justify-center">
+              <div className="w-full mt-4 flex flex-col sm:flex-row justify-center gap-3">
                 <Button
                   onClick={handleDownload}
-                  className="mt-4 px-6 py-3 cursor-pointer rounded-xl bg-[#e09225] text-[#06182e] font-semibold shadow-lg hover:shadow-xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
                   loading={isDownloading}
                   disabled={isDownloading}
+                  className="px-6 py-3 bg-[#e09225] text-[#06182e] font-semibold rounded-xl"
                 >
-                  Download Lineup Image
+                  Download PNG
+                </Button>
+
+                <Button
+                  onClick={handleShare}
+                  disabled={isDownloading}
+                  className="px-6 py-3 border border-[#e09225] text-[#e09225] bg-transparent rounded-xl"
+                >
+                  Share
                 </Button>
               </div>
             )}
