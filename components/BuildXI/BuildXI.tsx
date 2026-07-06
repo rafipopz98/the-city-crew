@@ -5,6 +5,8 @@ import * as htmlToImage from "html-to-image";
 import { Button } from "../common/Button";
 import { playerImages } from "@/public/players-image";
 import PitchSvg from "./PitchSvg";
+import Logo from "@/public/logo.png";
+import Image from "next/image";
 
 const firstName = (fullName: string) => fullName.trim().split(" ")[0];
 
@@ -454,9 +456,11 @@ const BuildXI = () => {
               style={{ aspectRatio: "1/1" }}
             >
               <PitchSvg />
-              <img
-                src="/logo.png"
-                alt="The City Crew"
+              <Image
+                src={Logo}
+                alt="Logo"
+                priority
+                draggable={false}
                 className="absolute bottom-1 right-2 sm:bottom-6 sm:right-6 w-10 sm:w-20 opacity-80 pointer-events-none select-none"
               />
 
