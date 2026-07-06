@@ -1,12 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import DraggablePlayer from "./DraggablePlayer";
-import * as htmlToImage from "html-to-image";
+import { domToBlob } from "modern-screenshot";
+import { toast } from "sonner";
 import { Button } from "../common/Button";
 import { playerImages } from "@/public/players-image";
 import PitchSvg from "./PitchSvg";
-import Logo from "@/public/logo.png";
-import Image from "next/image";
 
 const firstName = (fullName: string) => fullName.trim().split(" ")[0];
 
@@ -209,61 +208,83 @@ const BuildXI = () => {
 
   const handleDownload = async () => {
     const pitch = document.getElementById("pitch");
-    if (!pitch) return;
+
+    if (!pitch) {
+      toast.error("Couldn't find the pitch.");
+      return;
+    }
 
     try {
       setIsDownloading(true);
 
-      const dataUrl = await htmlToImage.toPng(pitch, {
-        cacheBust: true,
-        pixelRatio: 3,
+      const blob = await domToBlob(pitch, {
+        scale: Math.max(window.devicePixelRatio, 2),
       });
 
-      const blob = await (await fetch(dataUrl)).blob();
+      const fileName = `${lineupName || "tcc-lineup"}.png`;
 
-      const blobUrl = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
 
       const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `${lineupName || "tcc-lineup"}.png`;
+      a.href = url;
+      a.download = fileName;
 
       document.body.appendChild(a);
       a.click();
       a.remove();
 
-      URL.revokeObjectURL(blobUrl);
+      URL.revokeObjectURL(url);
+
+      toast.success("Lineup downloaded!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate lineup image.");
     } finally {
       setIsDownloading(false);
     }
   };
 
   const handleShare = async () => {
-    if (!navigator.share) {
-      alert("Sharing isn't supported on this device.");
+    const pitch = document.getElementById("pitch");
+
+    if (!pitch) {
+      toast.error("Couldn't find the pitch.");
       return;
     }
 
-    const pitch = document.getElementById("pitch");
-    if (!pitch) return;
+    if (!navigator.share) {
+      toast.error("Sharing isn't supported on this device.");
+      return;
+    }
 
     try {
-      const dataUrl = await htmlToImage.toPng(pitch, {
-        cacheBust: true,
-        pixelRatio: 3,
-      });
+      setIsDownloading(true);
 
-      const blob = await (await fetch(dataUrl)).blob();
+      const blob = await domToBlob(pitch, {
+        scale: Math.max(window.devicePixelRatio, 2),
+      });
 
       const file = new File([blob], `${lineupName || "tcc-lineup"}.png`, {
         type: "image/png",
       });
 
+      if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+        toast.error("This device can't share images.");
+        return;
+      }
+
       await navigator.share({
         title: "My Manchester City XI",
         files: [file],
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+
+      if (err?.name !== "AbortError") {
+        toast.error("Failed to share lineup.");
+      }
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -457,7 +478,6 @@ const BuildXI = () => {
             >
               <PitchSvg />
 
-
               {slots.map((coord, i) => {
                 const isOccupied = playersOnPitch.some(
                   (p) => p.slotIndex === i,
@@ -522,5 +542,3 @@ const BuildXI = () => {
 };
 
 export default BuildXI;
-
-// need to fix the selected player size round one and rhen no logo in mobile device
