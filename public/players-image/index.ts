@@ -50,8 +50,8 @@ export const playerImages = [
   },
   {
     name: "Marc Guéhi",
-    verticalImage: "/players-image/marc-guehi-vertical.webp",
-    roundImage: "/players-image/marc-guehi-round.png",
+    verticalImage: "/players-image/marc-gue-vertical.webp",
+    roundImage: "/players-image/marc-gue-round.png",
     alt: "Marc Guéhi",
     value: "marc-guehi",
   },
@@ -77,13 +77,6 @@ export const playerImages = [
     value: "max-alleyne",
   },
   {
-    name: "Josh Wilson-Esbrand",
-    verticalImage: "/players-image/josh-wilson-esbrand-vertical.webp",
-    roundImage: "/players-image/josh-wilson-esbrand-round.png",
-    alt: "Josh Wilson-Esbrand",
-    value: "josh-wilson-esbrand",
-  },
-  {
     name: "Rayan Ait-Nouri",
     verticalImage: "/players-image/rayan-ait-nouri-vertical.webp",
     roundImage: "/players-image/rayan-ait-nouri-round.png",
@@ -96,20 +89,6 @@ export const playerImages = [
     roundImage: "/players-image/nico-oreilly-round.png",
     alt: "Nico O'Reilly",
     value: "nico-oreilly",
-  },
-  {
-    name: "Issa Kaboré",
-    verticalImage: "/players-image/issa-kabore-vertical.webp",
-    roundImage: "/players-image/issa-kabore-round.png",
-    alt: "Issa Kaboré",
-    value: "issa-kabore",
-  },
-  {
-    name: "Elliot Anderson",
-    verticalImage: "/players-image/elliot-anderson-vertical.webp",
-    roundImage: "/players-image/elliot-anderson-round.png",
-    alt: "Elliot Anderson",
-    value: "elliot-anderson",
   },
   {
     name: "Mateo Kovacic",
@@ -155,8 +134,8 @@ export const playerImages = [
   },
   {
     name: "Sverre Halseth Nypan",
-    verticalImage: "/players-image/sverre-halseth-nypan-vertical.webp",
-    roundImage: "/players-image/sverre-halseth-nypan-round.png",
+    verticalImage: "/players-image/sverre-nypan-vertical.webp",
+    roundImage: "/players-image/sverre-nypan-round.png",
     alt: "Sverre Halseth Nypan",
     value: "sverre-halseth-nypan",
   },
@@ -166,13 +145,6 @@ export const playerImages = [
     roundImage: "/players-image/phil-foden-round.png",
     alt: "Phil Foden",
     value: "phil-foden",
-  },
-  {
-    name: "Ryan McAidoo",
-    verticalImage: "/players-image/ryan-mcaidoo-vertical.webp",
-    roundImage: "/players-image/ryan-mcaidoo-round.png",
-    alt: "Ryan McAidoo",
-    value: "ryan-mcaidoo",
   },
   {
     name: "Antoine Semenyo",

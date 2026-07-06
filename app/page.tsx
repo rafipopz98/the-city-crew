@@ -6,7 +6,6 @@ import Projects from "../components/Landing-Page/Projects";
 import Socials from "../components/Landing-Page/Socials";
 import StandingsSection from "../components/Landing-Page/StandingSection";
 import Footer from "@/components/common/Footer";
-import BuildXI from "@/components/BuildXI/BuildXI";
 
 const LandingPage = () => {
   return (
@@ -17,7 +16,6 @@ const LandingPage = () => {
       <StandingsSection />
       <OurWork />
       <Projects />
-      <BuildXI />
       <Socials />
       <Footer />
     </>

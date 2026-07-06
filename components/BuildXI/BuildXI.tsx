@@ -3,9 +3,9 @@ import { useState, useEffect, useRef } from "react";
 import DraggablePlayer from "./DraggablePlayer";
 import * as htmlToImage from "html-to-image";
 import { Button } from "../common/Button";
+import { playerImages } from "@/public/players-image";
 
-const getProxyImage = (url: string) =>
-  `/api/image-proxy?url=${encodeURIComponent(url)}`;
+const firstName = (fullName: string) => fullName.trim().split(" ")[0];
 
 interface Player {
   id: number;
@@ -18,6 +18,7 @@ interface Player {
 }
 
 interface PlayerTemplate {
+  value: string;
   name: string;
   image: string;
   club: string;
@@ -58,155 +59,13 @@ const FORMATION_LIST = [
   "Free form",
 ];
 
-const RAW_PLAYERS: PlayerTemplate[] = [
-  {
-    name: "James Trafford",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1187213.png",
-  },
-  {
-    name: "Marcus Bettinelli",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/363357.png",
-  },
-  {
-    name: "Gianluigi Donnarumma",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/618878.png",
-  },
-
-  {
-    name: "Rúben Dias",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/614006.png",
-  },
-  {
-    name: "John Stones",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/263653.png",
-  },
-  {
-    name: "Nathan Aké",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/417068.png",
-  },
-  {
-    name: "Marc Guéhi",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/844425.png",
-  },
-  {
-    name: "Rayan Aït-Nouri",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/933845.png",
-  },
-  {
-    name: "Josko Gvardiol",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1070712.png",
-  },
-  {
-    name: "Matheus Nunes",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/955529.png",
-  },
-  {
-    name: "Nico O'Reilly",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1300526.png",
-  },
-  {
-    name: "Abdukodir Khusanov",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1362998.png",
-  },
-  {
-    name: "Max Alleyne",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1414691.png",
-  },
-  {
-    name: "Rico Lewis",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1288450.png",
-  },
-
-  {
-    name: "Tijjani Reijnders",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/868344.png",
-  },
-  {
-    name: "Mateo Kovacic",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/239219.png",
-  },
-  {
-    name: "Rayan Cherki",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1104053.png",
-  },
-  {
-    name: "Nico González",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1280132.png",
-  },
-  {
-    name: "Rodri",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/675088.png",
-  },
-  {
-    name: "Bernardo Silva",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/488139.png",
-  },
-  {
-    name: "Sverre Halseth Nypan",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1355509.png",
-  },
-  {
-    name: "Phil Foden",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/815006.png",
-  },
-
-  {
-    name: "Ryan McAidoo",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1680328.png",
-  },
-  {
-    name: "Omar Marmoush",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/839204.png",
-  },
-  {
-    name: "Erling Haaland",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/737066.png",
-  },
-  {
-    name: "Jérémy Doku",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/942368.png",
-  },
-  {
-    name: "Savinho",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/1174337.png",
-  },
-  {
-    name: "Antoine Semenyo",
-    club: "Manchester City",
-    image: "https://images.fotmob.com/image_resources/playerimages/933576.png",
-  },
-];
-
-const ALL_PLAYERS: PlayerTemplate[] = RAW_PLAYERS.map((p) => ({
-  ...p,
-  image: getProxyImage(p.image),
+// Local round images only — no proxying, no per-player network requests,
+// and (important) same-origin images so the export canvas never gets tainted.
+const ALL_PLAYERS: PlayerTemplate[] = playerImages.map((p) => ({
+  value: p.value,
+  name: p.name,
+  club: "Manchester City",
+  image: p.roundImage,
 }));
 
 const generateCoords = (formation: string): [number, number][] => {
@@ -224,21 +83,12 @@ const generateCoords = (formation: string): [number, number][] => {
   return coords;
 };
 
-// ─── Empty slot ───────────────────────────────────────────────────────────────
-const EmptySlot = ({ x, y, onClick, onDropPlayer }: any) => (
+// ─── Empty slot ─────────────────────────────────────────────────────────────
+// data-slot-index is what DraggablePlayer's pointer hit-test looks for
+const EmptySlot = ({ x, y, index, onClick }: any) => (
   <div
+    data-slot-index={index}
     onClick={onClick}
-    onDragOver={(e) => e.preventDefault()}
-    onDrop={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const draggedId = Number(e.dataTransfer.getData("playerId"));
-      onDropPlayer(draggedId);
-      if (!draggedId) return;
-      // mark as handled (so no free flow)
-      e.dataTransfer.setData("swapped", "true");
-    }}
     style={{ left: `${x}%`, top: `${y}%` }}
     className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center cursor-pointer group"
   >
@@ -248,27 +98,49 @@ const EmptySlot = ({ x, y, onClick, onDropPlayer }: any) => (
   </div>
 );
 
-// ─── Player modal ─────────────────────────────────────────────────────────────
-const PlayerModal = ({ onSelect, onClose }: any) => {
+// ─── Player modal ───────────────────────────────────────────────────────────
+const PlayerModal = ({ onSelect, onClose, excludeNames }: any) => {
   const [query, setQuery] = useState("");
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => inputRef.current?.focus(), []);
+  useEffect(() => {
+    inputRef.current?.focus();
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const vv = window.visualViewport;
+    const updateHeight = () => vv && setViewportHeight(vv.height);
+    updateHeight();
+    vv?.addEventListener("resize", updateHeight);
+    vv?.addEventListener("scroll", updateHeight);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      vv?.removeEventListener("resize", updateHeight);
+      vv?.removeEventListener("scroll", updateHeight);
+    };
+  }, []);
 
-  const filtered = ALL_PLAYERS.filter((p) =>
-    p.name.toLowerCase().includes(query.toLowerCase()),
-  );
+  const available = ALL_PLAYERS.filter((p) => !excludeNames.includes(p.name));
+  const list = query
+    ? available.filter((p) =>
+        p.name.toLowerCase().includes(query.toLowerCase()),
+      )
+    : available;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      style={viewportHeight ? { height: viewportHeight } : undefined}
+    >
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-
-      <div className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-[#FFF5E5] max-h-[80vh] overflow-hidden shadow-2xl">
-        {/* Search */}
-        <div className="p-4 border-b border-[#06182e]/10">
+      <div
+        className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-[#FFF5E5] shadow-2xl flex flex-col overflow-hidden"
+        style={{ maxHeight: viewportHeight ? viewportHeight * 0.92 : "80vh" }}
+      >
+        <div className="p-4 border-b border-[#06182e]/10 shrink-0">
           <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-[#06182e]/5">
             <input
               ref={inputRef}
@@ -277,40 +149,49 @@ const PlayerModal = ({ onSelect, onClose }: any) => {
               placeholder="Search player..."
               className="flex-1 bg-transparent text-[#06182e] text-sm outline-none placeholder:text-[#06182e]/30"
             />
-            <button onClick={onClose} className="text-[#e09225] text-sm">
+            <button
+              onClick={onClose}
+              className="text-[#e09225] text-sm shrink-0"
+            >
               Cancel
             </button>
           </div>
         </div>
 
-        {/* List */}
         <div
-          className="overflow-y-auto max-h-[60vh] overscroll-contain scroll-smooth"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-smooth"
           onWheel={(e) => e.stopPropagation()}
         >
-          {(query ? filtered : ALL_PLAYERS).map((p) => (
+          {list.map((p) => (
             <button
-              key={p.name}
+              key={p.value}
               onClick={() => onSelect(p)}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#06182e]/5 transition"
             >
               <img
                 src={p.image}
-                className="w-10 h-10 rounded-full border border-[#e09225]/40"
+                alt={p.name}
+                className="w-10 h-10 rounded-full border border-[#e09225]/40 object-cover"
               />
-              <div className="text-left">
-                <p className="text-[#06182e] text-sm font-medium">{p.name}</p>
-                <p className="text-xs text-[#06182e]/40">{p.club}</p>
-              </div>
+              <p className="text-[#06182e] text-sm font-medium text-left">
+                {firstName(p.name)}
+              </p>
             </button>
           ))}
+          {list.length === 0 && (
+            <p className="text-center text-sm text-[#06182e]/40 py-8">
+              {excludeNames.length >= ALL_PLAYERS.length
+                ? "All players added"
+                : "No players found"}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main ───────────────────────────────────────────────────────────────────
 const BuildXI = () => {
   const [formation, setFormation] = useState("4-3-3");
   const [showFormationMenu, setShowFormationMenu] = useState(false);
@@ -320,7 +201,6 @@ const BuildXI = () => {
   const [slotTarget, setSlotTarget] = useState<number | null>(null);
   const [recent, setRecent] = useState<string[]>([]);
   const [lineupName, setLineupName] = useState("");
-  const [isFreeMove, setIsFreeMove] = useState(false);
   const [lastFormation, setLastFormation] = useState("4-3-3");
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -331,20 +211,37 @@ const BuildXI = () => {
     try {
       setIsDownloading(true);
 
-      // optional small delay so loading UI shows
-      await new Promise((r) => setTimeout(r, 200));
-
       const dataUrl = await htmlToImage.toPng(pitch, {
         cacheBust: true,
-        pixelRatio: 2, // 🔥 higher quality (2x resolution)
+        pixelRatio: 2,
       });
 
+      const blob = await (await fetch(dataUrl)).blob();
+      const fileName = `${lineupName || "tcc-lineup"}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      // On mobile, native share sheet is far more reliable than a
+      // programmatic <a download> click (iOS Safari often just no-ops it).
+      if (
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({ files: [file], title: fileName });
+        return;
+      }
+
+      // Desktop fallback
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `${lineupName || "tcc-lineup"}.png`;
-      link.href = dataUrl;
+      link.download = fileName;
+      link.href = blobUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error("Download failed", err);
+      alert("Couldn't generate the image, please try again.");
     } finally {
       setIsDownloading(false);
     }
@@ -354,21 +251,11 @@ const BuildXI = () => {
     const coords = generateCoords(formation);
     setSlots(coords);
     if (formation !== "Free form") {
-      setPlayersOnPitch((prev) => {
-        return prev.map((p, i) => {
-          // only reposition if slot exists AND player was originally aligned
-          if (coords[i]) {
-            return {
-              ...p,
-              x: coords[i][0],
-              y: coords[i][1],
-            };
-          }
-
-          // otherwise keep current position
-          return p;
-        });
-      });
+      setPlayersOnPitch((prev) =>
+        prev.map((p, i) =>
+          coords[i] ? { ...p, x: coords[i][0], y: coords[i][1] } : p,
+        ),
+      );
     }
   }, [formation]);
 
@@ -378,33 +265,22 @@ const BuildXI = () => {
 
     setPlayersOnPitch((prev) =>
       prev.map((p) =>
-        p.id === playerId
-          ? {
-              ...p,
-              x: coord[0],
-              y: coord[1],
-              slotIndex,
-            }
-          : p,
+        p.id === playerId ? { ...p, x: coord[0], y: coord[1], slotIndex } : p,
       ),
     );
   };
 
   useEffect(() => {
     const baseFormation = formation === "Free form" ? lastFormation : formation;
-
-    const coords = generateCoords(baseFormation);
-    setSlots(coords);
+    setSlots(generateCoords(baseFormation));
   }, [formation, lastFormation]);
 
   const openModal = (slotIndex?: number) => {
     if (playersOnPitch.length >= 11) return;
-
     setSlotTarget(slotIndex ?? null);
     setModalOpen(true);
   };
 
-  // KEY LOGIC: if player already on pitch → move them to target slot
   const handleSelect = (template: PlayerTemplate) => {
     const targetCoord =
       slotTarget !== null && slots[slotTarget] ? slots[slotTarget] : null;
@@ -413,7 +289,6 @@ const BuildXI = () => {
       const existingIndex = prev.findIndex((p) => p.name === template.name);
 
       if (existingIndex !== -1) {
-        // Player already placed — move to new slot coordinates
         if (targetCoord) {
           return prev.map((p, i) =>
             i === existingIndex
@@ -426,10 +301,9 @@ const BuildXI = () => {
               : p,
           );
         }
-        return prev; // free form + already exists → no-op
+        return prev;
       }
 
-      // New player
       const newPlayer: Player = {
         ...template,
         id: Date.now(),
@@ -456,12 +330,11 @@ const BuildXI = () => {
     setPlayersOnPitch((prev) =>
       prev.map((p) => (p.id === id ? { ...p, x, y } : p)),
     );
-
     if (options?.shouldFreeMove) {
-      setIsFreeMove(true);
       setFormation((prev) => (prev === "Free form" ? prev : "Free form"));
     }
   };
+
   const handleSwap = (aId: number, bId: number) => {
     setPlayersOnPitch((prev) => {
       const updated = prev.map((p) => ({ ...p }));
@@ -470,6 +343,7 @@ const BuildXI = () => {
       if (!a || !b) return prev;
       [a.x, b.x] = [b.x, a.x];
       [a.y, b.y] = [b.y, a.y];
+      [a.slotIndex, b.slotIndex] = [b.slotIndex, a.slotIndex];
       return updated;
     });
   };
@@ -482,31 +356,10 @@ const BuildXI = () => {
     setLineupName("");
   };
 
-  useEffect(() => {
-    if (formation === "Free form") return;
-
-    const coords = generateCoords(formation);
-    setSlots(coords);
-
-    setPlayersOnPitch((prev) =>
-      prev.map((p) => {
-        if (p.slotIndex !== undefined && coords[p.slotIndex]) {
-          return {
-            ...p,
-            x: coords[p.slotIndex][0],
-            y: coords[p.slotIndex][1],
-          };
-        }
-        return p;
-      }),
-    );
-  }, [formation]);
-
   return (
     <section className="w-full min-h-screen flex flex-col bg-[#FFF5E5] text-[#06182e]">
       {/* HEADER */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#e09225]/20 bg-[#FFF5E5]">
-        {/* Formation pill */}
         <div className="relative">
           <button
             onClick={() => setShowFormationMenu((v) => !v)}
@@ -538,7 +391,6 @@ const BuildXI = () => {
                       setFormation(f);
                       setLastFormation(f);
                     }
-
                     setShowFormationMenu(false);
                   }}
                   className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
@@ -562,11 +414,8 @@ const BuildXI = () => {
         </button>
       </div>
 
-      {/* SCROLLABLE AREA */}
       <div className="flex px-4 py-6 gap-6">
-        {/* LEFT SIDE (40%) */}
         <div className="hidden lg:flex w-[40%] min-h-150 bg-[#06182e] text-[#FFF5E5] rounded-2xl p-8 flex-col justify-between">
-          {/* TOP */}
           <div>
             <h1 className="text-6xl xl:text-7xl font-bold leading-[0.9] uppercase">
               Build
@@ -576,21 +425,16 @@ const BuildXI = () => {
               <span className="text-[#e09225]">XI</span>
             </h1>
           </div>
-
-          {/* BOTTOM (optional extra UI later) */}
           <div className="text-xs text-[#FFF5E5]/40">TCC Lineup Builder</div>
         </div>
 
-        {/* RIGHT SIDE (60%) */}
         <div className="w-full lg:w-[60%] flex flex-col items-center">
           <div className="w-full max-w-2xl">
             <div
               id="pitch"
               className="relative w-full rounded-2xl overflow-hidden border border-[#e09225]/20 bg-[#06182e]/5"
               style={{ aspectRatio: "1/1" }}
-              onDragOver={(e) => e.preventDefault()}
             >
-              {/* Your custom navy/gold pitch */}
               <img
                 src="/pitch.jpg"
                 alt="pitch"
@@ -598,39 +442,34 @@ const BuildXI = () => {
                 draggable={false}
               />
 
-              {slots.length > 0 &&
-                slots.length > 0 &&
-                slots.map((coord, i) => {
-                  const isOccupied = playersOnPitch.some(
-                    (p) => p.slotIndex === i,
-                  );
+              {slots.map((coord, i) => {
+                const isOccupied = playersOnPitch.some(
+                  (p) => p.slotIndex === i,
+                );
+                if (isOccupied) return null;
+                return (
+                  <EmptySlot
+                    key={`slot-${i}`}
+                    x={coord[0]}
+                    y={coord[1]}
+                    index={i}
+                    onClick={() => playersOnPitch.length < 11 && openModal(i)}
+                  />
+                );
+              })}
 
-                  if (isOccupied) return null;
-
-                  return (
-                    <EmptySlot
-                      key={`slot-${i}`}
-                      x={coord[0]}
-                      y={coord[1]}
-                      onClick={() => playersOnPitch.length < 11 && openModal(i)}
-                      onDropPlayer={(playerId: number) =>
-                        handleDropToSlot(playerId, i)
-                      }
-                    />
-                  );
-                })}
-
-              {/* Placed players */}
               {playersOnPitch.map((p) => (
                 <DraggablePlayer
                   key={p.id}
                   player={p}
                   updatePosition={updatePosition}
                   onSwap={handleSwap}
+                  onDropToSlot={handleDropToSlot}
                   onRemove={handleRemove}
                 />
               ))}
             </div>
+
             {playersOnPitch.length === 11 && (
               <div className="w-full flex justify-center">
                 <Button
@@ -647,12 +486,11 @@ const BuildXI = () => {
         </div>
       </div>
 
-      {/* MODAL */}
       {modalOpen && (
         <PlayerModal
           onSelect={handleSelect}
           onClose={() => setModalOpen(false)}
-          recent={recent}
+          excludeNames={playersOnPitch.map((p) => p.name)}
         />
       )}
     </section>
@@ -660,29 +498,3 @@ const BuildXI = () => {
 };
 
 export default BuildXI;
-
-const PlayerRow = ({
-  p,
-  onSelect,
-}: {
-  p: PlayerTemplate;
-  onSelect: (p: PlayerTemplate) => void;
-}) => (
-  <button
-    onClick={() => onSelect(p)}
-    className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
-  >
-    <img
-      src={p.image}
-      alt={p.name}
-      className="w-10 h-10 rounded-full object-cover"
-      style={{ border: "1.5px solid rgba(201,168,76,0.4)" }}
-    />
-    <div>
-      <p className="text-white text-sm font-medium">{p.name}</p>
-      <p className="text-xs" style={{ color: "rgba(201,168,76,0.5)" }}>
-        {p.club}
-      </p>
-    </div>
-  </button>
-);
