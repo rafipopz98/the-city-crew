@@ -141,8 +141,7 @@ const DraggablePlayer = ({
     >
       <div className="relative">
         <div
-          style={{ width: 52, height: 52 }}
-          className="rounded-full border-2 border-[#e09225]/40 overflow-hidden shadow-md bg-[#FFF5E5] pointer-events-none"
+          className="w-7 h-7 sm:w-13 sm:h-13 rounded-full border-2 border-[#e09225]/40 overflow-hidden shadow-md bg-[#FFF5E5] pointer-events-none"
         >
           <img
             src={player.image}
@@ -164,7 +163,7 @@ const DraggablePlayer = ({
         )}
       </div>
 
-      <span className="mt-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-[#FFF5E5]/90 text-[#06182e] border border-[#e09225]/30 backdrop-blur-sm whitespace-nowrap pointer-events-none">
+      <span className="mt-1 text-[6px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#FFF5E5]/90 text-[#06182e] border border-[#e09225]/30 backdrop-blur-sm whitespace-nowrap pointer-events-none">
         {firstName(player.name)}
       </span>
     </div>

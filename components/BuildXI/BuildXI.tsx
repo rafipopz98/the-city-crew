@@ -524,3 +524,5 @@ const BuildXI = () => {
 };
 
 export default BuildXI;
+
+// need to fix the selected player size round one and rhen no logo in mobile device
