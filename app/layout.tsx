@@ -1,10 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SmoothScrollWrapper from "@/Wrapper/SmoothScrollWrapper";
 import QueryProvider from "@/components/providers/QueryProviders";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +40,7 @@ export default function RootLayout({
         <AuthProvider>
           <Toaster />
           {/* <SmoothScrollWrapper> */}
-            <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>{children}</QueryProvider>
           {/* </SmoothScrollWrapper> */}
         </AuthProvider>
       </body>
