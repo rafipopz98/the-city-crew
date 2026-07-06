@@ -61,37 +61,55 @@ const VotersModal = ({ open, onClose, option, pollId }: Props) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-lg rounded-xl p-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] shadow-2xl">
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-[#06182e]">{option?.text} voters</h2>
+        <div className="flex items-center justify-between border-b border-[#06182e]/10 px-6 py-5">
+          <div>
+            <h2 className="text-xl font-bold text-[#06182e]">{option?.text}</h2>
 
-          <button onClick={onClose}>✕</button>
+            <p className="mt-1 text-sm text-[#06182e]/55">
+              People who voted for this option
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[#06182e]/60 transition-colors hover:bg-[#06182e]/8 hover:text-[#06182e]"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Body */}
-        <div className="max-h-100 overflow-y-auto flex flex-col gap-3">
+        <div className="max-h-125 space-y-3 overflow-y-auto p-6">
           {loading ? (
-            <p className="text-sm text-[#06182e]/50">Loading voters...</p>
+            <div className="py-12 text-center text-sm text-[#06182e]/55">
+              Loading voters...
+            </div>
           ) : voters.length === 0 ? (
-            <p className="text-sm text-[#06182e]/50">No voters yet</p>
+            <div className="rounded-xl border border-dashed border-[#06182e]/15 bg-white/50 py-12 text-center">
+              <p className="font-medium text-[#06182e]">No voters yet</p>
+              <p className="mt-1 text-sm text-[#06182e]/55">
+                Votes will appear here once people participate.
+              </p>
+            </div>
           ) : (
             voters.map((voter, index) => (
               <div
                 key={index}
-                className="border border-[#06182e]/10 rounded-md p-3 text-sm"
+                className="rounded-xl border border-[#06182e]/10 bg-white/60 p-4 transition-colors hover:bg-white/80"
               >
                 <div className="font-semibold text-[#06182e]">
                   {voter.user?.first_name} {voter.user?.last_name || ""}
                 </div>
 
-                <div className="text-[#06182e]/50 text-xs">
+                <div className="mt-1 text-sm text-[#06182e]/55">
                   {voter.user?.email}
                 </div>
 
-                <div className="text-[#06182e]/40 text-[10px] mt-1">
-                  {new Date(voter.voted_at).toLocaleString()}
+                <div className="mt-2 text-xs text-[#06182e]/40">
+                  Voted on {new Date(voter.voted_at).toLocaleString()}
                 </div>
               </div>
             ))

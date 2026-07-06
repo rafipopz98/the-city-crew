@@ -86,54 +86,51 @@ const PollDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-10 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#06182e]">Polls</h1>
+          <h1 className="text-3xl font-bold text-[#06182e]">Poll Details</h1>
 
-          <p className="text-sm text-[#06182e]/50 mt-1">
-            Create and manage community polls
+          <p className="mt-2 text-sm text-[#06182e]/55">
+            Review poll performance and manage responses
           </p>
         </div>
 
         <button
           onClick={() => setEditOpen(true)}
-          className="bg-[#06182e] text-[#ece1cf] px-5 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition"
+          className="rounded-lg bg-[#06182e] px-5 py-2.5 text-sm font-semibold text-[#ece1cf] transition-opacity hover:opacity-90"
         >
           Edit Poll
         </button>
       </div>
 
-      {/* Content */}
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="mx-auto w-full max-w-4xl">
         {/* Back */}
-        <div className="mb-6">
-          <Link
-            href="/admin/polls"
-            className="text-sm text-[#06182e]/50 hover:text-[#06182e]"
-          >
-            ← Back to polls
-          </Link>
-        </div>
+        <Link
+          href="/admin/polls"
+          className="mb-6 inline-flex items-center text-sm font-medium text-[#06182e]/55 transition-colors hover:text-[#06182e]"
+        >
+          ← Back to Polls
+        </Link>
 
-        {/* Poll Card */}
-        <div className="w-full bg-white/70 rounded-xl p-6">
+        {/* Card */}
+        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf]/35 p-8">
           {/* Poll Info */}
-          <div className="mb-8">
-            <span className="text-[10px] uppercase tracking-wider text-[#e09225] font-bold">
+          <div className="border-b border-[#06182e]/10 pb-6">
+            <span className="inline-flex rounded-full bg-[#e09225]/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#e09225]">
               {poll.badge_text}
             </span>
 
-            <h2 className="text-2xl font-bold text-[#06182e] mt-2">
+            <h2 className="mt-4 text-3xl font-bold leading-tight text-[#06182e]">
               {poll.title}
             </h2>
 
-            <p className="text-sm text-[#06182e]/50 mt-2">
+            <p className="mt-3 text-sm text-[#06182e]/60">
               {poll.total_votes} total votes
             </p>
           </div>
 
-          {/* Poll Options */}
-          <div className="flex flex-col gap-4">
+          {/* Options */}
+          <div className="mt-8 space-y-5">
             {poll.options.map((option) => {
               const percentage =
                 totalVotes > 0
@@ -143,33 +140,36 @@ const PollDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
               return (
                 <div
                   key={option._id}
-                  className="rounded-lg p-4 hover:bg-white/80 transition"
+                  className="rounded-xl border border-[#06182e]/8 bg-white/60 p-5 transition-all duration-200 hover:border-[#06182e]/15 hover:bg-white/80"
                 >
-                  {/* Top */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-[#06182e]">
-                      {option.text}
-                    </span>
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold text-[#06182e]">
+                        {option.text}
+                      </h3>
 
-                    <span className="text-sm font-bold text-[#e09225]">
+                      <p className="mt-1 text-sm text-[#06182e]/50">
+                        {option.votes} vote{option.votes !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+
+                    <span className="text-lg font-bold text-[#e09225]">
                       {percentage}%
                     </span>
                   </div>
 
-                  {/* Progress */}
-                  <div className="w-full h-2 bg-[#06182e]/5 rounded mb-3 overflow-hidden">
+                  <div className="mb-4 h-2.5 overflow-hidden rounded-full bg-[#06182e]/8">
                     <div
-                      className="h-full bg-[#e09225] rounded transition-all duration-500"
+                      className="h-full rounded-full bg-[#e09225] transition-all duration-500"
                       style={{
                         width: `${percentage}%`,
                       }}
                     />
                   </div>
 
-                  {/* View voters */}
                   <button
                     onClick={() => handleOpenVoters(option)}
-                    className="text-xs text-[#06182e]/40 hover:text-[#e09225] transition"
+                    className="text-sm font-medium text-[#06182e]/60 transition-colors hover:text-[#e09225]"
                   >
                     View voters →
                   </button>
@@ -180,7 +180,6 @@ const PollDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         </div>
       </div>
 
-      {/* Voters Modal */}
       <VotersModal
         open={votersOpen}
         onClose={() => setVotersOpen(false)}
@@ -188,7 +187,6 @@ const PollDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         pollId={poll._id}
       />
 
-      {/* Edit Modal */}
       <EditPollModal
         open={editOpen}
         onClose={() => setEditOpen(false)}

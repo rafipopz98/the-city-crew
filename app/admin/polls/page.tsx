@@ -3,6 +3,7 @@
 import { usePolls } from "@/app/hooks/usePolls";
 import CreatePollModal from "@/components/Admin/Polls/CreatePollModal";
 import PollCard from "@/components/Admin/Polls/PollCard";
+import PollCardSkeleton from "@/components/Admin/Polls/PollCardSkeleton";
 import { useState } from "react";
 
 const AdminPollsPage = () => {
@@ -31,7 +32,7 @@ const AdminPollsPage = () => {
 
       <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5">
         {loading ? (
-          <p>Loading polls...</p>
+          Array.from({ length: 4 }).map((_, i) => <PollCardSkeleton key={i} />)
         ) : polls.length > 0 ? (
           polls.map((poll) => (
             <PollCard
@@ -46,7 +47,16 @@ const AdminPollsPage = () => {
             />
           ))
         ) : (
-          <p>No polls found.</p>
+          <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#06182e]/15 bg-[#ece1cf]/35 py-20 text-center">
+            <h3 className="text-lg font-semibold text-[#06182e]">
+              No polls found
+            </h3>
+
+            <p className="mt-2 max-w-sm text-sm text-[#06182e]/55">
+              There are no polls yet. Create your first poll to start engaging
+              your community.
+            </p>
+          </div>
         )}
       </div>
 

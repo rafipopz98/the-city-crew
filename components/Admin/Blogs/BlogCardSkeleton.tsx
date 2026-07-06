@@ -3,7 +3,7 @@ export default function BlogCardSkeleton() {
     <div
       className="
         animate-pulse
-        bg-white
+        bg-[#e09225]/5
         border border-[#06182e]/10
         rounded-2xl
         overflow-hidden

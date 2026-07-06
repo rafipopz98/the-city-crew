@@ -5,8 +5,7 @@ import Image from "next/image";
 import { Eye, Heart, MessageSquare, Pencil, Trash2, Star } from "lucide-react";
 
 import { toast } from "sonner";
-
-import EditBlogModal from "@/components/Admin/Blogs/EditBlogModal";
+import CreateBlogModal from "./CreateBlogModal";
 
 type Props = {
   blog: any;
@@ -58,7 +57,7 @@ const BlogCard = ({ blog, onSuccess }: Props) => {
       <div
         className="
           group
-          bg-white
+        bg-[#e09225]/5
           border border-[#06182e]/10
           rounded-2xl
           overflow-hidden
@@ -205,20 +204,15 @@ const BlogCard = ({ blog, onSuccess }: Props) => {
           </div>
         </div>
       </div>
-
-      <EditBlogModal
+      <CreateBlogModal
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        blog={blog}
         onSuccess={() => {
           setEditOpen(false);
-
-          toast.success("Blog updated", {
-            description: "Changes saved successfully.",
-          });
-
           onSuccess?.();
         }}
+        mode="edit"
+        initialData={blog}
       />
     </>
   );

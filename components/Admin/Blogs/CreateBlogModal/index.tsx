@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -13,20 +13,12 @@ import StepBasics from "../../Refined-blogs/StepBasic";
 import StepStory from "../../Refined-blogs/StepStory";
 import StepPublish from "../../Refined-blogs/StepPublish";
 
-const initialState = {
-  title: "",
-  thumbnail: "",
-  excerpt: "",
-  tags: [] as string[],
-  status: "draft" as "draft" | "published" | "hidden",
-  isFeatured: false,
-  blocks: [] as Block[],
-};
-
 export default function CreateBlogModal({
   open,
   onClose,
   onSuccess,
+  mode = "create",
+  initialData = null,
 }: CreateBlogModalProps) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -34,25 +26,49 @@ export default function CreateBlogModal({
   const [thumbnailError, setThumbnailError] = useState<string | undefined>();
   const [storyError, setStoryError] = useState<string | undefined>();
 
-  const [title, setTitle] = useState(initialState.title);
-  const [thumbnail, setThumbnail] = useState(initialState.thumbnail);
-  const [excerpt, setExcerpt] = useState(initialState.excerpt);
-  const [tags, setTags] = useState<string[]>(initialState.tags);
-  const [status, setStatus] = useState(initialState.status);
-  const [isFeatured, setIsFeatured] = useState(initialState.isFeatured);
-  const [blocks, setBlocks] = useState<Block[]>(initialState.blocks);
+  const [title, setTitle] = useState("");
+  const [thumbnail, setThumbnail] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [status, setStatus] = useState<"draft" | "published" | "hidden">(
+    "draft",
+  );
+  const [featured, setFeatured] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (mode === "edit" && initialData) {
+      setTitle(initialData.title || "");
+      setThumbnail(initialData.thumbnail || "");
+      setExcerpt(initialData.excerpt || "");
+      setBlocks(initialData.content_blocks || []);
+      setTags(initialData.tags || []);
+      setStatus(initialData.status);
+      setFeatured(initialData.is_featured);
+    } else {
+      setTitle("");
+      setThumbnail("");
+      setExcerpt("");
+      setBlocks([]);
+      setTags([]);
+      setStatus("draft");
+      setFeatured(false);
+    }
+  }, [open, mode, initialData]);
 
   if (!open) return null;
 
   const resetAndClose = () => {
     setStep(0);
-    setTitle(initialState.title);
-    setThumbnail(initialState.thumbnail);
-    setExcerpt(initialState.excerpt);
-    setTags(initialState.tags);
-    setStatus(initialState.status);
-    setIsFeatured(initialState.isFeatured);
-    setBlocks(initialState.blocks);
+    setTitle(initialData?.title || "");
+    setThumbnail(initialData?.thumbnail || "");
+    setExcerpt(initialData?.excerpt || "");
+    setTags(initialData?.tags || []);
+    setStatus(initialData?.status || "draft");
+    setFeatured(initialData?.is_featured || false);
+    setBlocks(initialData?.content_blocks || []);
     setTitleError(undefined);
     setThumbnailError(undefined);
     setStoryError(undefined);
@@ -116,29 +132,53 @@ export default function CreateBlogModal({
   const handleCreate = async () => {
     try {
       setLoading(true);
+      if (mode === "create") {
+        const res = await fetch("/api/blogs/create", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            thumbnail,
+            excerpt,
+            status,
+            is_featured: featured,
+            tags,
+            content_blocks: blocks,
+          }),
+        });
 
-      const res = await fetch("/api/blogs/create", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          thumbnail,
-          excerpt,
-          status,
-          is_featured: isFeatured,
-          tags,
-          content_blocks: blocks,
-        }),
-      });
+        if (!res.ok) {
+          throw new Error("Request failed");
+        }
 
-      if (!res.ok) {
-        throw new Error("Request failed");
+        toast.success("Blog created");
+        onSuccess?.();
+        resetAndClose();
+      } else if (mode === "edit" && initialData) {
+        const res = await fetch(`/api/blogs/${initialData._id}/edit`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            thumbnail,
+            excerpt,
+            status,
+            is_featured: featured,
+            tags,
+            content_blocks: blocks,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Request failed");
+        }
+
+        toast.success("Blog updated");
+        onSuccess?.();
+        resetAndClose();
       }
-
-      toast.success("Blog created");
-      onSuccess?.();
-      resetAndClose();
     } catch (err) {
       toast.error("Couldn't create the blog. Please try again.");
     } finally {
@@ -222,8 +262,8 @@ export default function CreateBlogModal({
                 setTags={setTags}
                 status={status}
                 setStatus={setStatus}
-                featured={isFeatured}
-                setFeatured={setIsFeatured}
+                featured={featured}
+                setFeatured={setFeatured}
                 title={title}
                 thumbnail={thumbnail}
                 excerpt={excerpt}

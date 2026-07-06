@@ -11,7 +11,7 @@ export default function EmptyBlogs({ onCreate }: Props) {
         col-span-full
         border border-dashed border-[#06182e]/10
         rounded-3xl
-        bg-white
+        bg-[#06182e]/5
         py-20 px-6
         flex flex-col items-center
         justify-center

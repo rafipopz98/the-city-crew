@@ -121,103 +121,115 @@ const CreatePollModal = ({ open, onClose, onSuccess }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 overflow-hidden">
-      <div className="h-full w-full flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-2xl rounded-xl flex flex-col max-h-[90vh]">
-          {/* Header */}
-          <div className="p-5 border-b border-[#06182e]/10 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-[#06182e]">Create Poll</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#06182e]/10 px-6 py-5">
+          <div>
+            <h2 className="text-xl font-bold text-[#06182e]">Create Poll</h2>
 
-            <button onClick={onClose}>✕</button>
+            <p className="mt-1 text-sm text-[#06182e]/55">
+              Create a new community poll for your audience.
+            </p>
           </div>
 
-          {/* Body */}
-          <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-6">
-            {/* Badge */}
-            <div>
-              <label className="text-xs font-semibold text-[#06182e]/50 uppercase">
-                Badge
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[#06182e]/60 transition-colors hover:bg-[#06182e]/8 hover:text-[#06182e]"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 space-y-3 overflow-y-auto px-6 py-3">
+          {/* Badge */}
+          <div>
+            <label className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#06182e]/50">
+              Badge
+            </label>
+
+            <input
+              value={badge}
+              onChange={(e) => setBadge(e.target.value)}
+              placeholder="Trending"
+              className="w-full rounded-xl border border-[#06182e]/10 bg-white/70 px-4 py-3 text-sm text-[#06182e] outline-none transition focus:border-[#e09225]"
+            />
+          </div>
+
+          {/* Question */}
+          <div>
+            <label className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#06182e]/50">
+              Question
+            </label>
+
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter your poll question"
+              className="w-full rounded-xl border border-[#06182e]/10 bg-white/70 px-4 py-3 text-sm text-[#06182e] outline-none transition focus:border-[#e09225]"
+            />
+          </div>
+
+          {/* Options */}
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#06182e]/50">
+                Options
               </label>
 
-              <input
-                value={badge}
-                onChange={(e) => setBadge(e.target.value)}
-                placeholder="Trending"
-                className="mt-1 w-full border border-[#06182e]/10 rounded-md px-3 py-2 text-sm"
-              />
+              <button
+                onClick={addOption}
+                className="text-sm font-semibold text-[#e09225] transition hover:opacity-80"
+              >
+                + Add Option
+              </button>
             </div>
 
-            {/* Title */}
-            <div>
-              <label className="text-xs font-semibold text-[#06182e]/50 uppercase">
-                Question
-              </label>
-
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter poll question"
-                className="mt-1 w-full border border-[#06182e]/10 rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-
-            {/* Options */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-[#06182e]/50 uppercase">
-                  Options
-                </label>
-
-                <button
-                  onClick={addOption}
-                  className="text-xs text-[#e09225] font-semibold"
+            <div className="space-y-3">
+              {options.map((opt, i) => (
+                <div
+                  key={opt.id}
+                  className="flex items-center gap-3 rounded-xl border border-[#06182e]/10 bg-white/60 p-3 transition-colors hover:bg-white/80"
                 >
-                  + Add option
-                </button>
-              </div>
+                  <input
+                    value={opt.text}
+                    onChange={(e) => updateOption(e.target.value, i)}
+                    placeholder={`Option ${i + 1}`}
+                    className="flex-1 bg-transparent text-sm text-[#06182e] outline-none placeholder:text-[#06182e]/30"
+                  />
 
-              <div className="flex flex-col gap-3">
-                {options.map((opt, i) => (
-                  <div key={opt.id} className="flex gap-2">
-                    <input
-                      value={opt.text}
-                      onChange={(e) => updateOption(e.target.value, i)}
-                      placeholder={`Option ${i + 1}`}
-                      className="flex-1 border border-[#06182e]/10 rounded-md px-3 py-2 text-sm"
-                    />
-
-                    {options.length > 2 && (
-                      <button
-                        onClick={() => removeOption(i)}
-                        className="text-xs text-red-500"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  {options.length > 2 && (
+                    <button
+                      onClick={() => removeOption(i)}
+                      className="text-sm font-medium text-red-500 transition hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* Footer */}
-          <div className="p-5 border-t border-[#06182e]/10 flex justify-end gap-3">
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="text-sm text-[#06182e]/50"
-            >
-              Cancel
-            </button>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 border-t border-[#06182e]/10 px-6 py-5">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-[#06182e]/60 transition hover:bg-[#06182e]/6 hover:text-[#06182e]"
+          >
+            Cancel
+          </button>
 
-            <button
-              onClick={handleCreatePoll}
-              disabled={loading}
-              className="bg-[#06182e] text-[#ece1cf] px-5 py-2 rounded-md text-sm font-semibold"
-            >
-              {loading ? "Creating..." : "Create Poll"}
-            </button>
-          </div>
+          <button
+            onClick={handleCreatePoll}
+            disabled={loading}
+            className="rounded-lg bg-[#06182e] px-5 py-2.5 text-sm font-semibold text-[#ece1cf] transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Creating..." : "Create Poll"}
+          </button>
         </div>
       </div>
     </div>
