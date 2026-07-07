@@ -119,4 +119,22 @@ export const clubLogos = [
     path: "/club-logos/Tottenham_Hotspur.webp",
     alt: "Tottenham Hotspur",
   },
+  {
+    title: "Athletico Madrid",
+    value: "athletico-madrid",
+    path: "/club-logos/Atletico_Madrid.webp",
+    alt: "Athletico Madrid",
+  },
+  {
+    title: "Inter Milan",
+    value: "inter-milan",
+    path: "/club-logos/inter-milan.webp",
+    alt: "Inter Milan",
+  },
+  {
+    title: "K League All Stars",
+    value: "K_League_All_Stars",
+    path: "/club-logos/K_League.webp",
+    alt: "K_League_All_Stars",
+  },
 ];

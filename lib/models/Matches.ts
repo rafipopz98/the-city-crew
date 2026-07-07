@@ -52,6 +52,10 @@ const MatchesSchema = new mongoose.Schema(
       required: true, // Premier League, UCL, FA Cup...
     },
 
+    matchType: {
+      type: String, // regular, group, qf 1, qf2, ssf 1, sf 2, final
+    },
+
     venue: {
       type: String,
     },

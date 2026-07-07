@@ -13,6 +13,7 @@ import {
   Users,
   Menu,
   X,
+  Watch,
 } from "lucide-react";
 
 const menu = [
@@ -35,6 +36,11 @@ const menu = [
     name: "Players",
     href: "/admin/players",
     icon: Users,
+  },
+  {
+    name: "Matches",
+    href: "/admin/matches",
+    icon: Watch,
   },
 ];
 

@@ -74,22 +74,14 @@ const PlayerSchema = new mongoose.Schema(
     number: {
       type: Number,
     },
-
     age: {
       type: Number,
     },
-
-    isCaptain: {
+    is_captain: {
       type: Boolean,
       default: false,
     },
-
-    isViceCaptain: {
-      type: Boolean,
-      default: false,
-    },
-
-    isActive: {
+    is_active: {
       type: Boolean,
       default: true,
     },
