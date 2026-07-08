@@ -91,5 +91,5 @@ const PlayerSchema = new mongoose.Schema(
   },
 );
 
-export default mongoose.models.Players ||
-  mongoose.model("Players", PlayerSchema);
+export const PlayersModels =
+  mongoose.models.Players || mongoose.model("Players", PlayerSchema);

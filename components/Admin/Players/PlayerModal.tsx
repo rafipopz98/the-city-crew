@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 import TCCButton from "@/components/common/TCCButton";
@@ -9,22 +9,25 @@ import TCCSelect from "@/components/common/TCCSelect";
 
 import SettingGroup from "./SettingGroup";
 import SettingRow from "./SettingRow";
+import { playerImages } from "@/public/players-image";
 
 type Props = {
   open: boolean;
   onClose: () => void;
+  onSave: () => void;
+  player?: any;
+  seasons: any[];
 };
 
-const PlayerModal = ({ open, onClose }: Props) => {
+const PlayerModal = ({ open, onClose, onSave, player, seasons }: Props) => {
   const [form, setForm] = useState({
     name: "",
     country: "",
     position: "",
     season: "",
     shirtNumber: "",
-
-    verticalImage: "",
-    roundImage: "",
+    age: "",
+    selectedPlayerImage: "",
 
     goals: 0,
     assists: 0,
@@ -40,9 +43,145 @@ const PlayerModal = ({ open, onClose }: Props) => {
     cleanSheets: 0,
     saves: 0,
     penaltySaved: 0,
+
+    isCaptain: false,
+    isActive: true,
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [availablePositions, setAvailablePositions] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchPositions();
+  }, []);
+
+  const fetchPositions = async () => {
+    try {
+      const response = await fetch("/api/admin/positions");
+      if (response.ok) {
+        const data = await response.json();
+        // Flatten all positions from groups for the dropdown
+        const allPositions = data
+          .filter((group: any) => group.value !== "")
+          .flatMap((group: any) =>
+            group.positions.map((pos: string) => ({
+              label: pos,
+              value: pos,
+            })),
+          );
+        setAvailablePositions(allPositions);
+      }
+    } catch (error) {
+      console.error("Error fetching positions:", error);
+    }
+  };
+
+  // Populate form when editing
+  useEffect(() => {
+    if (player) {
+      setForm({
+        name: player.name || "",
+        country: player.country || "",
+        position: player.position || "",
+        season: player.season?._id || player.season || "",
+        shirtNumber: player.number?.toString() || "",
+        age: player.age?.toString() || "",
+        selectedPlayerImage: player.vertical_image || "",
+        goals: player.goals || 0,
+        assists: player.assists || 0,
+        appearances: player.appearances || 0,
+        minutesPlayed: player.minutes_played || 0,
+        penaltyGoals: player.penalty_goals || 0,
+        penaltyMissed: player.penalty_missed || 0,
+        yellowCards: player.yellow_cards || 0,
+        redCards: player.red_cards || 0,
+        cleanSheets: player.clean_sheets || 0,
+        saves: player.saves || 0,
+        penaltySaved: player.penalty_saved || 0,
+        isCaptain: player.is_captain || false,
+        isActive: player.is_active !== undefined ? player.is_active : true,
+      });
+    } else {
+      // Reset form for new player
+      setForm({
+        name: "",
+        country: "",
+        position: "",
+        season: "",
+        shirtNumber: "",
+        age: "",
+        selectedPlayerImage: "",
+        goals: 0,
+        assists: 0,
+        appearances: 0,
+        minutesPlayed: 0,
+        penaltyGoals: 0,
+        penaltyMissed: 0,
+        yellowCards: 0,
+        redCards: 0,
+        cleanSheets: 0,
+        saves: 0,
+        penaltySaved: 0,
+        isCaptain: false,
+        isActive: true,
+      });
+    }
+  }, [player]);
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // Find selected image data
+      const selectedImage = playerImages.find(
+        (img) => img.value === form.selectedPlayerImage,
+      );
+
+      const url = player
+        ? `/api/admin/players/${player._id}`
+        : "/api/admin/players";
+
+      const method = player ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...form,
+          verticalImage: selectedImage?.verticalImage || "",
+          roundImage: selectedImage?.roundImage || "",
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to save player");
+      }
+
+      onSave();
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!open) return null;
+
+  const seasonOptions = seasons.map((season) => ({
+    label: season.year,
+    value: season._id,
+  }));
+
+  const playerImageOptions = playerImages.map((img) => ({
+    label: img.name,
+    value: img.value,
+  }));
 
   return (
     <div
@@ -69,27 +208,19 @@ const PlayerModal = ({ open, onClose }: Props) => {
         "
       >
         {/* Header */}
-
         <header className="border-b border-black/10 px-6 py-6 lg:px-10">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] uppercase tracking-[0.35em] text-black/40">
                 Squad Management
               </p>
-
               <h1 className="para mt-4 text-5xl uppercase leading-none">
-                Add Player
+                {player ? "Edit Player" : "Add Player"}
               </h1>
             </div>
-
             <button
               onClick={onClose}
-              className="
-                transition-all
-                duration-300
-                hover:rotate-90
-                hover:text-[#e09225]
-              "
+              className="transition-all duration-300 hover:rotate-90 hover:text-[#e09225]"
             >
               <X size={26} />
             </button>
@@ -97,8 +228,13 @@ const PlayerModal = ({ open, onClose }: Props) => {
         </header>
 
         {/* Content */}
-
         <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-10">
+          {error && (
+            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700">
+              {error}
+            </div>
+          )}
+
           <SettingGroup title="Player">
             <SettingRow label="Player Name">
               <TCCInput
@@ -135,12 +271,7 @@ const PlayerModal = ({ open, onClose }: Props) => {
                     position: value,
                   })
                 }
-                options={[
-                  { label: "Goalkeeper", value: "GK" },
-                  { label: "Defender", value: "DEF" },
-                  { label: "Midfielder", value: "MID" },
-                  { label: "Forward", value: "FWD" },
-                ]}
+                options={availablePositions}
               />
             </SettingRow>
 
@@ -153,11 +284,7 @@ const PlayerModal = ({ open, onClose }: Props) => {
                     season: value,
                   })
                 }
-                options={[
-                  { label: "2025/26", value: "2025/26" },
-                  { label: "2024/25", value: "2024/25" },
-                  { label: "2023/24", value: "2023/24" },
-                ]}
+                options={seasonOptions}
               />
             </SettingRow>
 
@@ -173,34 +300,100 @@ const PlayerModal = ({ open, onClose }: Props) => {
                 }
               />
             </SettingRow>
+
+            <SettingRow label="Age">
+              <TCCInput
+                type="number"
+                value={form.age}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    age: e.target.value,
+                  })
+                }
+              />
+            </SettingRow>
+
+            <SettingRow label="Captain">
+              <TCCSelect
+                value={form.isCaptain ? "true" : "false"}
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    isCaptain: value === "true",
+                  })
+                }
+                options={[
+                  { label: "No", value: "false" },
+                  { label: "Yes", value: "true" },
+                ]}
+              />
+            </SettingRow>
+
+            <SettingRow label="Status">
+              <TCCSelect
+                value={form.isActive ? "true" : "false"}
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    isActive: value === "true",
+                  })
+                }
+                options={[
+                  { label: "Active", value: "true" },
+                  { label: "Inactive", value: "false" },
+                ]}
+              />
+            </SettingRow>
           </SettingGroup>
 
-          <SettingGroup title="Images">
-            <SettingRow label="Vertical Image">
-              <TCCInput
-                placeholder="https://..."
-                value={form.verticalImage}
-                onChange={(e) =>
+          <SettingGroup title="Player Image">
+            <SettingRow label="Select Player">
+              <TCCSelect
+                value={form.selectedPlayerImage}
+                onChange={(value) =>
                   setForm({
                     ...form,
-                    verticalImage: e.target.value,
+                    selectedPlayerImage: value,
                   })
                 }
+                options={playerImageOptions}
               />
             </SettingRow>
 
-            <SettingRow label="Round Image">
-              <TCCInput
-                placeholder="https://..."
-                value={form.roundImage}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    roundImage: e.target.value,
-                  })
-                }
-              />
-            </SettingRow>
+            {form.selectedPlayerImage && (
+              <div className="mt-4 flex gap-6">
+                {(() => {
+                  const selectedImg = playerImages.find(
+                    (img) => img.value === form.selectedPlayerImage,
+                  );
+                  return selectedImg ? (
+                    <>
+                      <div className="text-center">
+                        <img
+                          src={selectedImg.verticalImage}
+                          alt={selectedImg.alt}
+                          className="h-32 w-auto object-contain border border-black/10"
+                        />
+                        <p className="mt-2 text-xs text-black/60">
+                          Vertical Image
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <img
+                          src={selectedImg.roundImage}
+                          alt={selectedImg.alt}
+                          className="h-32 w-32 rounded-full object-cover border border-black/10"
+                        />
+                        <p className="mt-2 text-xs text-black/60">
+                          Round Image
+                        </p>
+                      </div>
+                    </>
+                  ) : null;
+                })()}
+              </div>
+            )}
           </SettingGroup>
 
           <SettingGroup title="Attack">
@@ -355,8 +548,9 @@ const PlayerModal = ({ open, onClose }: Props) => {
 
         <footer className="flex items-center justify-end gap-10 border-t border-black/10 px-6 py-6 lg:px-10">
           <TCCButton onClick={onClose}>Cancel</TCCButton>
-
-          <TCCButton>Save Player</TCCButton>
+          <TCCButton onClick={handleSubmit}>
+            {loading ? "Saving..." : "Save Player"}
+          </TCCButton>
         </footer>
       </div>
     </div>

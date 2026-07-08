@@ -15,6 +15,8 @@ type Props = {
   refreshTrigger?: number;
 };
 
+const MATCHES_PER_PAGE = 10;
+
 const MatchesTable = ({
   search,
   season,
@@ -26,39 +28,48 @@ const MatchesTable = ({
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchMatches = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const fetchMatches = useCallback(
+    async (page: number = 1) => {
+      try {
+        setLoading(true);
+        setError("");
 
-      const params = new URLSearchParams();
+        const params = new URLSearchParams();
 
-      if (search) params.append("search", search);
-      if (season) params.append("season", season);
-      if (competition) params.append("competition", competition);
-      if (status) params.append("status", status);
+        if (search) params.append("search", search);
+        if (season) params.append("season", season);
+        if (competition) params.append("competition", competition);
+        if (status) params.append("status", status);
+        params.append("page", page.toString());
+        params.append("limit", MATCHES_PER_PAGE.toString());
 
-      const response = await fetch(`/api/admin/matches?${params.toString()}`);
+        const response = await fetch(`/api/admin/matches?${params.toString()}`);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch matches");
+        if (!response.ok) {
+          throw new Error("Failed to fetch matches");
+        }
+
+        const data = await response.json();
+
+        setMatches(data.matches || []);
+        setTotalPages(data.totalPages || 1);
+        setCurrentPage(data.currentPage || 1);
+      } catch (error) {
+        console.error(error);
+        setError("Failed to load matches.");
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-
-      setMatches(data.matches || []);
-    } catch (error) {
-      console.error(error);
-
-      setError("Failed to load matches.");
-    } finally {
-      setLoading(false);
-    }
-  }, [search, season, competition, status]);
+    },
+    [search, season, competition, status],
+  );
 
   useEffect(() => {
-    fetchMatches();
+    setCurrentPage(1);
+    fetchMatches(1);
   }, [fetchMatches, refreshTrigger]);
 
   const handleDelete = async (matchId: string) => {
@@ -78,13 +89,46 @@ const MatchesTable = ({
       }
 
       toast.success("Match deleted");
-
-      fetchMatches();
+      fetchMatches(currentPage);
     } catch (error) {
       console.error(error);
-
       toast.error("Failed to delete match");
     }
+  };
+
+  const handleScoreUpdate = async (
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+  ) => {
+    try {
+      const response = await fetch(`/api/admin/matches/${matchId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          homeTeamScore: homeScore,
+          awayTeamScore: awayScore,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update score");
+      }
+
+      toast.success("Score updated");
+      fetchMatches(currentPage);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update score");
+      throw error;
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    fetchMatches(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (loading) {
@@ -92,7 +136,6 @@ const MatchesTable = ({
       <section className="py-28">
         <div className="flex flex-col items-center">
           <Loader2 size={30} className="animate-spin text-black/30" />
-
           <p className="mt-5 text-black/45">Loading matches...</p>
         </div>
       </section>
@@ -103,7 +146,6 @@ const MatchesTable = ({
     return (
       <section className="py-28 text-center">
         <h2 className="para text-5xl uppercase text-red-600">Error</h2>
-
         <p className="mt-5 text-black/45">{error}</p>
       </section>
     );
@@ -113,7 +155,6 @@ const MatchesTable = ({
     return (
       <section className="py-28 text-center">
         <h2 className="para text-5xl uppercase">No Matches</h2>
-
         <p className="mt-5 text-black/45">
           No fixtures match your current filters.
         </p>
@@ -122,21 +163,64 @@ const MatchesTable = ({
   }
 
   return (
-    <section
-      className="
-        divide-y
-        divide-black/10
-      "
-    >
-      {matches.map((match) => (
-        <MatchRow
-          key={match._id}
-          match={match}
-          onEdit={onEdit}
-          onDelete={handleDelete}
-        />
-      ))}
-    </section>
+    <>
+      <section className="divide-y divide-black/10">
+        {matches.map((match) => (
+          <MatchRow
+            key={match._id}
+            match={match}
+            onEdit={onEdit}
+            onDelete={handleDelete}
+            onScoreUpdate={handleScoreUpdate}
+          />
+        ))}
+      </section>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-12 flex items-center justify-center gap-4">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="border border-black/20 px-4 py-2 uppercase text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:border-black hover:bg-black hover:text-white transition"
+          >
+            Previous
+          </button>
+
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                className={`
+                  w-10 h-10 flex items-center justify-center border text-sm
+                  transition-all duration-300
+                  ${
+                    currentPage === page
+                      ? "border-[#e09225] bg-[#e09225] text-black"
+                      : "border-black/20 hover:border-black hover:bg-black hover:text-white"
+                  }
+                `}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="border border-black/20 px-4 py-2 uppercase text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:border-black hover:bg-black hover:text-white transition"
+          >
+            Next
+          </button>
+
+          <p className="ml-4 text-sm text-black/50">
+            Page {currentPage} of {totalPages}
+          </p>
+        </div>
+      )}
+    </>
   );
 };
 
