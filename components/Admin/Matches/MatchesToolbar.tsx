@@ -45,112 +45,167 @@ const MatchesToolbar = ({
   seasons,
 }: MatchesToolbarProps) => {
   return (
-    <div className="flex flex-wrap gap-4">
-      {/* Search */}
-      <div className="relative flex-1 min-w-50 max-w-md">
-        <Search
-          size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40"
-        />
-        <input
-          type="text"
-          placeholder="Search matches..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="
-            w-full
-            pl-10
-            pr-4
-            py-2.5
-            bg-white
-            border
-            border-black/10
-            text-sm
-            text-black
-            placeholder:text-black/40
-            focus:outline-none
-            focus:border-[#6CABDD]
-            transition-colors
+    <section className="py-6">
+      <div
+        className="
+        flex
+        flex-col
+        gap-5
+
+        xl:flex-row
+        xl:items-center
+      "
+      >
+        {/* Search */}
+
+        <div className="relative flex-1">
+          <Search
+            size={18}
+            className="
+            absolute
+            left-0
+            top-1/2
+            -translate-y-1/2
+
+            text-black/35
           "
-        />
+          />
+
+          <input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search matches..."
+            className="
+            w-full
+
+            border-b-2
+            border-black/10
+
+            bg-transparent
+
+            pb-3
+            pl-8
+
+            text-[17px]
+
+            outline-none
+
+            transition-all
+            duration-300
+
+            placeholder:text-black/25
+
+            focus:border-[#e09225]
+          "
+          />
+        </div>
+
+        {/* Filters */}
+
+        <div
+          className="
+          flex
+          flex-wrap
+          gap-6
+        "
+        >
+          <select
+            value={season}
+            onChange={(e) => onSeasonChange(e.target.value)}
+            className="
+            border-b-2
+            border-black/10
+
+            bg-transparent
+
+            pb-3
+
+            text-[15px]
+            uppercase
+
+            outline-none
+
+            transition-all
+            duration-300
+
+            hover:border-black/30
+
+            focus:border-[#e09225]
+          "
+          >
+            <option value="">All Seasons</option>
+
+            {seasons.map((season) => (
+              <option key={season._id} value={season._id}>
+                {season.year}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={competition}
+            onChange={(e) => onCompetitionChange(e.target.value)}
+            className="
+            border-b-2
+            border-black/10
+
+            bg-transparent
+
+            pb-3
+
+            text-[15px]
+            uppercase
+
+            outline-none
+
+            transition-all
+            duration-300
+
+            hover:border-black/30
+
+            focus:border-[#e09225]
+          "
+          >
+            {competitions.map((competition) => (
+              <option key={competition.value} value={competition.value}>
+                {competition.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={status}
+            onChange={(e) => onStatusChange(e.target.value)}
+            className="
+            border-b-2
+            border-black/10
+
+            bg-transparent
+
+            pb-3
+
+            text-[15px]
+            uppercase
+
+            outline-none
+
+            transition-all
+            duration-300
+
+            hover:border-black/30
+
+            focus:border-[#e09225]
+          "
+          >
+            {statuses.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-
-      {/* Season Filter */}
-      <select
-        value={season}
-        onChange={(e) => onSeasonChange(e.target.value)}
-        className="
-          px-4
-          py-2.5
-          bg-white
-          border
-          border-black/10
-          text-sm
-          text-black
-          cursor-pointer
-          focus:outline-none
-          focus:border-[#6CABDD]
-          transition-colors
-        "
-      >
-        <option value="">All Seasons</option>
-        {seasons.map((s) => (
-          <option key={s._id} value={s._id}>
-            {s.year}
-          </option>
-        ))}
-      </select>
-
-      {/* Competition Filter */}
-      <select
-        value={competition}
-        onChange={(e) => onCompetitionChange(e.target.value)}
-        className="
-          px-4
-          py-2.5
-          bg-white
-          border
-          border-black/10
-          text-sm
-          text-black
-          cursor-pointer
-          focus:outline-none
-          focus:border-[#6CABDD]
-          transition-colors
-        "
-      >
-        {competitions.map((comp) => (
-          <option key={comp.value} value={comp.value}>
-            {comp.label}
-          </option>
-        ))}
-      </select>
-
-      {/* Status Filter */}
-      <select
-        value={status}
-        onChange={(e) => onStatusChange(e.target.value)}
-        className="
-          px-4
-          py-2.5
-          bg-white
-          border
-          border-black/10
-          text-sm
-          text-black
-          cursor-pointer
-          focus:outline-none
-          focus:border-[#6CABDD]
-          transition-colors
-        "
-      >
-        {statuses.map((stat) => (
-          <option key={stat.value} value={stat.value}>
-            {stat.label}
-          </option>
-        ))}
-      </select>
-    </div>
+    </section>
   );
 };
 

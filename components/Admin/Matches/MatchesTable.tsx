@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import MatchRow from "./MatchRow";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+import MatchRow from "./MatchRow";
 
 type Props = {
   search: string;
@@ -23,18 +25,15 @@ const MatchesTable = ({
 }: Props) => {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchMatches();
-  }, [search, season, competition, status, refreshTrigger]);
-
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      setError("");
 
       const params = new URLSearchParams();
+
       if (search) params.append("search", search);
       if (season) params.append("season", season);
       if (competition) params.append("competition", competition);
@@ -47,19 +46,27 @@ const MatchesTable = ({
       }
 
       const data = await response.json();
+
       setMatches(data.matches || []);
-    } catch (err) {
-      console.error("Error fetching matches:", err);
-      setError("Failed to load matches");
+    } catch (error) {
+      console.error(error);
+
+      setError("Failed to load matches.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, season, competition, status]);
+
+  useEffect(() => {
+    fetchMatches();
+  }, [fetchMatches, refreshTrigger]);
 
   const handleDelete = async (matchId: string) => {
-    if (!confirm("Are you sure you want to delete this match?")) {
-      return;
-    }
+    const confirmed = window.confirm(
+      "Delete this match? This action cannot be undone.",
+    );
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/admin/matches/${matchId}`, {
@@ -70,45 +77,57 @@ const MatchesTable = ({
         throw new Error("Failed to delete match");
       }
 
-      // Refresh matches list
+      toast.success("Match deleted");
+
       fetchMatches();
-    } catch (err) {
-      console.error("Error deleting match:", err);
-      alert("Failed to delete match");
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Failed to delete match");
     }
   };
 
   if (loading) {
     return (
-      <div className="py-24 text-center">
-        <Loader2 size={32} className="animate-spin mx-auto text-[#6CABDD]" />
-        <p className="mt-4 text-black/60">Loading matches...</p>
-      </div>
+      <section className="py-28">
+        <div className="flex flex-col items-center">
+          <Loader2 size={30} className="animate-spin text-black/30" />
+
+          <p className="mt-5 text-black/45">Loading matches...</p>
+        </div>
+      </section>
     );
   }
 
   if (error) {
     return (
-      <div className="py-24 text-center">
-        <h3 className="para text-4xl uppercase text-red-600">Error</h3>
-        <p className="mt-4 text-black/60">{error}</p>
-      </div>
+      <section className="py-28 text-center">
+        <h2 className="para text-5xl uppercase text-red-600">Error</h2>
+
+        <p className="mt-5 text-black/45">{error}</p>
+      </section>
     );
   }
 
   if (matches.length === 0) {
     return (
-      <div className="py-24 text-center">
-        <h3 className="para text-4xl uppercase">No Matches Found</h3>
-        <p className="mt-4 text-black/60">
-          Try changing your search or filters.
+      <section className="py-28 text-center">
+        <h2 className="para text-5xl uppercase">No Matches</h2>
+
+        <p className="mt-5 text-black/45">
+          No fixtures match your current filters.
         </p>
-      </div>
+      </section>
     );
   }
 
   return (
-    <section className="mt-16">
+    <section
+      className="
+        divide-y
+        divide-black/10
+      "
+    >
       {matches.map((match) => (
         <MatchRow
           key={match._id}

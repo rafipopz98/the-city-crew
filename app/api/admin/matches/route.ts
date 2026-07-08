@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const [matches, total] = await Promise.all([
       MatchesModel.find(query)
         .populate("season", "year")
-        .sort({ matchDate: -1 })
+        .sort({ matchDate: 1 })
         .skip(skip)
         .limit(limit)
         .lean(),

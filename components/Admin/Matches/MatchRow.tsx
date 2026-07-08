@@ -30,136 +30,164 @@ const MatchRow = ({ match, onEdit, onDelete }: MatchRowProps) => {
   });
 
   return (
-    <div
+    <article
       className="
-        group
-        border-t
-        border-black/10
-        py-6
-        first:border-t-0
-        hover:bg-white/50
-        transition-colors
-      "
-    >
-      <div className="flex items-center justify-between gap-4">
-        {/* Match Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            {/* Competition Badge */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#6CABDD]/10 text-[#6CABDD] text-xs font-medium">
-              <Trophy size={12} />
-              {match.competition}
-            </span>
+      group
 
-            {/* Status Badge */}
-            <span
-              className={`inline-flex items-center px-2 py-0.5 text-xs font-medium ${
-                statusColors[match.status] || statusColors.upcoming
-              }`}
-            >
-              {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
-            </span>
+      border-b
+      border-black/10
+
+      py-8
+
+      transition-all
+      duration-300
+
+      hover:border-[#e09225]
+    "
+    >
+      <div
+        className="
+        flex
+        flex-col
+        gap-8
+
+        xl:flex-row
+        xl:items-center
+      "
+      >
+        {/* Left */}
+
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.3em] text-black/40">
+            <span>{match.competition}</span>
 
             {match.matchday && (
-              <span className="text-xs text-black/40">MD {match.matchday}</span>
+              <>
+                <span className="h-1 w-1 rounded-full bg-black/20" />
+                <span>MD {match.matchday}</span>
+              </>
             )}
+
+            <>
+              <span className="h-1 w-1 rounded-full bg-black/20" />
+              <span>{match.status}</span>
+            </>
           </div>
 
-          {/* Teams & Score */}
-          <div className="flex items-center gap-6 mt-3">
-            {/* Home Team */}
-            <div className="flex items-center gap-3 min-w-0 flex-1 justify-end">
-              <span className="text-base font-medium text-black truncate">
-                {match.homeTeam.name}
-              </span>
-              <div className="relative w-8 h-8 shrink-0">
-                <Image
-                  src={match.homeTeam.image}
-                  alt={match.homeTeam.name}
-                  fill
-                  className="object-contain"
-                />
-              </div>
+          {/* Teams */}
+
+          <div className="mt-6 flex items-center gap-8">
+            {/* Home */}
+
+            <div className="flex flex-1 items-center justify-end gap-4">
+              <h2 className="para text-3xl uppercase">{match.homeTeam.name}</h2>
+
+              <Image
+                src={match.homeTeam.image}
+                alt={match.homeTeam.name}
+                width={52}
+                height={52}
+              />
             </div>
 
-            {/* Score */}
+            {/* Middle */}
+
             <div className="shrink-0">
               {match.status === "upcoming" ? (
-                <span className="text-lg font-bold text-black/30">vs</span>
+                <h3 className="para text-2xl text-black/35">VS</h3>
               ) : (
-                <span className="text-xl font-bold text-black tabular-nums">
-                  {match.homeTeamScore} - {match.awayTeamScore}
-                </span>
+                <h3 className="para text-4xl">
+                  {match.homeTeamScore}–{match.awayTeamScore}
+                </h3>
               )}
             </div>
 
-            {/* Away Team */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="relative w-8 h-8 shrink-0">
-                <Image
-                  src={match.awayTeam.image}
-                  alt={match.awayTeam.name}
-                  fill
-                  className="object-contain"
-                />
-              </div>
-              <span className="text-base font-medium text-black truncate">
-                {match.awayTeam.name}
-              </span>
+            {/* Away */}
+
+            <div className="flex flex-1 items-center gap-4">
+              <Image
+                src={match.awayTeam.image}
+                alt={match.awayTeam.name}
+                width={52}
+                height={52}
+              />
+
+              <h2 className="para text-3xl uppercase">{match.awayTeam.name}</h2>
             </div>
           </div>
 
-          {/* Match Details */}
-          <div className="flex items-center gap-4 mt-3 text-sm text-black/50">
-            <div className="flex items-center gap-1.5">
-              <Calendar size={14} />
-              <span>
-                {formattedDate} at {formattedTime}
-              </span>
+          {/* Meta */}
+
+          <div className="mt-6 flex flex-wrap items-center gap-5 text-sm text-black/45">
+            <div className="flex items-center gap-2">
+              <Calendar size={15} />
+
+              {formattedDate}
             </div>
+
+            <div className="flex items-center gap-2">{formattedTime}</div>
+
             {match.venue && (
-              <div className="flex items-center gap-1.5">
-                <MapPin size={14} />
-                <span>{match.venue}</span>
+              <div className="flex items-center gap-2">
+                <MapPin size={15} />
+
+                {match.venue}
               </div>
-            )}
-            {match.isHome && (
-              <span className="text-xs text-[#6CABDD] font-medium">(H)</span>
             )}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+
+        <div className="flex items-center gap-6">
           <button
             onClick={() => onEdit(match)}
             className="
-              p-2
-              text-black/40
-              hover:text-[#6CABDD]
-              hover:bg-[#6CABDD]/10
-              transition-colors
-            "
-            title="Edit match"
+            group/edit
+
+            flex
+            items-center
+            gap-2
+
+            border-b
+            border-black
+
+            pb-1
+
+            uppercase
+
+            transition
+
+            hover:border-[#e09225]
+            hover:text-[#e09225]
+          "
           >
-            <Edit2 size={18} />
+            Edit
+            <Edit2
+              size={16}
+              className="
+              transition
+
+              group-hover/edit:rotate-12
+            "
+            />
           </button>
+
           <button
             onClick={() => onDelete(match._id)}
             className="
-              p-2
-              text-black/40
-              hover:text-red-600
-              hover:bg-red-50
-              transition-colors
-            "
-            title="Delete match"
+            text-black/35
+
+            transition
+
+            hover:text-red-500
+          "
           >
             <Trash2 size={18} />
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 
