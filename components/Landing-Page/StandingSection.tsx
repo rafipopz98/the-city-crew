@@ -18,10 +18,7 @@ const standings = [
 ];
 
 const StandingsSection = () => {
-  const { data } = useSWR(
-    "/api/admin/matches?status=upcoming&limit=1",
-    fetcher,
-  );
+  const { data } = useSWR("/api/matches?status=upcoming&limit=1", fetcher);
 
   const nextMatch = data?.matches?.[0];
 

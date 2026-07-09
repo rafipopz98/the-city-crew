@@ -16,17 +16,9 @@ export async function GET(req: NextRequest) {
 
     let query: any = {};
 
-    if (season) {
-      query.season = season;
-    }
-
-    if (competition) {
-      query.competition = competition;
-    }
-
-    if (status) {
-      query.status = status;
-    }
+    if (season) query.season = season;
+    if (competition) query.competition = competition;
+    if (status) query.status = status;
 
     if (search) {
       query.$or = [
@@ -36,13 +28,13 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    // Get total count for pagination
     const totalMatches = await MatchesModel.countDocuments(query);
     const totalPages = Math.ceil(totalMatches / limit);
     const skip = (page - 1) * limit;
 
     const matches = await MatchesModel.find(query)
       .populate("season", "year")
+      .populate("lineup", "name") // ✅ Populate lineup with player names
       .sort({ matchDate: 1 })
       .skip(skip)
       .limit(limit)
@@ -70,11 +62,36 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const match = await MatchesModel.create(body);
+    console.log("Received POST body:", JSON.stringify(body, null, 2));
 
+    // ✅ Create match with all fields
+    const match = await MatchesModel.create({
+      season: body.season,
+      homeTeam: body.homeTeam,
+      awayTeam: body.awayTeam,
+      homeTeamScore: body.homeTeamScore || 0,
+      awayTeamScore: body.awayTeamScore || 0,
+      matchDate: body.matchDate,
+      status: body.status || "upcoming",
+      competition: body.competition,
+      matchType: body.matchType || "regular",
+      venue: body.venue || "",
+      matchday: body.matchday || 1,
+      isHome: body.isHome,
+      goalScorers: body.goalScorers || [], // ✅ Explicitly include
+      lineup: body.lineup || [], // ✅ Explicitly include
+    });
+
+    // ✅ Populate and return
     const populatedMatch = await MatchesModel.findById(match._id)
       .populate("season", "year")
+      .populate("lineup", "name")
       .lean();
+
+    console.log(
+      "Created match with lineup:",
+      JSON.stringify(populatedMatch, null, 2),
+    );
 
     return NextResponse.json(populatedMatch, { status: 201 });
   } catch (error) {

@@ -3,34 +3,29 @@ import { useState } from "react";
 import useSWR from "swr";
 import Image from "next/image";
 import Link from "next/link";
+import { Goal, ChevronRight } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const MatchesSection = () => {
   const [open, setOpen] = useState<"results" | "fixtures" | null>(null);
-  const { data, error, isLoading } = useSWR(
-    "/api/admin/matches?limit=6",
-    fetcher,
-  );
 
-  const matches = data?.matches || [];
+  // Fetch latest results (finished matches, most recent first)
+  const {
+    data: resultsData,
+    error: resultsError,
+    isLoading: resultsLoading,
+  } = useSWR("/api/matches?latest=results&limit=3", fetcher);
 
-  // Separate finished and upcoming matches
-  const recentResults = matches
-    .filter((match: any) => match.status === "finished")
-    .sort(
-      (a: any, b: any) =>
-        new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime(),
-    )
-    .slice(0, 3);
+  // Fetch upcoming fixtures (upcoming matches, soonest first)
+  const {
+    data: fixturesData,
+    error: fixturesError,
+    isLoading: fixturesLoading,
+  } = useSWR("/api/matches?latest=fixtures&limit=3", fetcher);
 
-  const upcomingFixtures = matches
-    .filter((match: any) => match.status === "upcoming")
-    .sort(
-      (a: any, b: any) =>
-        new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
-    )
-    .slice(0, 3);
+  const recentResults = resultsData?.matches || [];
+  const upcomingFixtures = fixturesData?.matches || [];
 
   const formatDate = (date: string) => {
     const d = new Date(date);
@@ -51,6 +46,73 @@ const MatchesSection = () => {
     });
     return `${day} — ${time}`;
   };
+
+  // Format goal scorers for display
+  const formatGoalScorers = (goalScorers: any[]) => {
+    if (!goalScorers || goalScorers.length === 0) return null;
+
+    const homeScorers = goalScorers.filter((g: any) => g.team === "home");
+    const awayScorers = goalScorers.filter((g: any) => g.team === "away");
+
+    const formatScorer = (scorer: any) => {
+      let text = `${scorer.playerName} ${scorer.minute}'`;
+      if (scorer.isPenalty) text += " (P)";
+      if (scorer.isOwnGoal) text += " (OG)";
+      return text;
+    };
+
+    const formatMultiple = (scorers: any[]) => {
+      if (scorers.length === 0) return null;
+
+      // Group by player name to combine minutes
+      const grouped: Record<string, number[]> = {};
+      scorers.forEach((s: any) => {
+        if (!grouped[s.playerName]) grouped[s.playerName] = [];
+        grouped[s.playerName].push(s.minute);
+      });
+
+      return Object.entries(grouped)
+        .map(([name, minutes]) => {
+          const minuteStr =
+            minutes.length > 1 ? minutes.join("', ") + "'" : minutes[0] + "'";
+          const penalty = scorers.some(
+            (s: any) => s.playerName === name && s.isPenalty,
+          );
+          const og = scorers.some(
+            (s: any) => s.playerName === name && s.isOwnGoal,
+          );
+          let text = `${name} ${minuteStr}`;
+          if (penalty) text += " (P)";
+          if (og) text += " (OG)";
+          return text;
+        })
+        .join(", ");
+    };
+
+    const homeText = formatMultiple(homeScorers);
+    const awayText = formatMultiple(awayScorers);
+
+    if (!homeText && !awayText) return null;
+
+    return (
+      <div className="space-y-1 text-xs">
+        {homeText && (
+          <div className="flex items-center gap-1.5">
+            <Goal size={12} className="text-green-600 shrink-0" />
+            <span className="text-black/70 font-medium">{homeText}</span>
+          </div>
+        )}
+        {awayText && (
+          <div className="flex items-center gap-1.5">
+            <Goal size={12} className="text-red-500 shrink-0" />
+            <span className="text-black/50">{awayText}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const isLoading = resultsLoading || fixturesLoading;
 
   if (isLoading) {
     return (
@@ -96,9 +158,10 @@ const MatchesSection = () => {
           {recentResults.length > 0 ? (
             <div className="flex gap-6 overflow-x-auto lg:grid lg:grid-cols-3 pb-4">
               {recentResults.map((match: any) => (
-                <div
+                <Link
                   key={match._id}
-                  className="min-w-75 lg:min-w-0 bg-[#ece1cf] rounded-2xl p-6 flex flex-col justify-between shrink-0"
+                  href={`/match-hub/${match._id}`}
+                  className="min-w-75 lg:min-w-0 bg-[#ece1cf] rounded-2xl p-6 flex flex-col justify-between shrink-0 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl group"
                 >
                   {/* Competition & Status */}
                   <div className="flex justify-between items-start">
@@ -152,6 +215,9 @@ const MatchesSection = () => {
                     </div>
                   </div>
 
+                  {/* Goal Scorers */}
+                  {formatGoalScorers(match.goalScorers)}
+
                   {/* Meta */}
                   <div className="mt-4 text-xs text-black/40">
                     <p>{formatDate(match.matchDate)}</p>
@@ -161,17 +227,14 @@ const MatchesSection = () => {
                     )}
                   </div>
 
-                  {/* View Match Button */}
-                  <Link
-                    href={`/match-hub`}
-                    className="mt-6 border border-black/30 rounded-full py-2 text-xs flex justify-between px-4 hover:bg-black hover:text-white transition-all group/btn"
-                  >
+                  {/* View Match Button - Now the whole card is clickable, but keep this for visual */}
+                  <div className="mt-6 border border-black/30 rounded-full py-2 text-xs flex justify-between px-4 transition-all group-hover:bg-black group-hover:text-white">
                     <span>VIEW MATCH</span>
-                    <span className="text-[#e09225] group-hover/btn:text-[#e09225] group-hover/btn:translate-x-1 transition-transform">
+                    <span className="text-[#e09225] group-hover:text-[#e09225] group-hover:translate-x-1 transition-transform">
                       →
                     </span>
-                  </Link>
-                </div>
+                  </div>
+                </Link>
               ))}
             </div>
           ) : (
@@ -211,9 +274,10 @@ const MatchesSection = () => {
           {upcomingFixtures.length > 0 ? (
             <div className="flex gap-6 overflow-x-auto lg:grid lg:grid-cols-3 pb-4">
               {upcomingFixtures.map((match: any) => (
-                <div
+                <Link
                   key={match._id}
-                  className="min-w-75 lg:min-w-0 bg-[#ece1cf] rounded-2xl p-6 flex flex-col justify-between shrink-0"
+                  href={`/match-hub/${match._id}`}
+                  className="min-w-75 lg:min-w-0 bg-[#ece1cf] rounded-2xl p-6 flex flex-col justify-between shrink-0 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl group"
                 >
                   {/* Competition & PL Logo */}
                   <div className="flex justify-between items-start">
@@ -280,17 +344,17 @@ const MatchesSection = () => {
                     </div>
                   </div>
 
-                  {/* Buy Tickets Button */}
-                  <Link
-                    href={`/match-hub`}
-                    className="mt-6 border border-black/30 rounded-full py-2 text-xs flex justify-between px-4 hover:bg-black hover:text-white transition-all group/btn"
-                  >
+                  {/* Goal Scorers - Show for fixtures too (if any) */}
+                  {formatGoalScorers(match.goalScorers)}
+
+                  {/* View Details Button */}
+                  <div className="mt-6 border border-black/30 rounded-full py-2 text-xs flex justify-between px-4 transition-all group-hover:bg-black group-hover:text-white">
                     <span>VIEW DETAILS</span>
-                    <span className="text-[#e09225] group-hover/btn:text-[#e09225] group-hover/btn:translate-x-1 transition-transform">
+                    <span className="text-[#e09225] group-hover:text-[#e09225] group-hover:translate-x-1 transition-transform">
                       →
                     </span>
-                  </Link>
-                </div>
+                  </div>
+                </Link>
               ))}
             </div>
           ) : (

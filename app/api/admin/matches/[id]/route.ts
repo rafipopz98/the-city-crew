@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { MatchesModel } from "@/lib/models/Matches";
+import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 
 type RouteContext = {
@@ -37,17 +38,45 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const { id } = await params;
     const body = await req.json();
 
+    console.log("Received PUT body:", JSON.stringify(body, null, 2));
+
+    // ✅ Build update object with all fields
+    const updateData: any = {
+      homeTeamScore: body.homeTeamScore,
+      awayTeamScore: body.awayTeamScore,
+      goalScorers: body.goalScorers || [],
+      lineup: body.lineup || [],
+    };
+
+    // Only include other fields if they exist
+    if (body.status) updateData.status = body.status;
+    if (body.competition) updateData.competition = body.competition;
+    if (body.matchType) updateData.matchType = body.matchType;
+    if (body.venue) updateData.venue = body.venue;
+    if (body.matchday !== undefined) updateData.matchday = body.matchday;
+    if (body.isHome !== undefined) updateData.isHome = body.isHome;
+    if (body.matchDate) updateData.matchDate = body.matchDate;
+
+    console.log("Update data:", JSON.stringify(updateData, null, 2));
+
     const match = await MatchesModel.findByIdAndUpdate(
       id,
-      { $set: body },
-      { new: true, runValidators: true },
+      { $set: updateData },
+      {
+        new: true,
+        runValidators: false,
+        returnDocument: "after",
+      },
     )
       .populate("season", "year")
+      .populate("lineup", "name")
       .lean();
 
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
+
+    console.log("Updated match:", JSON.stringify(match, null, 2));
 
     return NextResponse.json(match);
   } catch (error) {

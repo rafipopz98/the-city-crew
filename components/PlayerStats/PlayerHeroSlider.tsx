@@ -1,13 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { playerImages } from "@/public/players-image";
 
-const playerImageMap = Object.fromEntries(
-  playerImages.map((player) => [player.name, player.verticalImage]),
-);
 type Player = {
   name: string;
   number: string;
@@ -20,157 +16,38 @@ type Player = {
   games: number;
   rating: number;
 };
-const PLAYERS: Player[] = [
-  {
-    name: "Erling Haaland",
-    number: "09",
-    position: "Forward",
-    country: "Norway",
-    image: playerImageMap["Erling Haaland"],
-    goals: 22,
-    assists: 7,
-    cleanSheets: 0,
-    games: 28,
-    rating: 4.6,
-  },
-  {
-    name: "Phil Foden",
-    number: "47",
-    position: "Midfielder",
-    country: "England",
-    image: playerImageMap["Phil Foden"],
-    goals: 7,
-    assists: 3,
-    cleanSheets: 0,
-    games: 18,
-    rating: 4.2,
-  },
-  {
-    name: "Rodri",
-    number: "16",
-    position: "Midfielder",
-    country: "Spain",
-    image: playerImageMap["Rodri"],
-    goals: 4,
-    assists: 5,
-    cleanSheets: 0,
-    games: 21,
-    rating: 3.2,
-  },
-  {
-    name: "Jérémy Doku",
-    number: "11",
-    position: "Winger",
-    country: "Belgium",
-    image: playerImageMap["Jérémy Doku"],
-    goals: 5,
-    assists: 4,
-    cleanSheets: 0,
-    games: 17,
-    rating: 3.7,
-  },
-  {
-    name: "Rayan Cherki",
-    number: "10",
-    position: "Midfielder",
-    country: "France",
-    image: playerImageMap["Rayan Cherki"],
-    goals: 3,
-    assists: 8,
-    cleanSheets: 0,
-    games: 12,
-    rating: 1.4,
-  },
-  {
-    name: "Antoine Semenyo",
-    number: "42",
-    position: "Forward",
-    country: "Ghana",
-    image: playerImageMap["Antoine Semenyo"],
-    goals: 15,
-    assists: 4,
-    cleanSheets: 0,
-    games: 26,
-    rating: 4.2,
-  },
-  {
-    name: "Rayan Ait-Nouri",
-    number: "21",
-    position: "Midfielder",
-    country: "France",
-    image: playerImageMap["Rayan Ait-Nouri"],
-    goals: 4,
-    assists: 2,
-    cleanSheets: 0,
-    games: 16,
-    rating: 2.4,
-  },
-  {
-    name: "James Trafford",
-    number: "1",
-    position: "Goal Keeper",
-    country: "England",
-    image: playerImageMap["James Trafford"],
-    goals: 0,
-    assists: 0,
-    cleanSheets: 14,
-    games: 14,
-    rating: 4.6,
-  },
-  {
-    name: "Gianluigi Donnarumma",
-    number: "25",
-    position: "Goal Keeper",
-    country: "Italy",
-    image: playerImageMap["Gianluigi Donnarumma"],
-    goals: 0,
-    assists: 0,
-    cleanSheets: 14,
-    games: 14,
-    rating: 4.1,
-  },
-  {
-    name: "Ruben Dias",
-    number: "3",
-    position: "Defender",
-    country: "Portugal",
-    image: playerImageMap["Ruben Dias"],
-    goals: 0,
-    assists: 1,
-    cleanSheets: 14,
-    games: 14,
-    rating: 4.1,
-  },
-  {
-    name: "Josko Gvardiol",
-    number: "24",
-    position: "Defender",
-    country: "Croatia",
-    image: playerImageMap["Josko Gvardiol"],
-    goals: 0,
-    assists: 0,
-    cleanSheets: 0,
-    games: 0,
-    rating: 0,
-  },
-];
 
-const N = PLAYERS.length;
-const mod = (n: number, m: number) => ((n % m) + m) % m;
+export default function PlayerHeroSlider({ PLAYERS }: { PLAYERS: Player[] }) {
+  const mod = (n: number, m: number) => ((n % m) + m) % m;
 
-// slot configs: offset -2, -1, 0, 1, 2
-const SLOT_CONFIG = [
-  { x: -520, scale: 0.42, opacity: 0.25, zIndex: 0 },
-  { x: -300, scale: 0.65, opacity: 0.55, zIndex: 1 },
-  { x: 0, scale: 1.0, opacity: 1.0, zIndex: 2 },
-  { x: 300, scale: 0.65, opacity: 0.55, zIndex: 1 },
-  { x: 520, scale: 0.42, opacity: 0.25, zIndex: 0 },
-];
+  // slot configs: offset -2, -1, 0, 1, 2
+  const SLOT_CONFIG = [
+    { x: -520, scale: 0.42, opacity: 0.25, zIndex: 0 },
+    { x: -300, scale: 0.65, opacity: 0.55, zIndex: 1 },
+    { x: 0, scale: 1.0, opacity: 1.0, zIndex: 2 },
+    { x: 300, scale: 0.65, opacity: 0.55, zIndex: 1 },
+    { x: 520, scale: 0.42, opacity: 0.25, zIndex: 0 },
+  ];
 
-export default function PlayerCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const dragStartX = useRef(0);
   const isDragging = useRef(false);
+  const N = PLAYERS.length;
+
+  // Reset active index when players change
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [PLAYERS]);
+
+  if (PLAYERS.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-xl text-gray-600">
+          No players found for this season
+        </p>
+      </div>
+    );
+  }
 
   const go = (direction: number) => {
     setActiveIndex((i) => mod(i + direction, N));

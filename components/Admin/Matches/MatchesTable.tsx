@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import MatchRow from "./MatchRow";
+import MatchRow, { GoalScorer } from "./MatchRow";
 
 type Props = {
   search: string;
@@ -100,6 +100,8 @@ const MatchesTable = ({
     matchId: string,
     homeScore: number,
     awayScore: number,
+    goalScorers: GoalScorer[],
+    lineup: string[],
   ) => {
     try {
       const response = await fetch(`/api/admin/matches/${matchId}`, {
@@ -110,6 +112,8 @@ const MatchesTable = ({
         body: JSON.stringify({
           homeTeamScore: homeScore,
           awayTeamScore: awayScore,
+          goalScorers,
+          lineup,
         }),
       });
 

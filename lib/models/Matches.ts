@@ -68,6 +68,32 @@ const MatchesSchema = new mongoose.Schema(
       type: Boolean,
       required: true,
     },
+    goalScorers: [
+      {
+        playerName: String,
+        minute: Number,
+        team: {
+          type: String,
+          enum: ["home", "away"],
+          required: true,
+        },
+        isPenalty: {
+          type: Boolean,
+          default: false,
+        },
+        isOwnGoal: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+
+    lineup: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Players",
+      },
+    ],
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

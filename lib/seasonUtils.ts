@@ -35,3 +35,23 @@ export function isPreSeason(): boolean {
   const currentMonth = new Date().getMonth();
   return currentMonth === 5 || currentMonth === 6; // June or July
 }
+
+export function getCurrentSeason(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0 = Jan, 7 = Aug
+
+  // Football season: August - May
+  // Aug (7) to Dec (11) → "2025-26"
+  // Jan (0) to Jul (6) → "2024-25"
+  if (month >= 7) {
+    return `${year}-${String(year + 1).slice(2)}`;
+  } else {
+    return `${year - 1}-${String(year).slice(2)}`;
+  }
+}
+
+export function formatSeasonDisplay(year: string): string {
+  const [start, end] = year.split("-");
+  return `${start}/${end}`;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Save, Loader2 } from "lucide-react";
+import { X, Save, Loader2, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { clubLogos } from "@/public/club-logos";
 import SettingRow from "../Players/SettingRow";
@@ -15,6 +15,14 @@ type MatchModalProps = {
   onSave: () => void;
   match?: any;
   seasons: Array<{ _id: string; year: string }>;
+};
+
+type GoalScorer = {
+  team: "home" | "away";
+  playerName: string;
+  minute: number | string;
+  isPenalty: boolean;
+  isOwnGoal: boolean;
 };
 
 const competitions = [
@@ -64,8 +72,43 @@ const MatchModal = ({
     matchday: 1,
     isHome: true,
   });
+
+  // New state for goal scorers
+  const [goalScorers, setGoalScorers] = useState<GoalScorer[]>([]);
+
+  // New state for lineup
+  const [lineup, setLineup] = useState<string[]>([]);
+
+  // All players from the season
+  const [allPlayers, setAllPlayers] = useState<any[]>([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [selectedAwayTeam, setSelectedAwayTeam] = useState("");
+
+  // Fetch players when season changes or modal opens
+  useEffect(() => {
+    if (open && formData.season) {
+      fetchPlayers(formData.season);
+    }
+  }, [open, formData.season]);
+
+  const fetchPlayers = async (seasonId: string) => {
+    setLoadingPlayers(true);
+    try {
+      const response = await fetch(
+        `/api/admin/players?season=${seasonId}&limit=100`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setAllPlayers(data.players || []);
+      }
+    } catch (error) {
+      console.error("Error fetching players:", error);
+    } finally {
+      setLoadingPlayers(false);
+    }
+  };
 
   useEffect(() => {
     if (match) {
@@ -88,6 +131,29 @@ const MatchModal = ({
         matchday: match.matchday || 1,
         isHome: match.isHome,
       });
+
+      // Set goal scorers from match data
+      if (match.goalScorers && match.goalScorers.length > 0) {
+        setGoalScorers(
+          match.goalScorers.map((g: any) => ({
+            team: g.team,
+            playerName: g.playerName,
+            minute: g.minute,
+            isPenalty: g.isPenalty || false,
+            isOwnGoal: g.isOwnGoal || false,
+          })),
+        );
+      } else {
+        setGoalScorers([]);
+      }
+
+      // Set lineup from match data
+      if (match.lineup && match.lineup.length > 0) {
+        setLineup(match.lineup.map((p: any) => p._id || p));
+      } else {
+        setLineup([]);
+      }
+
       setSelectedAwayTeam(match.awayTeam.name);
     } else {
       resetForm();
@@ -114,6 +180,8 @@ const MatchModal = ({
       isHome: true,
     });
     setSelectedAwayTeam("");
+    setGoalScorers([]);
+    setLineup([]);
   };
 
   const handleAwayTeamSelect = (teamName: string) => {
@@ -130,17 +198,45 @@ const MatchModal = ({
     }
   };
 
+  // Goal Scorer Functions
+  const addGoalScorer = () => {
+    setGoalScorers([
+      ...goalScorers,
+      {
+        team: "home",
+        playerName: "",
+        minute: "",
+        isPenalty: false,
+        isOwnGoal: false,
+      },
+    ]);
+  };
+
+  const removeGoalScorer = (index: number) => {
+    setGoalScorers(goalScorers.filter((_, i) => i !== index));
+  };
+
+  const updateGoalScorer = (
+    index: number,
+    field: keyof GoalScorer,
+    value: any,
+  ) => {
+    const updated = [...goalScorers];
+    updated[index] = { ...updated[index], [field]: value };
+    setGoalScorers(updated);
+  };
+
+  // Lineup Functions
+  const togglePlayer = (playerId: string) => {
+    setLineup((prev) =>
+      prev.includes(playerId)
+        ? prev.filter((id) => id !== playerId)
+        : [...prev, playerId],
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Log form data before submission
-    console.log("Match Form Data:", formData);
-    console.log("Selected Away Team:", selectedAwayTeam);
-    console.log(
-      "Match Date (UTC):",
-      new Date(`${formData.matchDate}T${formData.matchTime}`).toISOString(),
-    );
-
     setSaving(true);
 
     try {
@@ -149,6 +245,10 @@ const MatchModal = ({
       const payload = {
         ...formData,
         matchDate: dateTime.toISOString(),
+        goalScorers: goalScorers.filter(
+          (g) => g.playerName.trim() && g.minute !== "",
+        ),
+        lineup: lineup,
       };
 
       const url = match
@@ -213,19 +313,16 @@ const MatchModal = ({
       "
       >
         {/* Header */}
-
         <header className="border-b border-black/10 px-6 py-6 lg:px-10">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] uppercase tracking-[0.35em] text-black/40">
                 Fixture
               </p>
-
               <h1 className="para mt-4 text-5xl uppercase leading-none">
                 {match ? "Edit Match" : "Add Match"}
               </h1>
             </div>
-
             <button
               onClick={onClose}
               className="
@@ -242,9 +339,9 @@ const MatchModal = ({
         </header>
 
         {/* Content */}
-
         <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-10">
           <form onSubmit={handleSubmit} className="space-y-14">
+            {/* Existing Form Sections */}
             <SettingGroup title="Match">
               <SettingRow label="Season">
                 <TCCSelect
@@ -330,6 +427,7 @@ const MatchModal = ({
                 />
               </SettingRow>
             </SettingGroup>
+
             <SettingGroup title="Teams">
               <SettingRow label="Manchester City">
                 <div className="flex items-center gap-4">
@@ -341,7 +439,6 @@ const MatchModal = ({
                       className="object-contain"
                     />
                   </div>
-
                   <div>
                     <h3 className="text-[17px] font-medium">
                       {formData.homeTeam.name}
@@ -411,7 +508,6 @@ const MatchModal = ({
                         }))
                       }
                     />
-
                     <span>Home</span>
                   </label>
 
@@ -426,12 +522,12 @@ const MatchModal = ({
                         }))
                       }
                     />
-
                     <span>Away</span>
                   </label>
                 </div>
               </SettingRow>
-            </SettingGroup>{" "}
+            </SettingGroup>
+
             <SettingGroup title="Match Status">
               <SettingRow label="Status">
                 <TCCSelect
@@ -449,11 +545,192 @@ const MatchModal = ({
                 />
               </SettingRow>
             </SettingGroup>
+
+            {/* ============ GOAL SCORERS SECTION ============ */}
+            <SettingGroup title="Goal Scorers">
+              <div className="space-y-4">
+                {goalScorers.length === 0 && (
+                  <p className="text-sm text-black/40 italic">
+                    No goal scorers added yet.
+                  </p>
+                )}
+
+                {goalScorers.map((scorer, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-wrap items-end gap-4 border-b border-black/10 pb-4"
+                  >
+                    {/* Team */}
+                    <div className="flex-1 min-w-25">
+                      <label className="text-xs uppercase tracking-[0.2em] text-black/40 block mb-1">
+                        Team
+                      </label>
+                      <select
+                        value={scorer.team}
+                        onChange={(e) =>
+                          updateGoalScorer(
+                            index,
+                            "team",
+                            e.target.value as "home" | "away",
+                          )
+                        }
+                        className="w-full border-b-2 border-black/10 bg-transparent pb-2 text-sm outline-none focus:border-[#e09225] transition"
+                      >
+                        <option value="home">Home</option>
+                        <option value="away">Away</option>
+                      </select>
+                    </div>
+
+                    {/* Player Name */}
+                    <div className="flex-1 min-w-30">
+                      <label className="text-xs uppercase tracking-[0.2em] text-black/40 block mb-1">
+                        Player
+                      </label>
+                      <input
+                        type="text"
+                        value={scorer.playerName}
+                        onChange={(e) =>
+                          updateGoalScorer(index, "playerName", e.target.value)
+                        }
+                        placeholder="e.g. Haaland"
+                        className="w-full border-b-2 border-black/10 bg-transparent pb-2 text-sm outline-none focus:border-[#e09225] transition"
+                      />
+                    </div>
+
+                    {/* Minute */}
+                    <div className="w-20">
+                      <label className="text-xs uppercase tracking-[0.2em] text-black/40 block mb-1">
+                        Minute
+                      </label>
+                      <input
+                        type="number"
+                        value={scorer.minute}
+                        onChange={(e) =>
+                          updateGoalScorer(
+                            index,
+                            "minute",
+                            parseInt(e.target.value) || "",
+                          )
+                        }
+                        placeholder="45"
+                        className="w-full border-b-2 border-black/10 bg-transparent pb-2 text-sm outline-none focus:border-[#e09225] transition"
+                      />
+                    </div>
+
+                    {/* Is Penalty */}
+                    <div className="flex items-center gap-2">
+                      <label className="flex cursor-pointer items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={scorer.isPenalty}
+                          onChange={(e) =>
+                            updateGoalScorer(
+                              index,
+                              "isPenalty",
+                              e.target.checked,
+                            )
+                          }
+                          className="cursor-pointer"
+                        />
+                        <span className="text-black/60 text-xs uppercase tracking-widest">
+                          Pen
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Is Own Goal */}
+                    <div className="flex items-center gap-2">
+                      <label className="flex cursor-pointer items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={scorer.isOwnGoal}
+                          onChange={(e) =>
+                            updateGoalScorer(
+                              index,
+                              "isOwnGoal",
+                              e.target.checked,
+                            )
+                          }
+                          className="cursor-pointer"
+                        />
+                        <span className="text-black/60 text-xs uppercase tracking-widest">
+                          OG
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Remove Button */}
+                    <button
+                      type="button"
+                      onClick={() => removeGoalScorer(index)}
+                      className="text-black/30 hover:text-red-500 transition shrink-0 pb-1"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={addGoalScorer}
+                  className="flex items-center gap-2 text-sm text-black/50 hover:text-[#e09225] transition"
+                >
+                  <Plus size={16} />
+                  Add Goal Scorer
+                </button>
+              </div>
+            </SettingGroup>
+
+            {/* ============ CITY LINEUP SECTION ============ */}
+            <SettingGroup title="City Lineup">
+              <div className="space-y-4">
+                {loadingPlayers ? (
+                  <div className="flex items-center gap-3 py-4">
+                    <Loader2 size={20} className="animate-spin text-black/30" />
+                    <span className="text-sm text-black/40">
+                      Loading players...
+                    </span>
+                  </div>
+                ) : allPlayers.length === 0 ? (
+                  <p className="text-sm text-black/40 italic">
+                    No players found for this season.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {allPlayers
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((player) => (
+                        <label
+                          key={player._id}
+                          className="flex items-center gap-3 p-2 rounded hover:bg-black/5 transition cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={lineup.includes(player._id)}
+                            onChange={() => togglePlayer(player._id)}
+                            className="cursor-pointer"
+                          />
+                          <span className="text-sm">{player.name}</span>
+                          <span className="text-xs text-black/30 ml-auto">
+                            {player.position}
+                          </span>
+                        </label>
+                      ))}
+                  </div>
+                )}
+
+                {lineup.length > 0 && (
+                  <p className="text-sm text-black/40">
+                    {lineup.length} player{lineup.length !== 1 ? "s" : ""}{" "}
+                    selected
+                  </p>
+                )}
+              </div>
+            </SettingGroup>
           </form>
         </main>
 
         {/* Footer */}
-
         <footer
           className="
           flex
@@ -538,7 +815,6 @@ const MatchModal = ({
               ) : (
                 <>
                   <Save size={18} />
-
                   {match ? "Update Match" : "Save Match"}
                 </>
               )}
