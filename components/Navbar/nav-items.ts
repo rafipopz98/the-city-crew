@@ -20,7 +20,7 @@ export const NAV_ITEMS: NavItem[] = [
  * This makes that filtering real.
  */
 export function getVisibleNavItems(
-  user: { role?: string } | null | undefined
+  user: { role?: string } | null | undefined,
 ): NavItem[] {
   return NAV_ITEMS.filter((item) => {
     if (item.adminOnly && user?.role !== "admin") return false;

@@ -1,24 +1,14 @@
 import Link from "next/link";
 
-export const HamburgerIcon = ({ isOpen }: { isOpen: boolean }) => (
-  <div className="w-6 h-5 relative flex flex-col justify-between">
-    <span
-      className={`block h-0.5 w-full bg-current transform transition-all duration-300 ${
-        isOpen ? "rotate-45 translate-y-2.5" : ""
-      }`}
-    />
-    <span
-      className={`block h-0.5 w-full bg-current transition-all duration-300 ${
-        isOpen ? "opacity-0" : ""
-      }`}
-    />
-    <span
-      className={`block h-0.5 w-full bg-current transform transition-all duration-300 ${
-        isOpen ? "-rotate-45 -translate-y-2" : ""
-      }`}
-    />
-  </div>
-);
+import { Menu, X } from "lucide-react";
+
+export const HamburgerIcon = ({ isOpen }: { isOpen: boolean }) => {
+  const Icon = isOpen ? X : Menu;
+
+  return (
+    <Icon size={24} strokeWidth={2} className="transition-all duration-300" />
+  );
+};
 
 type NavLinkVariant = "default" | "cta" | "mobile";
 
