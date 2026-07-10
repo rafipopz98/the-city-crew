@@ -63,9 +63,9 @@ export default function RatingLock({
       {/* Blurred Background */}
       <div className="absolute inset-0 blur-sm opacity-30">
         <div className="w-full h-full bg-linear-to-b from-[#06182e] to-[#0a2a4a]" />
-        {match.homeTeam?.image && (
+        {match?.homeTeam?.image && (
           <Image
-            src={match.homeTeam.image}
+            src={match?.homeTeam.image}
             alt="Background"
             fill
             className="object-cover opacity-10"
@@ -90,10 +90,10 @@ export default function RatingLock({
 
           <div className="mt-6 text-white/30 text-xs">
             <p>
-              {match.homeTeam?.name} vs {match.awayTeam?.name}
+              {match?.homeTeam?.name} vs {match?.awayTeam?.name}
             </p>
             <p className="mt-1">
-              {new Date(match.matchDate).toLocaleDateString()}
+              {new Date(match?.matchDate).toLocaleDateString()}
             </p>
           </div>
         </div>

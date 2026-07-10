@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Star, Users } from "lucide-react";
 import RatingStars from "./RatingStars";
 
 type Player = {
@@ -31,9 +31,7 @@ export default function MobileRating({
   onRatingSubmit,
 }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
-
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
-
   const [hasVoted, setHasVoted] = useState(false);
 
   const currentPlayer = players[currentIndex];
@@ -48,11 +46,11 @@ export default function MobileRating({
       setSelectedRating(null);
       setHasVoted(false);
     }
-  }, [currentIndex, currentPlayer]);
+  }, [currentPlayer]);
 
   if (!players.length) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#06182e]">
+      <main className="flex min-h-screen items-center justify-center bg-black">
         <p className="text-white/50">No players available.</p>
       </main>
     );
@@ -60,26 +58,25 @@ export default function MobileRating({
 
   const nextPlayer = () => {
     if (currentIndex < players.length - 1) {
-      setCurrentIndex((p) => p + 1);
+      setCurrentIndex((i) => i + 1);
     }
   };
 
   const previousPlayer = () => {
     if (currentIndex > 0) {
-      setCurrentIndex((p) => p - 1);
+      setCurrentIndex((i) => i - 1);
     }
   };
 
   const handleRating = (rating: number) => {
     setSelectedRating(rating);
-
     setHasVoted(true);
 
     onRatingSubmit(currentPlayer._id, rating);
 
     setTimeout(() => {
       if (currentIndex < players.length - 1) {
-        setCurrentIndex((p) => p + 1);
+        setCurrentIndex((i) => i + 1);
       }
     }, 700);
   };
@@ -98,75 +95,10 @@ export default function MobileRating({
   };
 
   return (
-    <main className="fixed inset-0 bg-[#06182e] overflow-hidden">
-      {/* Header */}
-
-      <header
-        className="
-      absolute
-      inset-x-0
-      top-0
-      z-30
-
-      flex
-      items-center
-      justify-between
-
-      px-5
-      pt-safe
-      pt-6
-    "
-      >
-        <Link
-          href={`/match-hub/${match._id}`}
-          className="
-        flex
-        h-11
-        w-11
-        items-center
-        justify-center
-
-        rounded-full
-
-        bg-black/30
-
-        backdrop-blur-md
-      "
-        >
-          <ArrowLeft size={20} className="text-white" />
-        </Link>
-
-        <div className="text-center">
-          <p
-            className="
-          text-[10px]
-
-          uppercase
-
-          tracking-[0.35em]
-
-          text-white/40
-        "
-          >
-            Player Ratings
-          </p>
-
-          <p className="mt-1 text-sm text-white/70">
-            {currentIndex + 1} of {players.length}
-          </p>
-        </div>
-
-        <div className="w-11" />
-      </header>
-
-      {/* Swipe Area */}
-
+    <main className="fixed inset-0 overflow-hidden bg-black">
       <motion.div
         drag="y"
-        dragConstraints={{
-          top: 0,
-          bottom: 0,
-        }}
+        dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.08}
         onDragEnd={handleDragEnd}
         className="absolute inset-0"
@@ -174,253 +106,127 @@ export default function MobileRating({
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPlayer._id}
-            initial={{
-              opacity: 0,
-              y: 80,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            exit={{
-              opacity: 0,
-              y: -80,
-            }}
-            transition={{
-              duration: 0.35,
-            }}
-            className="
-          relative
-
-          flex
-          h-full
-          w-full
-          items-end
-          justify-center
-        "
+            initial={{ opacity: 0, y: 80 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -80 }}
+            transition={{ duration: 0.35 }}
+            className="relative h-full w-full"
           >
-            {/* Player */}
-
-            <div
-              className="
-            absolute
-            inset-0
-          "
+            {" "}
+            {/* Player Image */}
+            {currentPlayer.vertical_image ? (
+              <Image
+                src={currentPlayer.vertical_image}
+                alt={currentPlayer.name}
+                fill
+                priority
+                className="object-cover object-top"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center bg-[#06182e]">
+                <span className="para text-[220px] text-white/10">
+                  {currentPlayer.number || "?"}
+                </span>
+              </div>
+            )}
+            {/* Bottom Gradient */}
+            <div className="absolute inset-0 bg-linear-to-t from-black via-black/30 to-transparent" />
+            {/* Back */}
+            <Link
+              href={`/match-hub/${match._id}`}
+              className="absolute left-5 top-safe top-5 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-xl"
             >
-              {currentPlayer.vertical_image ? (
-                <Image
-                  src={currentPlayer.vertical_image}
-                  alt={currentPlayer.name}
-                  fill
-                  priority
-                  className="object-contain"
-                />
-              ) : (
-                <div
-                  className="
-                flex
-                h-full
-                items-center
-                justify-center
-              "
-                >
-                  <span
-                    className="
-                  para
-
-                  text-[180px]
-
-                  text-white/10
-                "
-                  >
-                    {currentPlayer.number || "?"}
-                  </span>
-                </div>
-              )}
-
-              {/* Gradient */}
-
-              <div
-                className="
-              absolute
-              inset-0
-
-              bg-gradient-to-b
-
-              from-[#06182e]/10
-
-              via-transparent
-
-              to-[#06182e]
-            "
+              <ArrowLeft size={22} className="text-white" />
+            </Link>
+            {/* Rating Stars */}
+            <div className="absolute left-1/2 top-safe top-5 z-30 -translate-x-1/2">
+              <RatingStars
+                rating={selectedRating || 0}
+                onRatingSelect={handleRating}
+                disabled={hasVoted}
+                size="large"
+                surface="dark"
               />
             </div>
+            {/* Right Sidebar */}
+            <div className="absolute bottom-44 right-5 z-30 flex flex-col items-center gap-8">
+              <div className="flex flex-col items-center">
+                <div className="rounded-full bg-black/35 p-3 backdrop-blur-xl">
+                  <Star className="fill-[#e09225] text-[#e09225]" size={22} />
+                </div>
 
+                <span className="mt-2 text-lg font-semibold text-white">
+                  {currentPlayer.totalRatings
+                    ? currentPlayer.averageRating.toFixed(1)
+                    : "--"}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <div className="rounded-full bg-black/35 p-3 backdrop-blur-xl">
+                  <Users size={22} className="text-white" />
+                </div>
+
+                <span className="mt-2 text-lg font-semibold text-white">
+                  {currentPlayer.totalRatings}
+                </span>
+              </div>
+            </div>
             {/* Bottom Content */}
+            <div className="absolute inset-x-0 bottom-0 z-30 px-5 pb-8">
+              <div className="max-w-[75%]">
+                <h1 className="para text-[42px] leading-none uppercase text-white">
+                  {currentPlayer.name}
+                </h1>
 
-            <div
-              className="
-            relative
-            z-20
-
-            w-full
-
-            px-8
-            pb-10
-          "
-            >
-              <p
-                className="
-              text-[11px]
-
-              uppercase
-
-              tracking-[0.35em]
-
-              text-white/40
-            "
-              >
-                {currentPlayer.position} • {currentPlayer.country}
-              </p>
-              <h1
-                className="
-              para
-
-              mt-3
-
-              text-5xl
-
-              uppercase
-
-              leading-none
-
-              text-white
-            "
-              >
-                {currentPlayer.name}
-              </h1>
-              <p className="mt-3 text-white/35">
-                Shirt #{currentPlayer.number}
-              </p>{" "}
-              {/* Rating */}
-              <div className="mt-8 flex justify-center">
-                <RatingStars
-                  rating={selectedRating || 0}
-                  onRatingSelect={handleRating}
-                  disabled={hasVoted}
-                  size="large"
-                  surface="dark"
-                />
+                <p className="mt-2 text-base text-white/85">
+                  🇪🇸 {currentPlayer.country} • {currentPlayer.position}
+                </p>
               </div>
-              {/* Community Rating */}
-              <div className="mt-6 text-center">
-                {currentPlayer.totalRatings > 0 ? (
-                  <>
-                    <p
-                      className="
-                    text-[11px]
-                    uppercase
-                    tracking-[0.3em]
-                    text-white/40
-                  "
-                    >
-                      Community Rating
-                    </p>
 
-                    <h2
-                      className="
-                    mt-2
-
-                    para
-
-                    text-5xl
-
-                    text-[#e09225]
-                  "
-                    >
-                      {currentPlayer.averageRating.toFixed(1)}
-                    </h2>
-
-                    <p className="mt-1 text-sm text-white/35">
-                      {currentPlayer.totalRatings} supporters voted
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p
-                      className="
-                    text-[11px]
-                    uppercase
-                    tracking-[0.3em]
-                    text-white/40
-                  "
-                    >
-                      Community Rating
-                    </p>
-
-                    <h2 className="mt-2 text-2xl text-white/30">
-                      No ratings yet
-                    </h2>
-                  </>
-                )}
-              </div>
-              {/* Success */}
-              {hasVoted && (
-                <div
-                  className="
-                mt-6
-
-                rounded-full
-
-                border
-                border-[#e09225]/30
-
-                bg-[#e09225]/10
-
-                py-3
-
-                text-center
-
-                text-sm
-
-                text-[#e09225]
-              "
-                >
-                  ✓ Rating submitted
-                </div>
-              )}
-              {/* Swipe Hint */}
-              <div className="mt-8 text-center">
-                {currentIndex < players.length - 1 ? (
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/25">
-                    Swipe Up For Next Player
-                  </p>
-                ) : (
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/25">
-                    You've Rated Everyone
-                  </p>
-                )}
-              </div>
               {/* Progress */}
-              <div className="mt-6">
-                <div className="flex justify-between text-xs text-white/35">
-                  <span>
-                    {currentIndex + 1} / {players.length}
-                  </span>
 
-                  <span>
-                    {Math.round(((currentIndex + 1) / players.length) * 100)}%
-                  </span>
-                </div>
-
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+              <div className="mt-6 flex items-center gap-2">
+                {players.map((_, index) => (
                   <motion.div
-                    className="h-full rounded-full bg-[#e09225]"
-                    animate={{
-                      width: `${((currentIndex + 1) / players.length) * 100}%`,
+                    key={index}
+                    layout
+                    transition={{
+                      duration: 0.25,
                     }}
+                    className={`rounded-full ${
+                      index === currentIndex
+                        ? "h-1 w-10 bg-white"
+                        : index < currentIndex
+                          ? "h-1 w-5 bg-white/70"
+                          : "h-1 w-5 bg-white/20"
+                    }`}
                   />
-                </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-sm tracking-wide text-white/70">
+                  {currentIndex + 1} / {players.length}
+                </span>
+
+                {hasVoted && (
+                  <motion.div
+                    initial={{
+                      opacity: 0,
+                      y: 10,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-xl"
+                  >
+                    <span className="text-sm text-white">
+                      ✓ Thanks for voting
+                    </span>
+                  </motion.div>
+                )}
               </div>
             </div>
           </motion.div>

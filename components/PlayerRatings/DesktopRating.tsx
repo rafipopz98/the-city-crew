@@ -81,13 +81,13 @@ export default function DesktopRating({
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Link href={`/match-hub/${match._id}`}>
+            <Link href={`/match-hub/${match?._id}`}>
               <ArrowLeft className="text-black/60 hover:text-black transition" />
             </Link>
             <div>
               <h1 className="para text-3xl uppercase">Rate Players</h1>
               <p className="text-sm text-black/50">
-                {match.homeTeam?.name} vs {match.awayTeam?.name}
+                {match?.homeTeam?.name} vs {match?.awayTeam?.name}
               </p>
             </div>
           </div>

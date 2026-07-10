@@ -1,4 +1,3 @@
-// page.tsx — Server Component (no "use client")
 import { connectDB } from "@/lib/db/mongoose";
 import { MatchesModel } from "@/lib/models/Matches";
 import { notFound } from "next/navigation";
@@ -15,6 +14,7 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
 
   await connectDB();
+
   const match = await MatchesModel.findById(id).lean();
 
   if (!match) {
@@ -43,24 +43,16 @@ export default async function RatingsPage({ params }: Props) {
 
   await connectDB();
 
-  const match = await MatchesModel.findById(id)
-    .populate({
-      path: "lineup",
-      select: "name position country vertical_image number",
-    })
-    .lean();
+  const match = await MatchesModel.findById(id).select("status").lean();
 
   if (!match) {
     notFound();
   }
 
-  const isFinished = match.status === "finished";
-
   return (
     <RatingsClient
       matchId={id}
-      initialMatch={match}
-      isFinished={isFinished}
+      isFinished={match.status === "finished"}
       isLoggedIn={false}
     />
   );
