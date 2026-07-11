@@ -199,19 +199,6 @@ export default function BlogsGrid({ blogs, loading, search }: Props) {
               >
                 {truncate(blog.title)}
               </h3>
-
-              {/* Excerpt */}
-              <p
-                className="
-                    mt-2
-
-                    text-black/70
-
-                    line-clamp-2
-                  "
-              >
-                {blog.excerpt}
-              </p>
             </div>
           </Link>
         ))}

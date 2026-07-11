@@ -1,70 +1,51 @@
 import Link from "next/link";
+import { Lock, EyeOff, ArrowLeft } from "lucide-react";
 
-type Props = {
+interface BlogUnavailableProps {
   type: "draft" | "hidden";
-};
+}
 
-export default function BlogUnavailable({ type }: Props) {
-  const isDraft = type === "draft";
+export const BlogUnavailable = ({ type }: BlogUnavailableProps) => {
+  const config = {
+    draft: {
+      icon: Lock,
+      title: "Draft Article",
+      message:
+        "This article is still being written and isn't ready for the public yet.",
+      action: "Check back soon for new content!",
+    },
+    hidden: {
+      icon: EyeOff,
+      title: "Article Hidden",
+      message:
+        "This article has been hidden and is currently unavailable for viewing.",
+      action: "Browse our other stories below.",
+    },
+  };
+
+  const { icon: Icon, title, message, action } = config[type];
 
   return (
-    <div
-      className="
-        min-h-screen
-        pt-28
-        bg-[#FFF5E5]
-
-        flex
-        flex-col
-        items-center
-        justify-center
-
-        text-center
-
-        px-5
-      "
-    >
-      <h1
-        className="
-          text-4xl
-
-          font-black
-
-          uppercase
-
-          text-[#06182e]
-        "
-      >
-        {isDraft ? "Draft Story" : "Private Story"}
-      </h1>
-
-      <p
-        className="
-          mt-4
-
-          text-[#06182e]/60
-        "
-      >
-        {isDraft
-          ? "This story is still being prepared."
-          : "This story is currently hidden."}
-      </p>
-
-      <Link
-        href="/blogs"
-        className="
-          mt-8
-
-          bg-[#06182e]
-          text-[#FFF5E5]
-
-          px-6 py-3
-
-          rounded-full
-        "
-      >
-        Explore Stories
-      </Link>
+    <div className="bg-[#FFF5E5] min-h-screen flex items-center justify-center px-4">
+      <div className="text-center max-w-md">
+        <div className="flex justify-center mb-6">
+          <div className="bg-[#06182e]/5 p-6 rounded-full">
+            <Icon size={48} className="text-[#06182e]/30" />
+          </div>
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold text-[#06182e] mb-4">
+          {title}
+        </h1>
+        <p className="text-[#06182e]/60 mb-4 text-lg">{message}</p>
+        <p className="text-[#06182e]/40 mb-8">{action}</p>
+        <Link
+          href="/blogs"
+          className="bg-[#06182e] text-white px-6 py-3 rounded-full font-medium hover:bg-[#0a223f] transition-colors inline-flex items-center gap-2"
+        >
+          <ArrowLeft size={18} />
+          Browse All Stories
+        </Link>
+      </div>
     </div>
   );
-}
+};

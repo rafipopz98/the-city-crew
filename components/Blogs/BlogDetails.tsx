@@ -1,23 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { usePathname, useRouter } from "next/navigation";
-
-import BlogHero from "./Details/BlogHero";
-import BlogContent from "./Details/BlogContent";
-import BlogComments from "./Details/BlogComments";
+import { Blog, RelatedPost } from "./Details/types";
 import BlogNotFound from "./Details/BlogNotFound";
-import BlogUnavailable from "./Details/BlogUnavailable";
-import BlogLoading from "./Details/BlogLoading";
-
-type Block = {
-  type: "text" | "image";
-
-  value: string;
-
-  order: number;
-};
+import { ReadingProgress } from "./Details/ReadingProgress";
+import BlogHero from "./Details/BlogHero";
+import { BlogContent } from "./Details/BlogContent";
+import { TableOfContents } from "./Details/TableOfContents";
+import { RelatedPosts } from "./Details/RelatedPosts";
+import BlogComments from "./Details/BlogComments";
+import { NewsletterSignup } from "./Details/NewsletterSignup";
+import { BackToTop } from "./Details/BackToTop";
+import { BlogDetailsSkeleton } from "./Details/BlogDetailsSkeleton";
+import { BlogUnavailable } from "./Details/BlogUnavailable";
 
 type Comment = {
   _id: string;
@@ -28,63 +24,32 @@ type Comment = {
 
   user_id: {
     first_name: string;
-    email: string;
   };
-
-  createdAt: string;
-};
-
-type Blog = {
-  _id: string;
-
-  title: string;
-
-  thumbnail: string;
-
-  excerpt: string;
-
-  tags: string[];
-
-  status: string;
-
-  published_at: string;
-
-  views_count: number;
-
-  likes_count: number;
-
-  has_liked: boolean;
-
-  content_blocks: Block[];
 };
 
 type Props = {
-  params: Promise<{
-    slug: string;
-  }>;
+  params: Promise<{ slug: string }>;
 };
 
 export default function BlogDetails({ params }: Props) {
   const router = useRouter();
-
   const pathname = usePathname();
 
   const [blog, setBlog] = useState<Blog | null>(null);
-
   const [comments, setComments] = useState<Comment[]>([]);
-
+  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [liked, setLiked] = useState(false);
-
   const [likesCount, setLikesCount] = useState(0);
 
   const fetchComments = async (blogId: string) => {
-    const res = await fetch(`/api/blogs/comments/${blogId}`);
-
-    const data = await res.json();
-
-    setComments(data.comments || []);
+    try {
+      const res = await fetch(`/api/blogs/comments/${blogId}`);
+      const data = await res.json();
+      setComments(data.comments || []);
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+    }
   };
 
   useEffect(() => {
@@ -96,15 +61,21 @@ export default function BlogDetails({ params }: Props) {
           credentials: "include",
         });
 
+        if (!res.ok) throw new Error("Failed to fetch blog");
+
         const data = await res.json();
 
         setBlog(data.blog);
+        setLiked(data.blog?.has_liked || false);
+        setLikesCount(data.blog?.likes_count || 0);
+        setRelatedPosts(data.relatedPosts || []);
 
-        setLiked(data.blog?.has_liked);
-
-        setLikesCount(data.blog?.likes_count);
-
-        await fetchComments(data.blog?._id);
+        if (data.blog?._id) {
+          await fetchComments(data.blog._id);
+        }
+      } catch (error) {
+        console.error("Error fetching blog:", error);
+        setBlog(null);
       } finally {
         setLoading(false);
       }
@@ -114,7 +85,7 @@ export default function BlogDetails({ params }: Props) {
   }, [params]);
 
   if (loading) {
-    return <BlogLoading />;
+    return <BlogDetailsSkeleton />;
   }
 
   if (!blog) {
@@ -130,7 +101,9 @@ export default function BlogDetails({ params }: Props) {
   }
 
   return (
-    <div className="bg-[#FFF5E5] pt-15">
+    <div className="bg-[#FFF5E5] min-h-screen pt-15">
+      <ReadingProgress />
+
       <BlogHero
         blog={blog}
         liked={liked}
@@ -141,7 +114,16 @@ export default function BlogDetails({ params }: Props) {
         router={router}
       />
 
-      <BlogContent blocks={blog.content_blocks} />
+      <div className="max-w-6xl mx-auto flex gap-8 lg:gap-12 px-5">
+        <div className="flex-1">
+          <BlogContent blocks={blog.content_blocks} />
+        </div>
+        <aside className="hidden md:block w-64 shrink-0">
+          <TableOfContents blocks={blog.content_blocks} />
+        </aside>
+      </div>
+
+      <RelatedPosts posts={relatedPosts} />
 
       <BlogComments
         blogId={blog._id}
@@ -150,6 +132,10 @@ export default function BlogDetails({ params }: Props) {
         router={router}
         refresh={() => fetchComments(blog._id)}
       />
+
+      <NewsletterSignup />
+
+      <BackToTop />
     </div>
   );
 }
