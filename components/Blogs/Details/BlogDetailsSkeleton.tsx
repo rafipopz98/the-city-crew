@@ -35,19 +35,6 @@ export const BlogDetailsSkeleton = () => (
       <div className="h-[45vh] md:h-[70vh] bg-[#06182e]/5 rounded-2xl" />
     </section>
 
-    {/* Author Card Skeleton */}
-    <div className="max-w-3xl mx-auto px-5 mb-12">
-      <div className="bg-white rounded-2xl p-6 md:p-8">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-[#06182e]/5 rounded-full" />
-          <div className="flex-1 space-y-2">
-            <div className="h-5 w-32 bg-[#06182e]/5 rounded" />
-            <div className="h-4 w-48 bg-[#06182e]/5 rounded" />
-          </div>
-        </div>
-      </div>
-    </div>
-
     {/* Content Skeleton */}
     <div className="max-w-6xl mx-auto px-5">
       <div className="flex gap-8 lg:gap-12">
@@ -110,7 +97,7 @@ export const BlogDetailsSkeleton = () => (
     </div>
 
     {/* Related Posts Skeleton */}
-    <div className="bg-white py-16 mt-16">
+    <div className="bg-[#FFF5E5] py-16 mt-16">
       <div className="max-w-6xl mx-auto px-5">
         <div className="h-8 w-48 bg-[#06182e]/5 rounded mb-10" />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">

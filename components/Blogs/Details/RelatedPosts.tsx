@@ -11,7 +11,7 @@ export const RelatedPosts = ({ posts }: RelatedPostsProps) => {
   if (!posts || posts.length === 0) return null;
 
   return (
-    <section className="bg-white py-16 md:py-20">
+    <section className="bg-[#FFF5E5] py-16 md:py-20">
       <div className="max-w-6xl mx-auto px-5">
         <h2 className="text-3xl md:text-4xl font-bold text-[#06182e] mb-10">
           Related Stories
@@ -30,9 +30,6 @@ export const RelatedPosts = ({ posts }: RelatedPostsProps) => {
               <h3 className="font-bold text-[#06182e] group-hover:text-[#e09225] transition-colors line-clamp-2">
                 {post.title}
               </h3>
-              <p className="text-sm text-[#06182e]/50 mt-2 line-clamp-2">
-                {post.excerpt}
-              </p>
               <span className="inline-flex items-center gap-1 text-sm text-[#e09225] mt-3 font-medium">
                 Read More
                 <ArrowRight
