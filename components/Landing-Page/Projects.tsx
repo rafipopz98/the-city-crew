@@ -99,9 +99,6 @@ const Projects = () => {
                   </div>
                 </div>
 
-                {/* hover overlay */}
-                <div className="absolute inset-0 bg-[#e09225] opacity-0 group-hover:opacity-20 transition duration-500 z-20"></div>
-
                 {/* image */}
                 {blog.thumbnail && (
                   <Image
