@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import "./Season";
+import "./Players";
 
 const MatchesSchema = new mongoose.Schema(
   {
