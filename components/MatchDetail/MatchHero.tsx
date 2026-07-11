@@ -92,12 +92,12 @@ const MatchHero = ({
 
         <div className="flex items-center justify-between gap-10">
           <div className="flex items-center gap-6 min-w-0">
-            <Image
+            <img
               src={homeTeam.image}
               alt={homeTeam.name}
               width={72}
               height={72}
-              className="object-contain"
+              className="object-contain h-18 w-auto"
             />
 
             <h1
@@ -160,12 +160,12 @@ const MatchHero = ({
 
         <div className="flex items-center justify-between gap-10">
           <div className="flex items-center gap-6 min-w-0">
-            <Image
+            <img
               src={awayTeam.image}
               alt={awayTeam.name}
               width={72}
               height={72}
-              className="object-contain"
+              className="object-contain h-18 w-auto"
             />
 
             <h1

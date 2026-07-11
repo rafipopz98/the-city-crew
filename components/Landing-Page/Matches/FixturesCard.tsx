@@ -20,14 +20,14 @@ export const FixturesCard = ({ match }: FixturesCardProps) => (
         {match.competition}
       </span>
       <div className="flex -space-x-2">
-        <Image
+        <img
           src={match.homeTeam.image}
           alt={match.homeTeam.name}
           width={24}
           height={24}
           className="object-contain rounded-full border-2 border-[#ece1cf]"
         />
-        <Image
+        <img
           src={match.awayTeam.image}
           alt={match.awayTeam.name}
           width={24}
@@ -52,7 +52,7 @@ export const FixturesCard = ({ match }: FixturesCardProps) => (
     {/* Teams */}
     <div className="space-y-1">
       <div className="flex items-center gap-3">
-        <Image
+        <img
           src={match.homeTeam.image}
           alt={match.homeTeam.name}
           width={20}
@@ -62,7 +62,7 @@ export const FixturesCard = ({ match }: FixturesCardProps) => (
         <p className="text-sm font-semibold">{match.homeTeam.name}</p>
       </div>
       <div className="flex items-center gap-3">
-        <Image
+        <img
           src={match.awayTeam.image}
           alt={match.awayTeam.name}
           width={20}

@@ -17,7 +17,7 @@ export const ResultsCard = ({ match }: ResultsCardProps) => (
     {/* Competition & Status */}
     <div className="flex justify-between items-start">
       <div className="flex items-center gap-2">
-        <Image
+        <img
           src={match.homeTeam.image}
           alt={match.homeTeam.name}
           width={24}

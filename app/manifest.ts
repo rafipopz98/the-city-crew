@@ -26,7 +26,12 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
       },
       {
-        src: "/apple-icon.png",
+        src: "/dark-logo.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+      {
+        src: "/logo.png",
         sizes: "180x180",
         type: "image/png",
       },

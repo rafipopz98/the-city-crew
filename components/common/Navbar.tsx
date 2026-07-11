@@ -87,12 +87,11 @@ const Navbar = ({ className = "" }: NavbarProps) => {
         className="flex items-center justify-center h-10 sm:h-12 px-3 sm:px-4 rounded-[5px] hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-[#e09225] z-50"
         aria-label="Home"
       >
-        <Image
+        <img
           src={isHome ? "/logo.png" : "/logo-dark.png"}
           alt="Logo"
           width={120}
           height={48}
-          priority
           className="h-full w-auto object-contain"
         />
       </Link>
