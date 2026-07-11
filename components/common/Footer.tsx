@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Circle, CircuitBoard, MessageCircle } from "lucide-react";
+import X from "./x";
+import TikTok from "./tiktok";
 
 export interface NavItem {
   label: string;
@@ -46,7 +48,7 @@ export default function Footer() {
 
             grid-cols-1
 
-            lg:grid-cols-[1.4fr_1fr_1fr_1fr]
+            lg:grid-cols-[3fr_1fr_1fr]
 
           "
         >
@@ -67,36 +69,27 @@ export default function Footer() {
 
             <div className="mt-10 flex items-center gap-5">
               <a
-                href="#"
+                href="https://x.com/The_CityCrew"
+                target="_blank"
                 className="
                   transition
                   hover:text-[#e09225]
                   hover:-translate-y-1
                 "
               >
-                <Circle size={20} />
+                <X size={20} />
               </a>
 
               <a
-                href="#"
+                href="https://www.tiktok.com/@the.city.crew"
+                target="_blank"
                 className="
                   transition
                   hover:text-[#e09225]
                   hover:-translate-y-1
                 "
               >
-                <CircuitBoard size={20} />
-              </a>
-
-              <a
-                href="#"
-                className="
-                  transition
-                  hover:text-[#e09225]
-                  hover:-translate-y-1
-                "
-              >
-                <MessageCircle size={20} />
+                <TikTok size={20} />
               </a>
             </div>
           </div>
@@ -173,7 +166,7 @@ export default function Footer() {
                 About Us
               </Link>
 
-              <Link
+              {/* <Link
                 href="/contact"
                 className="
                   w-fit
@@ -187,10 +180,11 @@ export default function Footer() {
                 "
               >
                 Contact
-              </Link>
+              </Link> */}
 
               <a
-                href="#"
+                href="https://x.com/The_CityCrew"
+                target="_blank"
                 className="
                   w-fit
 
@@ -206,6 +200,23 @@ export default function Footer() {
               </a>
 
               <a
+                href="https://www.tiktok.com/@the.city.crew"
+                target="_blank"
+                className="
+                  w-fit
+
+                  text-lg
+
+                  transition-all
+
+                  hover:text-[#e09225]
+                  hover:translate-x-1
+                "
+              >
+                TikTok
+              </a>
+
+              {/* <a
                 href="#"
                 className="
                   w-fit
@@ -235,7 +246,7 @@ export default function Footer() {
                 "
               >
                 Discord
-              </a>
+              </a> */}
             </nav>
           </div>
           {/* Legal */}
