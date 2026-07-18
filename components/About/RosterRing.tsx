@@ -252,7 +252,7 @@ const RosterRing = ({ members }: Props) => {
                   ×
                 </button>
 
-                <div className="relative aspect-square w-[42%] z-999  rounded-full ring-2 ring-[#e09225]">
+                <div className="relative aspect-square w-[42%] z-999 overflow-hidden rounded-full ring-2 ring-[#e09225]">
                   <ImageWithFallback
                     src={active.image}
                     fallbackName={active.name}
