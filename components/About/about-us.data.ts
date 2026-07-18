@@ -27,9 +27,9 @@ export const TEAM: TeamMember[] = [
     name: "Craig",
     image: "/about/craig.jpeg",
     imageFit: "cover",
-    shortBio: "ST Holder from '78.",
-    favouriteGame: "some game",
-    bestMoment: "some moment",
+    shortBio: "ST holder since 1987",
+    favouriteGame: "City 4-1 Arsenal",
+    bestMoment: "The comeback v Villa",
   },
 
   {
@@ -50,6 +50,16 @@ export const TEAM: TeamMember[] = [
     shortBio: "Content Writer.",
     favouriteGame: "some game",
     bestMoment: "some moment",
+  },
+
+  {
+    id: "jen",
+    name: "Jen",
+    image: "/about/jen.jpg",
+    imageFit: "cover",
+    shortBio: "Blue through the good, the bad and the ugly.",
+    favouriteGame: "6-1 United 2011",
+    bestMoment: "winning the champions league and completing the treble ",
   },
 
   {

@@ -6,7 +6,7 @@ import { TEAM } from "./about-us.data";
 
 const About = () => {
   return (
-    <div className="min-h-screen w-full bg-[#FFF5E5] px-6 pt-28 pb-20 md:px-12 lg:px-16">
+    <div className="min-h-dvh overflow-x-hidden w-full bg-[#FFF5E5] px-6 pt-28 pb-20 md:px-12 lg:px-16">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

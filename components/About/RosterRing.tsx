@@ -69,7 +69,7 @@ const RosterRing = ({ members }: Props) => {
   return (
     <>
       <div
-        className="relative mx-auto aspect-square w-[320px] sm:w-[440px] md:w-[540px] lg:w-[640px]"
+        className="relative z-20 mx-auto aspect-square w-[320px] sm:w-110 md:w-135 lg:w-160"
         onMouseEnter={() => tweenRef.current?.pause()}
         onMouseLeave={() => {
           if (!activeId) tweenRef.current?.play();
@@ -82,9 +82,20 @@ const RosterRing = ({ members }: Props) => {
           className="absolute left-1/2 top-1/2 h-[80%] w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#6cabdd] blur-3xl"
         />
 
-        <div ref={ringRef} className="absolute inset-0">
+        <div
+          ref={ringRef}
+          className="absolute inset-0 z-1"
+          style={{
+            transformOrigin: "50% 50%",
+            willChange: "transform",
+            contain: "layout paint",
+          }}
+        >
           {/* orbit path + tick marks */}
-          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
+          <svg
+            className="absolute inset-0 h-full w-full z-10"
+            viewBox="0 0 100 100"
+          >
             <circle
               cx="50"
               cy="50"
@@ -144,7 +155,7 @@ const RosterRing = ({ members }: Props) => {
                 key={member.id}
                 onClick={() => select(member.id)}
                 style={{ left: `${x}%`, top: `${y}%` }}
-                className="group absolute z-10 w-[72px] -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none sm:w-[96px] md:w-[114px] lg:w-[132px]"
+                className="group absolute z-10 w-18 -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none sm:w-24 md:w-28.5 lg:w-33"
               >
                 <div
                   ref={(el) => {
@@ -181,13 +192,13 @@ const RosterRing = ({ members }: Props) => {
                       rotate: 0,
                     }}
                     whileTap={{ scale: 0.9 }}
-                    className={`relative overflow-hidden rounded-lg border-2 bg-white p-1 shadow-md transition-[border-color,box-shadow] duration-300 ${
+                    className={`relative rounded-lg border-2 bg-white p-1 shadow-md transition-[border-color,box-shadow] duration-300 ${
                       isActive
                         ? "border-[#e09225] shadow-[0_0_0_4px_rgba(224,146,37,0.15),0_8px_20px_rgba(6,24,46,0.25)]"
                         : "border-white group-hover:shadow-lg"
                     }`}
                   >
-                    <div className="relative aspect-[4/5] w-full overflow-hidden rounded-sm bg-[#06182e]/5">
+                    <div className="relative aspect-4/5 z-999 w-full rounded-sm bg-[#06182e]/5">
                       <ImageWithFallback
                         src={member.image}
                         fallbackName={member.name}
@@ -241,7 +252,7 @@ const RosterRing = ({ members }: Props) => {
                   ×
                 </button>
 
-                <div className="relative aspect-square w-[42%] overflow-hidden rounded-full ring-2 ring-[#e09225]">
+                <div className="relative aspect-square w-[42%] z-999  rounded-full ring-2 ring-[#e09225]">
                   <ImageWithFallback
                     src={active.image}
                     fallbackName={active.name}
@@ -286,7 +297,7 @@ const RosterRing = ({ members }: Props) => {
                 transition={{ type: "spring", stiffness: 300, damping: 24 }}
                 className="relative flex h-full w-full flex-col items-center justify-center rounded-full bg-white text-center shadow-xl"
               >
-                <span className="nav pointer-events-none absolute text-[9vw] font-black text-[#06182e]/[0.04] lg:text-6xl">
+                <span className="nav pointer-events-none absolute text-[9vw] font-black text-[#06182e]/4 lg:text-6xl">
                   MCFC
                 </span>
                 <motion.span
@@ -328,7 +339,20 @@ const RosterRing = ({ members }: Props) => {
               >
                 ×
               </button>
-
+              {/* Image */}
+              <div className="relative mx-auto mb-4 h-24 w-24 z-999 overflow-hidden rounded-full ring-4 ring-[#e09225]/20">
+                <ImageWithFallback
+                  src={active.image}
+                  fallbackName={active.name}
+                  alt={active.name}
+                  fill
+                  className={
+                    active.imageFit === "contain"
+                      ? "object-contain p-1"
+                      : "object-cover"
+                  }
+                />
+              </div>
               <span className="inline-block rounded-full bg-[#e09225]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e09225]">
                 {active.shortBio}
               </span>
