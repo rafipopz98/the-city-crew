@@ -299,17 +299,52 @@ const BuildXI = () => {
     }
   };
 
+  // ── On formation change: re-generate slot coords & reposition players ──
+  // Players keep their slotIndex — we look up the new coord for that slot.
   useEffect(() => {
-    const coords = generateCoords(formation);
+    const baseFormation = formation === "Free form" ? lastFormation : formation;
+    const coords = generateCoords(baseFormation);
     setSlots(coords);
+
     if (formation !== "Free form") {
-      setPlayersOnPitch((prev) =>
-        prev.map((p, i) =>
-          coords[i] ? { ...p, x: coords[i][0], y: coords[i][1] } : p,
-        ),
-      );
+      setPlayersOnPitch((prev) => {
+        // Collect which slotIndex values are already taken
+        const takenSlots = new Set(
+          prev.map((p) => p.slotIndex).filter((s) => s !== undefined),
+        );
+        // Build a queue of free slots in order
+        const freeSlots = coords
+          .map((_, i) => i)
+          .filter((i) => !takenSlots.has(i));
+        let nextFree = 0;
+
+        return prev.map((p) => {
+          // If the player has a slotIndex that exists in the new formation,
+          // move them to the new coordinate for that slot.
+          if (p.slotIndex !== undefined && coords[p.slotIndex]) {
+            return {
+              ...p,
+              x: coords[p.slotIndex][0],
+              y: coords[p.slotIndex][1],
+            };
+          }
+          // Player has no slotIndex (added in Free form).
+          // Auto-assign them to the nearest free slot.
+          if (freeSlots[nextFree] !== undefined) {
+            const slot = freeSlots[nextFree++];
+            return {
+              ...p,
+              x: coords[slot][0],
+              y: coords[slot][1],
+              slotIndex: slot,
+            };
+          }
+          // No slots left → keep their current position
+          return p;
+        });
+      });
     }
-  }, [formation]);
+  }, [formation, lastFormation]);
 
   const handleDropToSlot = (playerId: number, slotIndex: number) => {
     const coord = slots[slotIndex];
@@ -321,11 +356,6 @@ const BuildXI = () => {
       ),
     );
   };
-
-  useEffect(() => {
-    const baseFormation = formation === "Free form" ? lastFormation : formation;
-    setSlots(generateCoords(baseFormation));
-  }, [formation, lastFormation]);
 
   const openModal = (slotIndex?: number) => {
     if (playersOnPitch.length >= 11) return;
