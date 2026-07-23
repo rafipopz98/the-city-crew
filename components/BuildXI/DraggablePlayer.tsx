@@ -141,9 +141,7 @@ const DraggablePlayer = ({
       className="cursor-grab active:cursor-grabbing flex flex-col items-center group select-none"
     >
       <div className="relative">
-        <div
-          className="w-7 h-7 sm:w-13 sm:h-13 rounded-full border-2 border-[#e09225]/40 overflow-hidden shadow-md bg-[#FFF5E5] pointer-events-none"
-        >
+        <div className="w-7 h-7 sm:w-13 sm:h-13 rounded-full border-2 border-[#e09225]/40 overflow-hidden shadow-md bg-[#FFF5E5] pointer-events-none">
           <img
             src={player.image}
             alt={player.prefferedName || player.name}
@@ -164,7 +162,7 @@ const DraggablePlayer = ({
         )}
       </div>
 
-      <span className="mt-1 text-[6px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#FFF5E5]/90 text-[#06182e] border border-[#e09225]/30 backdrop-blur-sm whitespace-nowrap pointer-events-none">
+      <span className="mt-1 uppercase text-[6px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#FFF5E5]/90 text-[#06182e] border border-[#e09225]/30 backdrop-blur-sm whitespace-nowrap pointer-events-none">
         {player.prefferedName || firstName(player.name)}
       </span>
     </div>
