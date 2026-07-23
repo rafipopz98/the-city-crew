@@ -17,6 +17,7 @@ interface Player {
   x: number;
   y: number;
   slotIndex?: number;
+  prefferedName?: string;
 }
 
 interface PlayerTemplate {
@@ -24,6 +25,7 @@ interface PlayerTemplate {
   name: string;
   image: string;
   club: string;
+  prefferedName: string;
 }
 
 const FORMATION_LIST = [
@@ -68,6 +70,7 @@ const ALL_PLAYERS: PlayerTemplate[] = playerImages.map((p) => ({
   name: p.name,
   club: "Manchester City",
   image: p.roundImage,
+  prefferedName: p.prefferedName,
 }));
 
 const generateCoords = (formation: string): [number, number][] => {
@@ -122,10 +125,14 @@ const PlayerModal = ({ onSelect, onClose, excludeNames }: any) => {
     };
   }, []);
 
-  const available = ALL_PLAYERS.filter((p) => !excludeNames.includes(p.name));
+  const available = ALL_PLAYERS.filter(
+    (p) => !excludeNames.includes(p?.prefferedName || p.name),
+  );
   const list = query
-    ? available.filter((p) =>
-        p.name.toLowerCase().includes(query.toLowerCase()),
+    ? available.filter(
+        (p) =>
+          p.prefferedName.toLowerCase().includes(query.toLowerCase()) ||
+          p.name.toLowerCase().includes(query.toLocaleLowerCase()),
       )
     : available;
 
@@ -172,11 +179,11 @@ const PlayerModal = ({ onSelect, onClose, excludeNames }: any) => {
             >
               <img
                 src={p.image}
-                alt={p.name}
+                alt={p.prefferedName}
                 className="w-10 h-10 rounded-full border border-[#e09225]/40 object-cover"
               />
               <p className="text-[#06182e] text-sm font-medium text-left">
-                {firstName(p.name)}
+                {p.prefferedName || firstName(p.name)}
               </p>
             </button>
           ))}
@@ -327,7 +334,7 @@ const BuildXI = () => {
       slotTarget !== null && slots[slotTarget] ? slots[slotTarget] : null;
 
     setPlayersOnPitch((prev) => {
-      const existingIndex = prev.findIndex((p) => p.name === template.name);
+      const existingIndex = prev.findIndex((p) => p.prefferedName === template.prefferedName);
 
       if (existingIndex !== -1) {
         if (targetCoord) {
@@ -356,7 +363,7 @@ const BuildXI = () => {
     });
 
     setRecent((prev) =>
-      [template.name, ...prev.filter((n) => n !== template.name)].slice(0, 8),
+      [template.prefferedName, ...prev.filter((n) => n !== template.prefferedName)].slice(0, 8),
     );
     setModalOpen(false);
     setSlotTarget(null);
@@ -470,11 +477,11 @@ const BuildXI = () => {
         </div>
 
         <div className="w-full lg:w-[60%] flex flex-col items-center">
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl lg:max-w-none">
             <div
               id="pitch"
               className="relative w-full overflow-hidden border border-[#e09225]/20 bg-[#06182e]/5"
-              style={{ aspectRatio: "1/1" }}
+              style={{ aspectRatio: "3/4" }}
             >
               <PitchSvg />
 
@@ -534,7 +541,7 @@ const BuildXI = () => {
         <PlayerModal
           onSelect={handleSelect}
           onClose={() => setModalOpen(false)}
-          excludeNames={playersOnPitch.map((p) => p.name)}
+          excludeNames={playersOnPitch.map((p) => p?.prefferedName)}
         />
       )}
     </section>
