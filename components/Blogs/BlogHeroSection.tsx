@@ -1,5 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
+
 export interface Blog {
   _id: string;
   title: string;
@@ -13,30 +17,21 @@ export interface Blog {
 }
 
 export const BlogHeroSkeleton = () => (
-  <section className="relative w-full h-[70vh] lg:h-[90vh] bg-[#FFF5E5] overflow-hidden flex items-center">
-    {/* Big Text Skeleton */}
-    <div className="px-6 sm:px-10 lg:px-16 z-10 animate-pulse">
-      <div className="h-[22vw] sm:h-[18vw] w-[60vw] bg-black/10 rounded mb-2" />
-      <div className="h-[22vw] sm:h-[18vw] w-[80vw] bg-black/10 rounded" />
-    </div>
-
-    {/* Featured Card Skeleton */}
-    <div className="absolute right-0 sm:right-[5%] top-[20%] sm:top-[25%] w-[75%] sm:w-[45%] lg:w-[40%] animate-pulse">
-      <div className="h-[45vh] sm:h-[55vh] bg-gray-200 rounded overflow-hidden">
-        <div className="h-full w-full bg-linear-to-br from-gray-300 to-gray-200" />
-      </div>
-      <div className="mt-4 px-2 space-y-2">
-        <div className="h-6 w-3/4 bg-gray-200 rounded" />
-        <div className="h-4 w-full bg-gray-100 rounded" />
-        <div className="h-4 w-2/3 bg-gray-100 rounded" />
+  <section className="w-full bg-[#EFE7D8] overflow-hidden">
+    <div className="mx-auto max-w-360 px-6 sm:px-10 lg:px-16 py-14 sm:py-20 lg:py-24 animate-pulse">
+      <div className="h-4 w-40 bg-black/10 rounded mb-8" />
+      <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] items-end gap-10 lg:gap-8">
+        <div className="space-y-3">
+          <div className="h-[11vw] lg:h-24 w-[70%] bg-black/10 rounded-lg" />
+          <div className="h-[11vw] lg:h-24 w-[55%] bg-black/10 rounded-lg" />
+        </div>
+        <div className="w-full max-w-sm mx-auto lg:mx-0 lg:ml-auto bg-white p-3 pb-5">
+          <div className="aspect-4/5 w-full bg-black/10" />
+        </div>
       </div>
     </div>
   </section>
 );
-
-import Link from "next/link";
-import Image from "next/image";
-import { ArrowUpRight } from "lucide-react";
 
 interface FeaturedBlogCardProps {
   blog: Blog;
@@ -45,60 +40,31 @@ interface FeaturedBlogCardProps {
 export const FeaturedBlogCard = ({ blog }: FeaturedBlogCardProps) => (
   <Link
     href={`/blogs/${blog.slug}`}
-    className="
-      absolute
-      right-0 sm:right-[5%] lg:right-[8%]
-      top-[20%] sm:top-[25%]
-      w-[75%] sm:w-[45%] lg:w-[40%]
-      group
-    "
+    className="group w-full max-w-sm mx-auto lg:mx-0 lg:ml-auto -rotate-2 hover:rotate-0 transition-transform duration-300"
+    aria-label={`Read article: ${blog.title}`}
   >
-    {/* Image Container */}
-    <div className="relative h-[40vh] xs:h-[45vh] sm:h-[50vh] lg:h-[55vh] bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-lg sm:shadow-xl transition-shadow duration-300 group-hover:shadow-2xl">
-      {/* Corner Decorations */}
-      <div className="absolute inset-0 flex flex-col justify-between z-10 pointer-events-none">
-        <div className="flex justify-between">
-          <span className="ml-3 sm:ml-4 mt-3 sm:mt-4 h-1.5 w-1.5 sm:h-2 sm:w-2 bg-white rounded-full opacity-70" />
-          <span className="mr-3 sm:mr-4 mt-3 sm:mt-4 h-1.5 w-1.5 sm:h-2 sm:w-2 bg-white rounded-full opacity-70" />
-        </div>
-        <div className="flex justify-between">
-          <span className="ml-3 sm:ml-4 mb-3 sm:mb-4 h-1.5 w-1.5 sm:h-2 sm:w-2 bg-white rounded-full opacity-70" />
-          <span className="mr-3 sm:mr-4 mb-3 sm:mb-4 h-1.5 w-1.5 sm:h-2 sm:w-2 bg-white rounded-full opacity-70" />
-        </div>
+    <div className="relative bg-white p-3 pb-5 shadow-[0_8px_0_0_rgba(0,0,0,0.06)]">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-10 bg-[#e09225]/95 border border-[#e09225]/90 rotate-1 z-10" />
+      <div className="relative aspect-4/5 w-full overflow-hidden bg-[#D8CBAE]">
+        <Image
+          src={blog.thumbnail}
+          alt={blog.title}
+          fill
+          sizes="(max-width: 1024px) 90vw, 35vw"
+          className="object-cover grayscale-15 transition-transform duration-500 group-hover:scale-105"
+        />
       </div>
-
-      {/* Hover Overlay */}
-      <div className="absolute inset-0 bg-[#e09225] opacity-0 group-hover:opacity-20 transition-opacity duration-500 z-5" />
-
-      {/* Image */}
-      <Image
-        src={blog.thumbnail}
-        alt={blog.title}
-        fill
-        sizes="(max-width: 640px) 75vw, (max-width: 1024px) 45vw, 40vw"
-        className="object-cover transition-transform duration-500 group-hover:scale-105 z-0"
-        priority
-      />
-
-      {/* Read More Overlay on Mobile */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/60 to-transparent z-10 sm:hidden">
-        <span className="text-white text-sm font-medium flex items-center gap-1">
-          Read Article
-          <ArrowUpRight className="w-4 h-4" />
-        </span>
-      </div>
-    </div>
-
-    {/* Content */}
-    <div className="mt-3 sm:mt-4 px-1 sm:px-2">
-      <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-semibold uppercase leading-tight group-hover:text-[#e09225] transition-colors duration-300 line-clamp-2">
+      {blog.category && (
+        <p className="mt-3 text-xs uppercase tracking-wide text-[#e09225] font-mono">
+          {blog.category}
+        </p>
+      )}
+      <h3 className="font-black uppercase text-lg text-[#1B1409] mt-1 leading-tight line-clamp-2 group-hover:text-[#e09225] transition-colors">
         {blog.title}
       </h3>
-
-      {/* Desktop Read More */}
-      <div className="hidden sm:flex items-center gap-1 mt-2 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <span>Read Article</span>
-        <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+      <div className="mt-2 flex items-center gap-1 text-xs font-mono text-[#1B1409]/50 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span>Read article</span>
+        <ArrowUpRight className="h-3 w-3" />
       </div>
     </div>
   </Link>
@@ -109,21 +75,17 @@ type Props = {
   isLoading?: boolean;
 };
 
-export default function BlogHeroSection({ blog, isLoading }: Props) {
-  // Loading State
-  if (isLoading) {
-    return <BlogHeroSkeleton />;
-  }
+export default function BlogHeroZinePress({ blog, isLoading }: Props) {
+  if (isLoading) return <BlogHeroSkeleton />;
 
-  // Empty State
   if (!blog) {
     return (
-      <section className="relative w-full h-[70vh] lg:h-[90vh] bg-[#FFF5E5] overflow-hidden flex items-center justify-center">
-        <div className="text-center px-6">
-          <h1 className="text-2xl sm:text-4xl lg:text-4xl font-bold uppercase text-black/20">
+      <section className="flex w-full items-center justify-center bg-[#EFE7D8] px-6 py-24 sm:py-32">
+        <div className="text-center">
+          <h1 className="font-black uppercase text-2xl sm:text-4xl text-[#1B1409]/15">
             City Stories
           </h1>
-          <p className="mt-4 text-gray-400 text-sm sm:text-base">
+          <p className="mt-4 text-sm sm:text-base text-[#1B1409]/40">
             No featured story available at the moment
           </p>
         </div>
@@ -132,19 +94,43 @@ export default function BlogHeroSection({ blog, isLoading }: Props) {
   }
 
   return (
-    <section className="relative w-full h-[70vh] lg:h-[90vh] bg-[#FFF5E5] overflow-hidden flex items-center">
-      {/* Background Big Text */}
-      <div className="px-6 sm:px-10 lg:px-16 z-10 select-none">
-        <h1 className="text-[15vw] xs:text-[17vw] sm:text-[13vw] lg:text-[11vw] leading-none uppercase text-black font-bold tracking-tighter">
-          City
-        </h1>
-        <h1 className="text-[15vw] xs:text-[17vw] sm:text-[13vw] lg:text-[11vw] leading-none uppercase text-black font-bold tracking-tighter -mt-4 xs:-mt-6 sm:-mt-8 lg:-mt-10">
-          Stories
-        </h1>
-      </div>
+    <section className="w-full overflow-hidden pt-4">
+      <div className="mx-auto max-w-360 px-6 sm:px-10 lg:px-16 pt-14 sm:pt-20 lg:pt-24">
+        <div className="flex items-center gap-3 mb-8">
+          <span className="font-mono text-xs uppercase tracking-widest text-[#e09225] font-medium">
+            Est. block by block
+          </span>
+          <div
+            className="flex-1 h-px opacity-40"
+            style={{
+              backgroundImage: "radial-gradient(#1B1409 1px, transparent 1px)",
+              backgroundSize: "8px 8px",
+            }}
+          />
+          {blog.readTime && (
+            <span className="font-mono text-xs uppercase tracking-widest text-[#1B1409]/50">
+              {blog.readTime}
+            </span>
+          )}
+        </div>
 
-      {/* Featured Blog Card */}
-      <FeaturedBlogCard blog={blog} />
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] items-end gap-10 lg:gap-8">
+          <h1 className="font-black uppercase text-[#1B1409] leading-[0.82] text-[clamp(2.75rem,11vw,6rem)] select-none">
+            <div>City</div>
+            <div>
+              Stor<span className="text-[#e09225]">ies</span>
+            </div>
+          </h1>
+
+          <FeaturedBlogCard blog={blog} />
+        </div>
+
+        {blog.excerpt && (
+          <p className="mt-8 max-w-md text-[#1B1409]/70 text-sm leading-relaxed font-mono">
+            {blog.excerpt}
+          </p>
+        )}
+      </div>
     </section>
   );
 }

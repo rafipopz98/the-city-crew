@@ -132,7 +132,7 @@ const Navbar = ({ className = "" }: NavbarProps) => {
             )}
           </>
         ) : (
-          <NavLink href="/login" isActive={false} variant="cta">
+          <NavLink href="/login" isActive={false} variant="cta" className="px-3 py-1.5">
             Login
           </NavLink>
         )}
@@ -204,6 +204,7 @@ const Navbar = ({ className = "" }: NavbarProps) => {
                   isActive={false}
                   variant="mobile"
                   onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-1.5"
                 >
                   Login
                 </NavLink>
