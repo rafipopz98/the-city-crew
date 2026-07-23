@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { GlassInputWrapper } from "./GlassInputWrapper";
 import Link from "next/link";
 import { Button } from "../common/Button";
 import api from "@/lib/api/axios";
+import { readStoredUtm, type GeoData } from "@/lib/utm";
+import { getFirstLandingPage, getConversionPage } from "@/components/common/PageTracker";
 
 export const SignUpPage = ({
   title = (
@@ -26,6 +28,9 @@ export const SignUpPage = ({
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Track UTM + geo state for submission
+  const [utmData, setUtmData] = useState<Record<string, unknown> | null>(null);
+  const [geoData, setGeoData] = useState<GeoData | null>(null);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -37,6 +42,29 @@ export const SignUpPage = ({
 
   const passwordsMismatch =
     form.confirm_password.length > 0 && form.password !== form.confirm_password;
+
+  // ─── On mount: read stored UTM params and fetch geo location ──────────
+  useEffect(() => {
+    const stored = readStoredUtm();
+    if (stored) {
+      setUtmData({ ...stored });
+    }
+
+    const fetchGeo = async () => {
+      try {
+        const res = await fetch("/api/geo");
+        if (res.ok) {
+          const data = await res.json();
+          setGeoData(data);
+        }
+      } catch {
+        // Geo is a nice-to-have; don't block sign-up
+        console.warn("Could not fetch geo data");
+      }
+    };
+
+    fetchGeo();
+  }, []);
 
   const handleSignUp = async () => {
     try {
@@ -54,12 +82,31 @@ export const SignUpPage = ({
         return;
       }
 
-      await api.post("/auth/register", {
+      // Build the payload once — attach utm_params only if we have data
+      const payload: Record<string, unknown> = {
         first_name: form.firstName,
         last_name: form.lastName,
         email: form.email,
         password: form.password,
-      });
+      };
+
+      const hasUtmData = utmData && Object.keys(utmData).length > 0;
+      if (hasUtmData || geoData) {
+        const utm_params: Record<string, unknown> = {
+          captured_at: new Date().toISOString(),
+        };
+        if (hasUtmData) utm_params.marketing = utmData;
+        if (geoData) utm_params.geo = geoData;
+        payload.utm_params = utm_params;
+      }
+
+      // ── Attach first landing page & conversion page ────────────────
+      const firstLandingPage = getFirstLandingPage();
+      const conversionPage = getConversionPage() || firstLandingPage;
+      if (firstLandingPage) payload.first_landing_page = firstLandingPage;
+      if (conversionPage) payload.conversion_page = conversionPage;
+
+      await api.post("/auth/register", payload);
 
       router.push(redirect);
     } catch (err: any) {

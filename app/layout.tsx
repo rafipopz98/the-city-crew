@@ -5,6 +5,9 @@ import QueryProvider from "@/components/providers/QueryProviders";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import { SITE_CONFIG } from "@/lib/site";
+import { UtmCapture } from "@/components/common/UtmCapture";
+import { VisitorTracker } from "@/components/common/VisitorTracker";
+import { PageTracker } from "@/components/common/PageTracker";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -69,6 +72,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>
+          <UtmCapture />
+          <VisitorTracker />
+          <PageTracker />
           <Toaster />
           {/* <SmoothScrollWrapper> */}
           <QueryProvider>{children}</QueryProvider>

@@ -13,7 +13,8 @@ export async function POST(req: Request) {
     await connectDB();
     console.log("done with db");
 
-    const { first_name, last_name, email, password } = await req.json();
+    const { first_name, last_name, email, password, utm_params, first_landing_page, conversion_page } =
+      await req.json();
 
     const normalizedEmail = email?.toLowerCase();
 
@@ -56,6 +57,9 @@ export async function POST(req: Request) {
       last_name,
       email: normalizedEmail,
       password: hashedPassword,
+      ...(utm_params ? { utm_params } : {}),
+      ...(first_landing_page ? { first_landing_page } : {}),
+      ...(conversion_page ? { conversion_page } : {}),
     });
 
     const userId = user._id.toString();

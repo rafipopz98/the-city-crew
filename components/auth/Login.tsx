@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSearchParams } from "next/navigation";
+import { getConversionPage } from "@/components/common/PageTracker";
 
 export const SignInPage = ({
   title = (
@@ -40,7 +41,12 @@ export const SignInPage = ({
         return;
       }
 
-      await api.post("/auth/login", form);
+      // ── Attach conversion page ─────────────────────────────────
+      const conversionPage = getConversionPage();
+      const loginPayload: Record<string, unknown> = { ...form };
+      if (conversionPage) loginPayload.conversion_page = conversionPage;
+
+      await api.post("/auth/login", loginPayload);
 
       // refresh global auth state
       await refreshUser();

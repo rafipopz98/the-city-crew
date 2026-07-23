@@ -33,6 +33,21 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    utm_params: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+
+    first_landing_page: {
+      type: String,
+      default: null,
+    },
+
+    conversion_page: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

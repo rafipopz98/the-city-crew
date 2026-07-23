@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const { email, password } = await req.json();
+    const { email, password, conversion_page } = await req.json();
 
     // validation
     if (!email || !password) {
@@ -69,6 +69,11 @@ export async function POST(req: Request) {
 
     // set cookies
     await setAuthCookies(accessToken, refreshToken);
+
+    // ── Update conversion page if provided ─────────────────────
+    if (conversion_page) {
+      await UserModel.findByIdAndUpdate(userId, { conversion_page });
+    }
 
     return NextResponse.json(
       {

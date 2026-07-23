@@ -1,6 +1,7 @@
 export const playerImages = [
   {
     name: "James Trafford",
+    prefferedName: "Trafford",
     verticalImage: "/players-image/james-trafford-vertical.webp",
     roundImage: "/players-image/james-trafford-round.png",
     alt: "James Trafford",
@@ -8,6 +9,7 @@ export const playerImages = [
   },
   {
     name: "Marcus Bettinelli",
+    prefferedName: "Bettinelli",
     verticalImage: "/players-image/marcus-bettinelli-vertical.webp",
     roundImage: "/players-image/marcus-bettinelli-round.png",
     alt: "Marcus Bettinelli",
@@ -15,6 +17,7 @@ export const playerImages = [
   },
   {
     name: "Gianluigi Donnarumma",
+    prefferedName: "Donnarumma",
     verticalImage: "/players-image/donnaruma-vertical.webp",
     roundImage: "/players-image/donnaruma-round.png",
     alt: "Gianluigi Donnarumma",
@@ -22,6 +25,7 @@ export const playerImages = [
   },
   {
     name: "Matheus Nunes",
+    prefferedName: "Nunes",
     verticalImage: "/players-image/matheus-nunes-vertical.webp",
     roundImage: "/players-image/matheus-nunes-round.png",
     alt: "Matheus Nunes",
@@ -29,6 +33,7 @@ export const playerImages = [
   },
   {
     name: "Rico Lewis",
+    prefferedName: "Lewis",
     verticalImage: "/players-image/rico-lewis-vertical.webp",
     roundImage: "/players-image/rico-lewis-round.png",
     alt: "Rico Lewis",
@@ -36,6 +41,7 @@ export const playerImages = [
   },
   {
     name: "Vitor Reis",
+    prefferedName: "Reis",
     verticalImage: "/players-image/vitor-reis-vertical.webp",
     roundImage: "/players-image/vitor-reis-round.png",
     alt: "Vitor Reis",
@@ -43,13 +49,15 @@ export const playerImages = [
   },
   {
     name: "Ruben Dias",
+    prefferedName: "Dias",
     verticalImage: "/players-image/ruben-dias-vertical.webp",
     roundImage: "/players-image/ruben-dias-round.png",
     alt: "Rúben Dias",
     value: "ruben-dias",
   },
   {
-    name: "Marc Guéhi",
+    name: "Marc Guehi",
+    prefferedName: "Guehi",
     verticalImage: "/players-image/marc-gue-vertical.webp",
     roundImage: "/players-image/marc-gue-round.png",
     alt: "Marc Guéhi",
@@ -57,6 +65,7 @@ export const playerImages = [
   },
   {
     name: "Josko Gvardiol",
+    prefferedName: "Gvardiol",
     verticalImage: "/players-image/josko-gvardiol-vertical.webp",
     roundImage: "/players-image/josko-gvardiol-round.png",
     alt: "Josko Gvardiol",
@@ -64,6 +73,7 @@ export const playerImages = [
   },
   {
     name: "Abdukodir Khusanov",
+    prefferedName: "Khusanov",
     verticalImage: "/players-image/abdukodir-khusanov-vertical.webp",
     roundImage: "/players-image/abdukodir-khusanov-round.png",
     alt: "Abdukodir Khusanov",
@@ -71,6 +81,7 @@ export const playerImages = [
   },
   {
     name: "Max Alleyne",
+    prefferedName: "Alleyne",
     verticalImage: "/players-image/max-alleyne-vertical.webp",
     roundImage: "/players-image/max-alleyne-round.png",
     alt: "Max Alleyne",
@@ -78,6 +89,7 @@ export const playerImages = [
   },
   {
     name: "Rayan Ait-Nouri",
+    prefferedName: "RAN",
     verticalImage: "/players-image/rayan-ait-nouri-vertical.webp",
     roundImage: "/players-image/rayan-ait-nouri-round.png",
     alt: "Rayan Aït-Nouri",
@@ -85,6 +97,7 @@ export const playerImages = [
   },
   {
     name: "Nico O'Reilly",
+    prefferedName: "NOR",
     verticalImage: "/players-image/nico-oreilly-vertical.webp",
     roundImage: "/players-image/nico-oreilly-round.png",
     alt: "Nico O'Reilly",
@@ -92,6 +105,7 @@ export const playerImages = [
   },
   {
     name: "Elliot Anderson",
+    prefferedName: "Anderson",
     verticalImage: "/players-image/elliot-vertical.webp",
     roundImage: "/players-image/elliot-round.png",
     alt: "Elliot Anderson",
@@ -99,6 +113,7 @@ export const playerImages = [
   },
   {
     name: "Mateo Kovacic",
+    prefferedName: "Kovacic",
     verticalImage: "/players-image/mateo-kovacic-vertical.webp",
     roundImage: "/players-image/mateo-kovacic-round.png",
     alt: "Mateo Kovacic",
@@ -106,6 +121,7 @@ export const playerImages = [
   },
   {
     name: "Nico González",
+    prefferedName: "Nico G",
     verticalImage: "/players-image/nico-gonzalez-vertical.webp",
     roundImage: "/players-image/nico-gonzalez-round.png",
     alt: "Nico González",
@@ -113,6 +129,7 @@ export const playerImages = [
   },
   {
     name: "Rodri",
+    prefferedName: "Rodri",
     verticalImage: "/players-image/rodri-vertical.webp",
     roundImage: "/players-image/rodri-round.png",
     alt: "Rodri",
@@ -120,6 +137,7 @@ export const playerImages = [
   },
   {
     name: "Kalvin Phillips",
+    prefferedName: "Phillips",
     verticalImage: "/players-image/kalvin-phillips-vertical.webp",
     roundImage: "/players-image/kalvin-phillips-round.png",
     alt: "Kalvin Phillips",
@@ -127,6 +145,7 @@ export const playerImages = [
   },
   {
     name: "Tijjani Reijnders",
+    prefferedName: "Reijnders",
     verticalImage: "/players-image/tijjani-reijnders-vertical.webp",
     roundImage: "/players-image/tijjani-reijnders-round.png",
     alt: "Tijjani Reijnders",
@@ -134,6 +153,7 @@ export const playerImages = [
   },
   {
     name: "Rayan Cherki",
+    prefferedName: "Cherki",
     verticalImage: "/players-image/rayan-cherki-vertical.webp",
     roundImage: "/players-image/rayan-cherki-round.png",
     alt: "Rayan Cherki",
@@ -141,6 +161,7 @@ export const playerImages = [
   },
   {
     name: "Sverre Halseth Nypan",
+    prefferedName: "Nypan",
     verticalImage: "/players-image/sverre-nypan-vertical.webp",
     roundImage: "/players-image/sverre-nypan-round.png",
     alt: "Sverre Halseth Nypan",
@@ -148,6 +169,7 @@ export const playerImages = [
   },
   {
     name: "Phil Foden",
+    prefferedName: "Foden",
     verticalImage: "/players-image/phil-foden-vertical.webp",
     roundImage: "/players-image/phil-foden-round.png",
     alt: "Phil Foden",
@@ -155,6 +177,7 @@ export const playerImages = [
   },
   {
     name: "Antoine Semenyo",
+    prefferedName: "Semenyo",
     verticalImage: "/players-image/semenyo-vertical.webp",
     roundImage: "/players-image/semenyo-round.png",
     alt: "Antoine Semenyo",
@@ -162,13 +185,15 @@ export const playerImages = [
   },
   {
     name: "Jack Grealish",
+    prefferedName: "Grealish",
     verticalImage: "/players-image/jack-grealish-vertical.webp",
     roundImage: "/players-image/jack-grealish-round.png",
     alt: "Jack Grealish",
     value: "jack-grealish",
   },
   {
-    name: "Jérémy Doku",
+    name: "Jeremy Doku",
+    prefferedName: "Doku",
     verticalImage: "/players-image/jeremy-doku-vertical.webp",
     roundImage: "/players-image/jeremy-doku-round.png",
     alt: "Jérémy Doku",
@@ -176,6 +201,7 @@ export const playerImages = [
   },
   {
     name: "Savinho",
+    prefferedName: "Savinho",
     verticalImage: "/players-image/savinho-vertical.webp",
     roundImage: "/players-image/savinho-round.png",
     alt: "Savinho",
@@ -183,6 +209,7 @@ export const playerImages = [
   },
   {
     name: "Claudio Echeverri",
+    prefferedName: "Echeverri",
     verticalImage: "/players-image/claudio-echeverri-vertical.webp",
     roundImage: "/players-image/claudio-echeverri-round.png",
     alt: "Claudio Echeverri",
@@ -190,6 +217,7 @@ export const playerImages = [
   },
   {
     name: "Omar Marmoush",
+    prefferedName: "Marmoush",
     verticalImage: "/players-image/omar-marmoush-vertical.webp",
     roundImage: "/players-image/omar-marmoush-round.png",
     alt: "Omar Marmoush",
@@ -197,9 +225,34 @@ export const playerImages = [
   },
   {
     name: "Erling Haaland",
+    prefferedName: "Haaland",
     verticalImage: "/players-image/erling-haaland-vertical.webp",
     roundImage: "/players-image/erling-haaland-round.png",
     alt: "Erling Haaland",
     value: "erling-haaland",
+  },
+  {
+    name: "Vinicius Junior",
+    prefferedName: "Vini",
+    verticalImage: "/players-image/vini-vertical.webp",
+    roundImage: "/players-image/vini-round.png",
+    alt: "Vinicius Junior",
+    value: "vinicius-junior",
+  },
+  {
+    name: "Yan Diomande",
+    prefferedName: "Diomande",
+    verticalImage: "/players-image/diomande-vertical.webp",
+    roundImage: "/players-image/diomande-round.png",
+    alt: "Yan Diomande",
+    value: "yan-diomande",
+  },
+  {
+    name: "Ayyoub Bouaddi",
+    prefferedName: "Bouaddi",
+    verticalImage: "/players-image/bouaddi-vertical.webp",
+    roundImage: "/players-image/bouaddi-round.png",
+    alt: "Ayyoub Bouaddi",
+    value: "ayyoub-bouaddi",
   },
 ];
