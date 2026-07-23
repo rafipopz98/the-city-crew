@@ -6,28 +6,31 @@ const CACHE = "tcc-v1";
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then((cache) =>
-      cache.addAll([
-        "/",
-        "/manifest.json",
-        "/logo.svg",
-        "/logo.png",
-        "/logo-dark.png",
-      ]),
-    ),
+    caches
+      .open(CACHE)
+      .then((cache) =>
+        cache.addAll([
+          "/",
+          "/manifest.json",
+          "/homescreen.png",
+          "/logo.svg",
+          "/logo.png",
+          "/logo-dark.png",
+        ]),
+      ),
   );
 });
 
 // ─── Activate: clean old caches ─────────────────────────────────────────────
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE)
-          .map((key) => caches.delete(key)),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)),
+        ),
       ),
-    ),
   );
   self.clients.claim();
 });
