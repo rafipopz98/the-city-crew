@@ -5,7 +5,7 @@ export default function PitchSvg() {
   return (
     <svg
       viewBox="0 0 750 1000"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="none"
       className="absolute inset-0 w-full h-full"
     >
       <defs>

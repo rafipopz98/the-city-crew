@@ -501,7 +501,7 @@ const BuildXI = () => {
                   ? { aspectRatio: "1/1" }
                   : {
                       aspectRatio: "3/4",
-                      maxHeight: "75vh",
+                      maxHeight: "105vh",
                       minHeight: "400px",
                     }
               }

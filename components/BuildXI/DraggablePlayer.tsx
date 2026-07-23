@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 interface Player {
   id: number;
   name: string;
+  prefferedName?: string;
   image: string;
   x: number;
   y: number;
@@ -145,7 +146,7 @@ const DraggablePlayer = ({
         >
           <img
             src={player.image}
-            alt={player.name}
+            alt={player.prefferedName || player.name}
             className="w-full h-full object-cover"
             draggable={false}
           />
@@ -164,7 +165,7 @@ const DraggablePlayer = ({
       </div>
 
       <span className="mt-1 text-[6px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#FFF5E5]/90 text-[#06182e] border border-[#e09225]/30 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-        {firstName(player.name)}
+        {player.prefferedName || firstName(player.name)}
       </span>
     </div>
   );
