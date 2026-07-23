@@ -5,7 +5,9 @@ import { domToBlob } from "modern-screenshot";
 import { toast } from "sonner";
 import { Button } from "../common/Button";
 import { playerImages } from "@/public/players-image";
+import { useMediaQuery } from "@/app/hooks/useMediaQuery";
 import PitchSvg from "./PitchSvg";
+import PitchSvgDesktop from "./PitchSvgDesktop";
 
 const firstName = (fullName: string) => fullName.trim().split(" ")[0];
 
@@ -211,6 +213,8 @@ const BuildXI = () => {
   const [recent, setRecent] = useState<string[]>([]);
   const [lineupName, setLineupName] = useState("");
   const [lastFormation, setLastFormation] = useState("4-3-3");
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -334,7 +338,9 @@ const BuildXI = () => {
       slotTarget !== null && slots[slotTarget] ? slots[slotTarget] : null;
 
     setPlayersOnPitch((prev) => {
-      const existingIndex = prev.findIndex((p) => p.prefferedName === template.prefferedName);
+      const existingIndex = prev.findIndex(
+        (p) => p.prefferedName === template.prefferedName,
+      );
 
       if (existingIndex !== -1) {
         if (targetCoord) {
@@ -363,7 +369,10 @@ const BuildXI = () => {
     });
 
     setRecent((prev) =>
-      [template.prefferedName, ...prev.filter((n) => n !== template.prefferedName)].slice(0, 8),
+      [
+        template.prefferedName,
+        ...prev.filter((n) => n !== template.prefferedName),
+      ].slice(0, 8),
     );
     setModalOpen(false);
     setSlotTarget(null);
@@ -477,13 +486,27 @@ const BuildXI = () => {
         </div>
 
         <div className="w-full lg:w-[60%] flex flex-col items-center">
-          <div className="w-full max-w-2xl lg:max-w-none">
+          <div
+            className={
+              isDesktop
+                ? "w-full max-w-2xl"
+                : "w-full max-w-2xl lg:max-w-none"
+            }
+          >
             <div
               id="pitch"
               className="relative w-full overflow-hidden border border-[#e09225]/20 bg-[#06182e]/5"
-              style={{ aspectRatio: "3/4" }}
+              style={
+                isDesktop
+                  ? { aspectRatio: "1/1" }
+                  : {
+                      aspectRatio: "3/4",
+                      maxHeight: "75vh",
+                      minHeight: "400px",
+                    }
+              }
             >
-              <PitchSvg />
+              {isDesktop ? <PitchSvgDesktop /> : <PitchSvg />}
 
               {slots.map((coord, i) => {
                 const isOccupied = playersOnPitch.some(
