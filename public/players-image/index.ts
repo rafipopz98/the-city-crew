@@ -91,6 +91,13 @@ export const playerImages = [
     value: "nico-oreilly",
   },
   {
+    name: "Elliot Anderson",
+    verticalImage: "/players-image/elliot-vertical.webp",
+    roundImage: "/players-image/elliot-round.png",
+    alt: "Elliot Anderson",
+    value: "elliot",
+  },
+  {
     name: "Mateo Kovacic",
     verticalImage: "/players-image/mateo-kovacic-vertical.webp",
     roundImage: "/players-image/mateo-kovacic-round.png",

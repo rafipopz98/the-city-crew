@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
+const noImage = "/players-image/no-player-img-vertical.png";
 type Player = {
   name: string;
   number: string;
@@ -18,6 +18,7 @@ type Player = {
 };
 
 export default function PlayerHeroSlider({ PLAYERS }: { PLAYERS: Player[] }) {
+  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
   const mod = (n: number, m: number) => ((n % m) + m) % m;
 
   // slot configs: offset -2, -1, 0, 1, 2
@@ -28,6 +29,11 @@ export default function PlayerHeroSlider({ PLAYERS }: { PLAYERS: Player[] }) {
     { x: 300, scale: 0.65, opacity: 0.55, zIndex: 1 },
     { x: 520, scale: 0.42, opacity: 0.25, zIndex: 0 },
   ];
+
+  useEffect(() => {
+    setActiveIndex(0);
+    setFailedImages({});
+  }, [PLAYERS]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const dragStartX = useRef(0);
@@ -151,11 +157,19 @@ export default function PlayerHeroSlider({ PLAYERS }: { PLAYERS: Player[] }) {
                 style={{ originY: 1, cursor: isActive ? "grab" : "pointer" }}
               >
                 <Image
-                  src={player.image}
+                  src={
+                    failedImages[playerIdx] ? noImage : player.image || noImage
+                  }
                   alt={player.name}
                   width={380}
                   height={460}
                   draggable={false}
+                  onError={() =>
+                    setFailedImages((prev) => ({
+                      ...prev,
+                      [playerIdx]: true,
+                    }))
+                  }
                   className="object-contain object-bottom w-55 sm:w-70 md:w-85 lg:w-95"
                   style={{ height: "clamp(260px, 48vh, 460px)" }}
                 />
