@@ -8,32 +8,32 @@ export default function manifest(): MetadataRoute.Manifest {
     description: SITE_CONFIG.description,
 
     start_url: "/",
-
     display: "standalone",
+    orientation: "portrait-primary",
 
     background_color: "#FFF5E5",
     theme_color: "#06182e",
 
+    categories: ["sports", "news", "entertainment"],
+
     icons: [
       {
-        src: "/icon-192.png",
+        src: "/icons/icon-192.png",
         sizes: "192x192",
         type: "image/png",
+        purpose: "any",
       },
       {
-        src: "/icon-512.png",
+        src: "/icons/icon-512.png",
         sizes: "512x512",
         type: "image/png",
+        purpose: "any",
       },
       {
-        src: "/dark-logo.png",
-        sizes: "180x180",
+        src: "/icons/maskable-512.png",
+        sizes: "512x512",
         type: "image/png",
-      },
-      {
-        src: "/logo.png",
-        sizes: "180x180",
-        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };

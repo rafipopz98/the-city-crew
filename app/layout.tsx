@@ -8,10 +8,13 @@ import { SITE_CONFIG } from "@/lib/site";
 import { UtmCapture } from "@/components/common/UtmCapture";
 import { VisitorTracker } from "@/components/common/VisitorTracker";
 import { PageTracker } from "@/components/common/PageTracker";
+import { ServiceWorkerRegister } from "@/components/common/ServiceWorkerRegister";
+import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#06182e",
 };
 
 const geistSans = Geist({
@@ -36,6 +39,8 @@ export const metadata: Metadata = {
 
   applicationName: SITE_CONFIG.name,
 
+  manifest: "/manifest.json",
+
   keywords: [...SITE_CONFIG.keywords],
 
   openGraph: {
@@ -58,6 +63,16 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: SITE_CONFIG.shortName,
+  },
+
+  icons: {
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -75,6 +90,8 @@ export default function RootLayout({
           <UtmCapture />
           <VisitorTracker />
           <PageTracker />
+          <ServiceWorkerRegister />
+          <PwaInstallPrompt />
           <Toaster />
           {/* <SmoothScrollWrapper> */}
           <QueryProvider>{children}</QueryProvider>
