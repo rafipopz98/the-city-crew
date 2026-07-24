@@ -64,7 +64,7 @@ function ChallengeRow({
   const router = useRouter();
 
   return (
-    <div className="group grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-4 border-b border-[#06182e]/5 hover:bg-[#06182e]/[0.02] transition-colors last:border-b-0">
+    <div className="group grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-4 border-b border-[#06182e]/5 hover:bg-[#06182e]/2 transition-colors last:border-b-0">
       {/* Title */}
       <div className="min-w-0">
         <Link
@@ -268,7 +268,7 @@ export default function AdminDailyChallengePage() {
       {/* Table */}
       <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-[#06182e]/5 overflow-hidden shadow-sm">
         {/* Header Row */}
-        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#06182e]/10 bg-[#06182e]/[0.02]">
+        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#06182e]/10 hover:bg-[#06182e]/2">
           <span className="text-[11px] uppercase tracking-wider text-[#06182e]/40 font-medium">
             Challenge
           </span>

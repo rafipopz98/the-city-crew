@@ -32,7 +32,7 @@ export const NewsletterSignup = () => {
   };
 
   return (
-    <section className="bg-gradient-to-br from-[#FFF5E5] via-[#FFE8CC] to-[#FFF0DD] py-12 sm:py-16 md:py-20 px-4 sm:px-6">
+    <section className="bg-linear-to-br from-[#FFF5E5] via-[#FFE8CC] to-[#FFF0DD] py-12 sm:py-16 md:py-20 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto text-center">
         {/* Mail Icon */}
         <div className="flex justify-center mb-4 sm:mb-6">
