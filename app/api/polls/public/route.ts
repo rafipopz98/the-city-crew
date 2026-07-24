@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 
 import { PollModel } from "@/lib/models/Polls";
@@ -60,6 +61,7 @@ export async function GET(req: NextRequest) {
       polls: formattedPolls,
     });
   } catch (error) {
+    await logError("/api/polls/public", "GET", error);
     console.error(error);
 
     return NextResponse.json(

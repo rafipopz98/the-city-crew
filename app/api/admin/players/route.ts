@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { PlayersModels } from "@/lib/models/Players";
 import { playerImages } from "@/public/players-image";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 // GET - Fetch all players with pagination
 export async function GET(req: NextRequest) {
@@ -61,6 +62,7 @@ export async function GET(req: NextRequest) {
       playersPerPage: limit,
     });
   } catch (error) {
+    await logError("/api/admin/players", "GET", error);
     console.error("Error fetching players:", error);
     return NextResponse.json(
       { error: "Failed to fetch players" },
@@ -124,6 +126,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(populatedPlayer, { status: 201 });
   } catch (error) {
+    await logError("/api/admin/players", "POST", error);
     console.error("Error creating player:", error);
     return NextResponse.json(
       { error: "Failed to create player" },

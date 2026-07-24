@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import PlayerRating from "@/lib/models/PlayerRating";
 import { MatchesModel } from "@/lib/models/Matches";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
@@ -168,6 +169,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       },
     });
   } catch (error) {
+    await logError("/api/player-ratings/[matchId]", "GET", error);
     console.error(error);
 
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+import { logError } from "@/lib/errorLogger";
 import { hashToken } from "@/lib/auth/hash";
 import { deleteSession } from "@/lib/db/session";
 import { connectDB } from "@/lib/db/mongoose";
@@ -24,6 +25,7 @@ export async function POST() {
 
     return NextResponse.json({ message: "Logged out" });
   } catch (error) {
+    await logError("/api/auth/logout", "POST", error);
     return NextResponse.json(
       { message: "Something went wrong" },
       { status: 500 },

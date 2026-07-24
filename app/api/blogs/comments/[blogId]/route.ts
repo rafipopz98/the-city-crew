@@ -3,6 +3,7 @@ import {
   NextResponse,
 } from "next/server";
 
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 
 import { BlogCommentModel } from "@/lib/models/BlogComments";
@@ -51,6 +52,7 @@ export async function GET(
   } catch (
     error
   ) {
+    await logError("/api/blogs/comments/[blogId]", "GET", error);
     console.error(
       "BLOG_COMMENTS_ERROR:",
       error,

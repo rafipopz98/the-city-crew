@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth/jwt";
 import { connectDB } from "@/lib/db/mongoose";
@@ -99,6 +100,7 @@ export async function GET() {
       season: latestSeason?.year || null,
     });
   } catch (error) {
+    await logError("/api/admin/dashboard/stats", "GET", error);
     console.error("Stats API Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

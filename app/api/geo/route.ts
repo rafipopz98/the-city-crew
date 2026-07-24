@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 import { VisitorGeoModel } from "@/lib/models/VisitorGeo";
 
@@ -45,6 +46,7 @@ export async function GET() {
       total_visits: record.count,
     });
   } catch (error) {
+    await logError("/api/geo", "GET", error);
     console.error("GEO_API_ERROR:", error);
 
     return NextResponse.json(

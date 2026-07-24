@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 
 import { BlogModel } from "@/lib/models/Blogs";
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
       blog,
     });
   } catch (error) {
+    await logError("/api/blogs/create", "POST", error);
     console.error("BLOG_CREATE_ERROR:", error);
 
     return NextResponse.json(

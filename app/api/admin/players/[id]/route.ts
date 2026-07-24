@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { PlayersModels } from "@/lib/models/Players";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 // GET - Fetch single player
 export async function GET(
@@ -22,6 +23,7 @@ export async function GET(
 
     return NextResponse.json(player);
   } catch (error) {
+    await logError("/api/admin/players/[id]", "GET", error);
     console.error("Error fetching player:", error);
     return NextResponse.json(
       { error: "Failed to fetch player" },
@@ -103,6 +105,7 @@ export async function PUT(
 
     return NextResponse.json(player);
   } catch (error: any) {
+    await logError("/api/admin/players/[id]", "PUT", error);
     console.error("Error updating player:", error);
     return NextResponse.json(
       { error: error.message || "Failed to update player" },
@@ -129,6 +132,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: "Player deleted successfully" });
   } catch (error) {
+    await logError("/api/admin/players/[id]", "DELETE", error);
     console.error("Error deleting player:", error);
     return NextResponse.json(
       { error: "Failed to delete player" },

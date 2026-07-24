@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { MatchesModel } from "@/lib/models/Matches";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
       matchesPerPage: limit,
     });
   } catch (error) {
+    await logError("/api/matches", "GET", error);
     console.error("Error fetching matches:", error);
     return NextResponse.json(
       { error: "Failed to fetch matches" },

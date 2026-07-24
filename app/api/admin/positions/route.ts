@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { PlayersModels } from "@/lib/models/Players";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -54,6 +55,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    await logError("/api/admin/positions", "GET", error);
     console.error("Error fetching positions:", error);
     return NextResponse.json(
       { error: "Failed to fetch positions" },

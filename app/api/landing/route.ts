@@ -3,6 +3,7 @@ import { MatchesModel } from "@/lib/models/Matches";
 import { PlayersModels } from "@/lib/models/Players";
 import { SeasonModel } from "@/lib/models/Season";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,6 +61,7 @@ export async function GET(req: NextRequest) {
       season: currentSeason.year,
     });
   } catch (error) {
+    await logError("/api/landing", "GET", error);
     console.error("Error fetching landing data:", error);
     return NextResponse.json(
       { error: "Failed to fetch landing data" },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 import { BlogModel } from "@/lib/models/Blogs";
 import { BlogLikeModel } from "@/lib/models/BlogLikes";
@@ -96,6 +97,7 @@ export async function GET(
       relatedPosts,
     });
   } catch (error) {
+    await logError("/api/blogs/public/[slug]", "GET", error);
     console.error("Error fetching blog:", error);
     return NextResponse.json(
       { message: "Something went wrong" },

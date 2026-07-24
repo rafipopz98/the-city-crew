@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { PollModel } from "@/lib/models/Polls";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -34,6 +35,7 @@ export const POST = async (req: NextRequest) => {
 
     return NextResponse.json({ poll });
   } catch (error) {
+    await logError("/api/polls/create", "POST", error);
     console.log("Error while adding new poll", error);
 
     return NextResponse.json(

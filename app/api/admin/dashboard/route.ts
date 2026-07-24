@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth/jwt";
 import { connectDB } from "@/lib/db/mongoose";
@@ -165,6 +166,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ stats, recent }, { status: 200 });
   } catch (error) {
+    await logError("/api/admin/dashboard", "GET", error);
     console.error("Dashboard API Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },

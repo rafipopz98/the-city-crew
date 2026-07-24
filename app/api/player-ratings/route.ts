@@ -1,6 +1,7 @@
 // app/api/player-ratings/route.ts
 import { connectDB } from "@/lib/db/mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import PlayerRating from "@/lib/models/PlayerRating";
 import { MatchesModel } from "@/lib/models/Matches";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
@@ -83,6 +84,7 @@ export async function GET(req: NextRequest) {
       match,
     });
   } catch (error) {
+    await logError("/api/player-ratings", "GET", error);
     console.error("Error fetching player ratings:", error);
     return NextResponse.json(
       { error: "Failed to fetch player ratings" },
@@ -176,6 +178,7 @@ export async function POST(req: NextRequest) {
       totalRatings: allRatings.length,
     });
   } catch (error) {
+    await logError("/api/player-ratings", "POST", error);
     console.error("Error saving player rating:", error);
     return NextResponse.json(
       { error: "Failed to save rating" },

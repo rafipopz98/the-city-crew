@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 
 import { BlogModel } from "@/lib/models/Blogs";
@@ -120,7 +121,8 @@ export async function GET(req: NextRequest) {
         views: 0,
       },
     });
-  } catch {
+  } catch (error) {
+    await logError("/api/blogs/list", "GET", error);
     return NextResponse.json(
       {
         message: "Something went wrong",

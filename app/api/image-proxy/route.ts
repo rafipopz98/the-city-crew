@@ -1,3 +1,5 @@
+import { logError } from "@/lib/errorLogger";
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -18,6 +20,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (err) {
+    await logError("/api/image-proxy", "GET", err);
     return new Response("Failed to fetch image", { status: 500 });
   }
 }

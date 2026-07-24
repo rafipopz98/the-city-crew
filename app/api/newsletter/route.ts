@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongoose";
 import NewsLetterModel from "@/lib/models/Newsletter";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 // add newsletter email to db
 export const POST = async (req: NextRequest) => {
@@ -34,6 +35,7 @@ export const POST = async (req: NextRequest) => {
       { status: 201 },
     );
   } catch (error) {
+    await logError("/api/newsletter", "POST", error);
     console.error(error);
     return NextResponse.json(
       { message: "Internal server error" },

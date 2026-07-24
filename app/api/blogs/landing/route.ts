@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { BlogModel } from "@/lib/models/Blogs";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
       total: blogs.length,
     });
   } catch (error) {
+    await logError("/api/blogs/landing", "GET", error);
     console.error("Error fetching blogs:", error);
     return NextResponse.json(
       { error: "Failed to fetch blogs" },

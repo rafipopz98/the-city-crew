@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 import { PollModel } from "@/lib/models/Polls";
 import { VoteModel } from "@/lib/models/Votes";
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
       message: "Vote successful",
     });
   } catch (err) {
+    await logError("/api/polls/vote", "POST", err);
     return NextResponse.json({ message: "Error voting" }, { status: 500 });
   }
 }

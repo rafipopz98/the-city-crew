@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { PlayersModels } from "@/lib/models/Players";
 import { SeasonModel } from "@/lib/models/Season";
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 export async function GET(request: Request) {
   try {
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(players);
   } catch (error) {
+    await logError("/api/players", "GET", error);
     console.error("Error fetching players:", error);
     return NextResponse.json(
       { error: "Failed to fetch players" },

@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { MatchesModel } from "@/lib/models/Matches";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
     return NextResponse.json(match);
   } catch (error) {
+    await logError("/api/admin/matches/[id]", "GET", error);
     console.error("Error fetching match:", error);
     return NextResponse.json(
       { error: "Failed to fetch match" },
@@ -79,6 +81,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     return NextResponse.json(match);
   } catch (error) {
+    await logError("/api/admin/matches/[id]", "PUT", error);
     console.error("Error updating match:", error);
     return NextResponse.json(
       { error: "Failed to update match" },
@@ -101,6 +104,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
 
     return NextResponse.json({ message: "Match deleted successfully" });
   } catch (error) {
+    await logError("/api/admin/matches/[id]", "DELETE", error);
     console.error("Error deleting match:", error);
     return NextResponse.json(
       { error: "Failed to delete match" },

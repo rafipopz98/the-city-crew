@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { SeasonModel } from "@/lib/models/Season";
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(seasons);
   } catch (error) {
+    await logError("/api/admin/seasons", "GET", error);
     console.error("Error fetching seasons:", error);
     return NextResponse.json(
       { error: "Failed to fetch seasons" },
@@ -27,6 +29,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(season, { status: 201 });
   } catch (error) {
+    await logError("/api/admin/seasons", "POST", error);
     console.error("Error creating season:", error);
     return NextResponse.json(
       { error: "Failed to create season" },

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 import { PollModel } from "@/lib/models/Polls";
 
@@ -53,6 +54,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (err) {
+    await logError("/api/polls/list", "GET", err);
     return NextResponse.json(
       { message: "Error fetching polls" },
       { status: 500 },

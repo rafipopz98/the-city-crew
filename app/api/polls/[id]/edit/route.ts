@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 import { PollModel } from "@/lib/models/Polls";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
@@ -77,6 +78,7 @@ export async function PUT(
 
     return NextResponse.json({ poll });
   } catch (err) {
+    await logError("/api/polls/[id]/edit", "PUT", err);
     return NextResponse.json(
       { message: "Error updating poll" },
       { status: 500 },

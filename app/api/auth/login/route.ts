@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { signAccessToken, signRefreshToken } from "@/lib/auth/jwt";
 import { setAuthCookies } from "@/lib/auth/cookies";
 import { hashToken } from "@/lib/auth/hash";
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
       { status: 200 },
     );
   } catch (error) {
+    await logError("/api/auth/login", "POST", error);
     console.error("LOGIN_ERROR:", error);
 
     return NextResponse.json(

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import bcrypt from "bcryptjs";
 
 import { connectDB } from "@/lib/db/mongoose";
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (error) {
+    await logError("/api/auth/register", "POST", error);
     console.log("REGISTER ERROR:", error);
 
     return NextResponse.json(

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/errorLogger";
 import { connectDB } from "@/lib/db/mongoose";
 import { PollModel } from "@/lib/models/Polls";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
@@ -38,6 +39,7 @@ export async function DELETE(
       message: "Poll deleted successfully",
     });
   } catch (err) {
+    await logError("/api/polls/[id]/delete", "DELETE", err);
     return NextResponse.json(
       { message: "Error deleting poll" },
       { status: 500 },
