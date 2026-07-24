@@ -24,6 +24,11 @@ const menu = [
     icon: LayoutDashboard,
   },
   {
+    name: "Daily Challenges",
+    href: "/admin/daily-challenge",
+    icon: BarChart3,
+  },
+  {
     name: "Blogs",
     href: "/admin/blogs",
     icon: FileText,

@@ -3,8 +3,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type User = {
+  id: string;
   first_name: string;
   role: string;
+  username?: string;
 };
 
 type AuthContextType = {

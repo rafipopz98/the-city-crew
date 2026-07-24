@@ -36,7 +36,7 @@ export async function GET() {
     }
 
     const user = await UserModel.findById(payload.userId).select(
-      "first_name email role",
+      "first_name email role username",
     );
 
     if (!user) {
@@ -56,6 +56,7 @@ export async function GET() {
         first_name: user.first_name,
         email: user.email,
         role: user.role,
+        username: (user as any).username || undefined,
       },
     });
   } catch (error) {
