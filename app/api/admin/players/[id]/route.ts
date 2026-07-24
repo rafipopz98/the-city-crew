@@ -88,7 +88,7 @@ export async function PUT(
       id,
       { $set: playerData }, // Use $set to only update provided fields
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
         // This tells Mongoose to only validate the fields being updated
         context: "query",

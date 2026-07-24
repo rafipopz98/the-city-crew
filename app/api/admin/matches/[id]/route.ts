@@ -63,7 +63,6 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       id,
       { $set: updateData },
       {
-        new: true,
         runValidators: false,
         returnDocument: "after",
       },
