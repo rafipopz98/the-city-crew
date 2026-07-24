@@ -7,7 +7,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Blogs", href: "/blogs" },
-  { label: "Polls", href: "/polls" },
+  { label: "TCC Quiz", href: "/daily-challenge" },
   { label: "About Us", href: "/about-us" },
   { label: "Player Stats", href: "/player-stats" },
   { label: "Matches", href: "/matches" },
