@@ -53,24 +53,25 @@ export default function NotFound() {
       {/* Abstract decorative shapes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Large circle top-right */}
-        <div className="absolute -top-48 -right-48 w-[600px] h-[600px] rounded-full border border-[#e09225]/8" />
-        <div className="absolute -top-36 -right-36 w-[500px] h-[500px] rounded-full border border-[#e09225]/5" />
+        <div className="absolute -top-48 -right-48 w-150 h-150 rounded-full border border-[#e09225]/8" />
+        <div className="absolute -top-36 -right-36 w-125 h-125 rounded-full border border-[#e09225]/5" />
 
         {/* Circle bottom-left */}
-        <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full border border-[#06182e]/5" />
+        <div className="absolute -bottom-32 -left-32 w-100 h-100 rounded-full border border-[#06182e]/5" />
 
         {/* Dots pattern */}
         <div
           className="absolute inset-0 opacity-[0.12]"
           style={{
-            backgroundImage: "radial-gradient(circle, #06182e 0.8px, transparent 0.8px)",
+            backgroundImage:
+              "radial-gradient(circle, #06182e 0.8px, transparent 0.8px)",
             backgroundSize: "32px 32px",
           }}
         />
 
         {/* Accent lines */}
-        <div className="absolute top-1/4 right-0 w-32 h-px bg-gradient-to-l from-[#e09225]/20 to-transparent" />
-        <div className="absolute bottom-1/3 left-0 w-48 h-px bg-gradient-to-r from-[#e09225]/15 to-transparent" />
+        <div className="absolute top-1/4 right-0 w-32 h-px bg-linear-to-l from-[#e09225]/20 to-transparent" />
+        <div className="absolute bottom-1/3 left-0 w-48 h-px bg-linear-to-r from-[#e09225]/15 to-transparent" />
       </div>
 
       <div
@@ -80,7 +81,7 @@ export default function NotFound() {
       >
         <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
           {/* Left — Image */}
-          <div className="w-full lg:w-[55%] relative flex-shrink-0">
+          <div className="w-full lg:w-[55%] relative shrink-0">
             <div className="relative">
               <img
                 ref={imgRef}
@@ -91,12 +92,12 @@ export default function NotFound() {
               />
 
               {/* Subtle glow under image */}
-              <div className="absolute -inset-10 bg-gradient-to-r from-[#e09225]/5 via-transparent to-transparent rounded-full blur-3xl" />
+              <div className="absolute -inset-10 bg-linear-to-r from-[#e09225]/5 via-transparent to-transparent rounded-full blur-3xl" />
             </div>
 
             {/* Floating "404" text behind image */}
             <div
-              className="absolute -top-12 -left-8 text-[200px] sm:text-[280px] font-black text-[#06182e]/[0.03] leading-none pointer-events-none select-none"
+              className="absolute -top-12 -left-8 text-[200px] sm:text-[280px] font-black text-[#06182e]/3 leading-none pointer-events-none select-none"
               aria-hidden
             >
               404
@@ -125,7 +126,8 @@ export default function NotFound() {
 
             {/* Description */}
             <p className="mt-6 text-base sm:text-lg text-[#06182e]/50 max-w-sm mx-auto lg:mx-0 leading-relaxed font-light">
-              This page has wandered off somewhere unknown. No worries — we&apos;ll get you back on solid ground.
+              This page has wandered off somewhere unknown. No worries —
+              we&apos;ll get you back on solid ground.
             </p>
 
             {/* CTAs */}
@@ -137,26 +139,45 @@ export default function NotFound() {
                 <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
                 <Home size={16} />
                 Back to Home
-                <ArrowLeft size={14} className="rotate-180 transition-transform group-hover:translate-x-1" />
+                <ArrowLeft
+                  size={14}
+                  className="rotate-180 transition-transform group-hover:translate-x-1"
+                />
               </Link>
 
               <button
                 onClick={() => window.history.back()}
                 className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl border-2 border-[#06182e]/10 text-[#06182e]/50 font-semibold text-sm hover:bg-white hover:border-[#06182e]/20 hover:text-[#06182e]/70 transition-all duration-300"
               >
-                <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+                <ArrowLeft
+                  size={16}
+                  className="transition-transform group-hover:-translate-x-1"
+                />
                 Go Back
               </button>
             </div>
 
             {/* Bottom decorative */}
             <div className="mt-14 flex items-center gap-4">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#06182e]/10 to-transparent" />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#06182e]/15">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 4" />
+              <div className="h-px flex-1 bg-linear-to-r from-transparent via-[#06182e]/10 to-transparent" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-[#06182e]/15"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 4"
+                />
                 <circle cx="12" cy="12" r="3" fill="currentColor" />
               </svg>
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#06182e]/10 to-transparent" />
+              <div className="h-px flex-1 bg-linear-to-r from-transparent via-[#06182e]/10 to-transparent" />
             </div>
           </div>
         </div>
