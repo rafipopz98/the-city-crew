@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import RatingStars from "./RatingStars";
 import RatingProgress from "./RatingProgress";
 
@@ -30,34 +31,39 @@ export default function DesktopRating({
   match,
   onRatingSubmit,
 }: Props) {
+  const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
-  const [hasVoted, setHasVoted] = useState(false);
+  const [showDone, setShowDone] = useState(false);
 
   const currentPlayer = players[selectedIndex];
+
+  // Auto-redirect after 3s when done
+  useEffect(() => {
+    if (!showDone) return;
+    const timer = setTimeout(() => {
+      router.push(`/match-hub/${match._id}`);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [showDone, router, match._id]);
 
   // Check if user already rated this player
   const handlePlayerSelect = (index: number) => {
     setSelectedIndex(index);
     const player = players[index];
-    if (player.userRating) {
-      setSelectedRating(player.userRating);
-      setHasVoted(true);
-    } else {
-      setSelectedRating(null);
-      setHasVoted(false);
-    }
+    setSelectedRating(player.userRating || null);
   };
 
   const handleRatingSelect = (rating: number) => {
     setSelectedRating(rating);
-    setHasVoted(true);
     onRatingSubmit(currentPlayer._id, rating);
   };
 
   const nextPlayer = () => {
     if (selectedIndex < players.length - 1) {
       handlePlayerSelect(selectedIndex + 1);
+    } else {
+      setShowDone(true);
     }
   };
 
@@ -209,18 +215,18 @@ export default function DesktopRating({
                   <RatingStars
                     rating={selectedRating || 0}
                     onRatingSelect={handleRatingSelect}
-                    disabled={hasVoted}
+                    disabled={false}
                     size="large"
                     surface="light"
                   />
                 </div>
-                {!hasVoted ? (
-                  <p className="mt-3 text-center text-sm text-black/40">
-                    Tap a star to rate this performance.
+                {selectedRating !== null ? (
+                  <p className="mt-3 text-center text-sm text-[#e09225]">
+                    {selectedRating}★ — Tap to change
                   </p>
                 ) : (
-                  <p className="mt-3 text-center text-sm text-[#e09225]">
-                    Rating submitted ✓
+                  <p className="mt-3 text-center text-sm text-black/40">
+                    Tap a star to rate this performance.
                   </p>
                 )}
               </div>
@@ -241,10 +247,9 @@ export default function DesktopRating({
                   </button>
                   <button
                     onClick={nextPlayer}
-                    disabled={selectedIndex === players.length - 1}
-                    className="border-b border-black pb-1 uppercase disabled:opacity-20 transition hover:text-[#e09225] hover:border-[#e09225]"
+                    className="border-b border-black pb-1 uppercase transition hover:text-[#e09225] hover:border-[#e09225]"
                   >
-                    Next
+                    {selectedIndex === players.length - 1 ? "Done" : "Next"}
                   </button>
                 </div>
               </div>
@@ -252,6 +257,47 @@ export default function DesktopRating({
           </div>
         </div>
       </div>
+
+      {/* End-of-list toast */}
+      {showDone && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center pb-8 px-4 pointer-events-none">
+          <div className="pointer-events-auto max-w-md w-full rounded-2xl bg-white shadow-2xl border border-black/10 p-5 animate-fade-in">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 size={22} className="text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-black/90">
+                  All Done!
+                </h3>
+                <p className="text-sm text-black/60 mt-0.5">
+                  You&apos;ve rated all {players.length} players.
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={() => router.push(`/match-hub/${match._id}`)}
+                    className="text-xs font-semibold text-[#e09225] hover:underline"
+                  >
+                    Back to match
+                  </button>
+                  <span className="text-[10px] text-black/30">
+                    Auto-redirects in 3s
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDone(false)}
+                className="shrink-0 w-7 h-7 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10 transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-black/40">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import PlayerHeroSlider from "@/components/PlayerStats/PlayerHeroSlider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type Player = {
   name: string;
@@ -28,6 +28,24 @@ export default function PlayersPageClient({
   const [players, setPlayers] = useState(initialPlayers);
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [loading, setLoading] = useState(false);
+
+  // Fetch fresh data on mount (catches any ratings submitted before navigation)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchInitial = async () => {
+      try {
+        const res = await fetch(`/api/players?season=${currentSeason}`);
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setPlayers(data);
+        }
+      } catch {
+        // Silent — server data is the fallback
+      }
+    };
+    fetchInitial();
+    return () => { cancelled = true; };
+  }, [currentSeason]);
 
   const handleSeasonChange = async (season: string) => {
     setLoading(true);

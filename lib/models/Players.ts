@@ -77,6 +77,14 @@ const PlayerSchema = new mongoose.Schema(
     age: {
       type: Number,
     },
+    rating: {
+      type: Number,
+      default: 0,
+    },
+    total_ratings: {
+      type: Number,
+      default: 0,
+    },
     is_captain: {
       type: Boolean,
       default: false,

@@ -11,6 +11,7 @@ import {
   FileText,
   BarChart3,
   Users,
+  UserCheck,
   Menu,
   X,
   Watch,
@@ -41,6 +42,11 @@ const menu = [
     name: "Matches",
     href: "/admin/matches",
     icon: Watch,
+  },
+  {
+    name: "Users",
+    href: "/admin/users",
+    icon: UserCheck,
   },
 ];
 

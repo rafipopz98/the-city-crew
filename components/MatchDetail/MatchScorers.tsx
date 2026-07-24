@@ -1,6 +1,7 @@
 "use client";
 
-import { Goal } from "lucide-react";
+import { motion } from "framer-motion";
+import { Goal, AlertTriangle, PenTool } from "lucide-react";
 
 type GoalScorer = {
   playerName: string;
@@ -17,81 +18,104 @@ type Props = {
 };
 
 const MatchScorers = ({ goalScorers, homeTeamName, awayTeamName }: Props) => {
-  if (!goalScorers || goalScorers.length === 0) {
-    return null;
-  }
+  if (!goalScorers || goalScorers.length === 0) return null;
 
-  const homeScorers = goalScorers.filter((g) => g.team === "home");
-  const awayScorers = goalScorers.filter((g) => g.team === "away");
+  const sorted = [...goalScorers].sort((a, b) => a.minute - b.minute);
 
-  const formatScorer = (scorer: GoalScorer) => {
-    let text = `${scorer.playerName} ${scorer.minute}'`;
-    if (scorer.isPenalty) text += " (P)";
-    if (scorer.isOwnGoal) text += " (OG)";
-    return text;
-  };
-
-  const renderScorers = (
-    scorers: GoalScorer[],
-    teamName: string,
-    isHome: boolean,
-  ) => {
-    if (scorers.length === 0) return null;
-
-    // Group by player name to combine minutes
-    const grouped: Record<string, number[]> = {};
-    const scorerDetails: Record<
-      string,
-      { isPenalty: boolean; isOwnGoal: boolean }
-    > = {};
-
-    scorers.forEach((s) => {
-      if (!grouped[s.playerName]) {
-        grouped[s.playerName] = [];
-        scorerDetails[s.playerName] = {
-          isPenalty: s.isPenalty || false,
-          isOwnGoal: s.isOwnGoal || false,
-        };
-      }
-      grouped[s.playerName].push(s.minute);
-      if (s.isPenalty) scorerDetails[s.playerName].isPenalty = true;
-      if (s.isOwnGoal) scorerDetails[s.playerName].isOwnGoal = true;
-    });
-
-    const formattedScorers = Object.entries(grouped).map(([name, minutes]) => {
-      const minuteStr =
-        minutes.length > 1 ? minutes.join("', ") + "'" : minutes[0] + "'";
-      let text = `${name} ${minuteStr}`;
-      if (scorerDetails[name].isPenalty) text += " (P)";
-      if (scorerDetails[name].isOwnGoal) text += " (OG)";
-      return text;
-    });
-
-    return (
-      <div className="flex items-start gap-3">
-        <Goal
-          size={16}
-          className={`shrink-0 mt-0.5 ${isHome ? "text-green-600" : "text-red-500"}`}
-        />
+  return (
+    <section className="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-white/60 to-white/20 backdrop-blur-sm border border-black/5 p-6 sm:p-8 md:p-10">
+      <div className="flex items-center gap-3 mb-6 sm:mb-8">
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/10">
+          <Goal size={18} className="text-green-500" />
+        </div>
         <div>
-          <p className="text-sm font-medium text-black/60">{teamName}</p>
-          <p className="text-base font-semibold text-black">
-            {formattedScorers.join(", ")}
+          <h3 className="text-xs uppercase tracking-[0.25em] text-black/40 font-medium">
+            Goal Scorers
+          </h3>
+          <p className="text-xs text-black/30 mt-0.5">
+            {sorted.length} goal{sorted.length !== 1 ? "s" : ""}
           </p>
         </div>
       </div>
-    );
-  };
 
-  return (
-    <section className="mt-20 border-y border-black/10 py-12">
-      <h3 className="text-xs uppercase tracking-[0.35em] text-black/40 mb-6">
-        Goal Scorers
-      </h3>
+      {/* Timeline */}
+      <div className="relative">
+        {/* Vertical line */}
+        <div className="absolute left-[18px] sm:left-[22px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-green-500/30 via-yellow-500/30 to-red-500/30 rounded-full" />
 
-      <div className="space-y-4">
-        {renderScorers(homeScorers, homeTeamName, true)}
-        {renderScorers(awayScorers, awayTeamName, false)}
+        <div className="space-y-4 sm:space-y-5">
+          {sorted.map((scorer, index) => {
+            const isHome = scorer.team === "home";
+            const teamName = isHome ? homeTeamName : awayTeamName;
+
+            return (
+              <motion.div
+                key={`${scorer.playerName}-${scorer.minute}-${index}`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.08, duration: 0.3 }}
+                className="relative flex items-start gap-4 sm:gap-5 pl-12 sm:pl-14"
+              >
+                {/* Timeline dot */}
+                <div
+                  className={`absolute left-0 top-1.5 w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border-2 ${
+                    isHome
+                      ? "bg-green-500/10 border-green-500/30"
+                      : "bg-red-500/10 border-red-500/30"
+                  }`}
+                >
+                  <span
+                    className={`text-xs sm:text-sm font-bold tabular-nums ${
+                      isHome ? "text-green-500" : "text-red-400"
+                    }`}
+                  >
+                    {scorer.minute}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <span className="font-bold text-sm sm:text-base text-black/80 truncate">
+                      {scorer.playerName}
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-black/30 uppercase tracking-[0.1em]">
+                      {teamName}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    {scorer.isPenalty && (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-full font-medium">
+                        <AlertTriangle size={10} />
+                        Penalty
+                      </span>
+                    )}
+                    {scorer.isOwnGoal && (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full font-medium">
+                        <PenTool size={10} />
+                        OG
+                      </span>
+                    )}
+                    <span className="text-[10px] sm:text-xs text-black/25">
+                      {scorer.minute}&apos;
+                    </span>
+                  </div>
+                </div>
+
+                {/* Badge */}
+                <div
+                  className={`shrink-0 self-start px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-medium ${
+                    isHome
+                      ? "bg-green-500/10 text-green-600"
+                      : "bg-red-500/10 text-red-500"
+                  }`}
+                >
+                  {isHome ? "H" : "A"}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { logError } from "@/lib/errorLogger";
 import PlayerRating from "@/lib/models/PlayerRating";
+import { PlayersModels } from "@/lib/models/Players";
 import { MatchesModel } from "@/lib/models/Matches";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
 
@@ -136,46 +137,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upsert rating
-    const result = await PlayerRating.findOneAndUpdate(
-      {
-        match_id: matchId,
-        player_id: playerId,
-        user_id: user?.userId,
-      },
-      {
+    // ─── Check if it's a new rating or a re-vote ───
+    const existingRating = await PlayerRating.findOne({
+      match_id: matchId,
+      player_id: playerId,
+      user_id: user.userId,
+    });
+
+    if (existingRating) {
+      // Re-vote — capture old rating first, then update
+      const oldRating = existingRating.rating;
+      existingRating.rating = rating;
+      await existingRating.save();
+
+      const diff = rating - oldRating;
+      await PlayersModels.findByIdAndUpdate(playerId, {
+        $inc: { rating: diff },
+      });
+    } else {
+      // New rating — increment count and add stars
+      await PlayerRating.create({
         match_id: matchId,
         player_id: playerId,
         user_id: user.userId,
         rating,
-      },
-      {
-        upsert: true,
-        returnDocument: "after",
-        setDefaultsOnInsert: true,
-      },
-    );
+      });
 
-    // Get updated average rating
-    const allRatings = await PlayerRating.find({
-      match_id: matchId,
-      player_id: playerId,
-    });
-
-    const averageRating =
-      allRatings.length > 0
-        ? Math.round(
-            (allRatings.reduce((sum, r) => sum + r.rating, 0) /
-              allRatings.length) *
-              10,
-          ) / 10
-        : 0;
+      await PlayersModels.findByIdAndUpdate(playerId, {
+        $inc: {
+          total_ratings: 1,
+          rating: rating,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      rating: result,
-      averageRating,
-      totalRatings: allRatings.length,
+      averageRating: rating,
+      totalRatings: 1,
     });
   } catch (error) {
     await logError("/api/player-ratings", "POST", error);
