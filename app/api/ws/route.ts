@@ -10,8 +10,8 @@
 import { experimental_upgradeWebSocket } from "@vercel/functions";
 import type { WebSocketData } from "@vercel/functions";
 import { handleMessage, streamRemoteMatch, clearRecentlyJoined } from "@/lib/game/socket/handler";
-import { hub } from "@/lib/game/socket/hub";
-import { setOnMatchReady } from "@/lib/game/socket/matchmaking";
+import { hub, setHubCallbacks } from "@/lib/game/socket/hub";
+import { matchmaking, setOnMatchReady } from "@/lib/game/socket/matchmaking";
 import type { ClientMessage } from "@/lib/game/socket/protocol";
 import type { WebSocket } from "ws";
 
@@ -24,6 +24,12 @@ export function GET() {
   } else {
     console.warn("[ws] setOnMatchReady not available — cross-instance PvP won't work");
   }
+
+  // Wire up polling lifecycle (avoids circular import hub ↔ matchmaking)
+  setHubCallbacks({
+    onFirstConnection: (instanceId) => matchmaking.startPolling(instanceId),
+    onZeroConnections: () => matchmaking.stopPolling(),
+  });
   return experimental_upgradeWebSocket((ws) => {
     ws.on("message", (data: WebSocketData) => {
       try {

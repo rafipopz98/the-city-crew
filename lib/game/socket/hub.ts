@@ -25,6 +25,19 @@ interface Room {
   metadata: Record<string, any>;
 }
 
+// ─── Lifecycle callbacks (set by the server entry points) ──────────────────
+// These avoid a circular import between hub.ts ↔ matchmaking.ts.
+let onFirstConnection: ((instanceId: string) => void) | null = null;
+let onZeroConnections: (() => void) | null = null;
+
+export function setHubCallbacks(opts: {
+  onFirstConnection: (instanceId: string) => void;
+  onZeroConnections: () => void;
+}): void {
+  onFirstConnection = opts.onFirstConnection;
+  onZeroConnections = opts.onZeroConnections;
+}
+
 // ─── Hub State ─────────────────────────────────────────────────────────────
 class Hub {
   /** Unique ID for this Function instance (used for cross-region notifications) */
@@ -55,10 +68,9 @@ class Hub {
     this.connections.set(userId, { ws, userId, username, connectedAt: Date.now() });
     this.socketToUser.set(ws, userId);
 
-    // Start polling when first connection registers
+    // Start polling when first connection registers (cross-instance matches)
     if (this.connections.size === 1) {
-      const { matchmaking } = require("./matchmaking");
-      matchmaking.startPolling(this.instanceId);
+      onFirstConnection?.(this.instanceId);
     }
   }
 
@@ -76,8 +88,7 @@ class Hub {
 
     // Stop polling when last connection disconnects
     if (this.connections.size === 0) {
-      const { matchmaking } = require("./matchmaking");
-      matchmaking.stopPolling();
+      onZeroConnections?.();
     }
   }
 

@@ -18,13 +18,19 @@ config({ path: resolve(".env.local") });
 
 import { WebSocketServer, WebSocket } from "ws";
 import { handleMessage, streamRemoteMatch, clearRecentlyJoined } from "../lib/game/socket/handler";
-import { hub } from "../lib/game/socket/hub";
-import { setOnMatchReady } from "../lib/game/socket/matchmaking";
+import { hub, setHubCallbacks } from "../lib/game/socket/hub";
+import { matchmaking, setOnMatchReady } from "../lib/game/socket/matchmaking";
 import type { ClientMessage } from "../lib/game/socket/protocol";
 
 // Wire up cross-instance match streaming
 setOnMatchReady(async (ws: WebSocket, matchId: string, opponentUserId: string) => {
   await streamRemoteMatch(ws, matchId, opponentUserId);
+});
+
+// Wire up polling lifecycle (avoids circular import hub ↔ matchmaking)
+setHubCallbacks({
+  onFirstConnection: (instanceId) => matchmaking.startPolling(instanceId),
+  onZeroConnections: () => matchmaking.stopPolling(),
 });
 
 const PORT = 3001;
