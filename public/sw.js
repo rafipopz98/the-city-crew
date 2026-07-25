@@ -6,18 +6,16 @@ const CACHE = "tcc-v1";
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) =>
-        cache.addAll([
-          "/",
-          "/manifest.json",
-          "/homescreen.png",
-          "/logo.svg",
-          "/logo.png",
-          "/logo-dark.png",
-        ]),
-      ),
+    caches.open(CACHE).then((cache) =>
+      // Pre-cache critical assets individually so one 404 doesn't break everything
+      Promise.allSettled([
+        cache.add("/"),
+        cache.add("/homescreen.png"),
+        cache.add("/logo.svg"),
+        cache.add("/logo.png"),
+        cache.add("/logo-dark.png"),
+      ]),
+    ),
   );
 });
 
