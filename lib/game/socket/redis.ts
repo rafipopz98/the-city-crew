@@ -49,13 +49,16 @@ export function isRedisAvailable(): boolean {
 export async function addToQueue(userId: string, rating: number): Promise<void> {
   const r = getRedis();
   if (!r) { console.warn("[Redis] addToQueue: Redis unavailable"); return; }
+  console.log(`[Redis] addToQueue: ${userId} rating=${rating}`);
   await r.zadd("game:queue", { score: rating, member: userId });
+  console.log(`[Redis] addToQueue done`);
 }
 
 /** Remove a player from the queue */
 export async function removeFromQueue(userId: string): Promise<void> {
   const r = getRedis();
   if (!r) { console.warn("[Redis] removeFromQueue: Redis unavailable"); return; }
+  console.log(`[Redis] removeFromQueue: ${userId}`);
   await r.zrem("game:queue", userId);
 }
 
@@ -69,19 +72,25 @@ export async function findMatchAndClaim(userId: string, rating: number): Promise
 
   const min = rating - RATING_RANGE;
   const max = rating + RATING_RANGE;
+  console.log(`[Redis] findMatchAndClaim: searching range ${min}-${max}`);
   const candidates = await r.zrange("game:queue", min, max, { byScore: true });
+  console.log(`[Redis] findMatchAndClaim: candidates:`, candidates);
 
   for (const candidateId of candidates) {
     if (candidateId === userId) continue;
 
+    console.log(`[Redis] findMatchAndClaim: trying to claim ${candidateId}`);
     const removed = await r.zrem("game:queue", candidateId as string);
     if (removed >= 1) {
+      console.log(`[Redis] findMatchAndClaim: ✅ claimed ${candidateId}`);
       return candidateId as string;
     }
 
     // removed === 0 means another instance already claimed this candidate
+    console.log(`[Redis] findMatchAndClaim: ${candidateId} already taken, trying next`);
   }
 
+  console.log(`[Redis] findMatchAndClaim: no match found`);
   return null;
 }
 

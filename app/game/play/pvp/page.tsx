@@ -70,12 +70,15 @@ export default function PvPPage() {
 
   // Load user data and validate squad
   useEffect(() => {
+    console.log("[PvP] Loading user data and squad...");
     Promise.all([
       fetch("/api/game/user", { credentials: "include" }).then((r) => r.json()),
       fetch("/api/game/squad", { credentials: "include" }).then((r) => r.json()),
     ])
       .then(([userData, squadData]) => {
+        console.log("[PvP] Data loaded:", { user: !!userData.gameUser, squad: !!squadData.squad });
         if (!userData.gameUser) {
+          console.log("[PvP] No game user — redirecting to onboarding");
           router.push("/game/onboarding");
           return;
         }
@@ -83,10 +86,13 @@ export default function PvPPage() {
 
         const sq = squadData.squad;
         if (!sq || !sq.players || sq.players.length !== 5) {
+          console.log("[PvP] Incomplete squad — showing no_squad");
           setPvpState("no_squad");
           return;
         }
+        console.log("[PvP] Squad valid with", sq.players.length, "players");
         setSquad(sq);
+        console.log("[PvP] Setting state to 'connecting'");
         setPvpState("connecting");
       })
       .catch((err) => {
@@ -98,13 +104,17 @@ export default function PvPPage() {
 
   // Auto-join queue when connected
   useEffect(() => {
+    console.log("[PvP] Auto-join effect running:", { connected, hasGameUser: !!gameUser, hasSquad: !!squad, pvpState, hasJoined: hasJoinedRef.current });
     if (!connected || !gameUser || !squad) {
+      console.log("[PvP] Auto-join: waiting for connection/data (connected:" + connected + " gameUser:" + !!gameUser + " squad:" + !!squad + ")");
       return;
     }
     if (pvpState === "queue" && hasJoinedRef.current) {
+      console.log("[PvP] Auto-join: already joined queue, skipping");
       return;
     }
     if (pvpState !== "connecting" && pvpState !== "queue") {
+      console.log("[PvP] Auto-join: wrong state (" + pvpState + "), skipping");
       return;
     }
 
@@ -116,6 +126,7 @@ export default function PvPPage() {
     const playerNames = squad.players.map((p: any) => p.playerId?.short_name || "Player");
     const playerPositions = squad.players.map((p: any) => p.position || "MID");
 
+    console.log("[PvP] 🚀 Joining queue!", { username: gameUser.username, rating, playerNames, playerPositions });
     hasJoinedRef.current = true;
     setPvpState("queue");
     setQueueTime(0);
@@ -182,13 +193,17 @@ export default function PvPPage() {
 
   // Register socket listeners
   useEffect(() => {
+    console.log("[PvP] Registering socket listeners...");
     const cleanup = registerListeners((message: ServerMessage) => {
+      console.log("[PvP] 🔔 Listener received:", message.type, message.payload);
       switch (message.type) {
         case "matchmaking:waiting":
+          console.log("[PvP] Queue position:", message.payload.position);
           setQueuePosition(message.payload.position);
           break;
 
         case "matchmaking:found":
+          console.log("[PvP] 🎯 Match found!", message.payload);
           setMatchId(message.payload.matchId);
           setOpponent(message.payload.opponent);
           setPlayerSide(message.payload.playerSide);
@@ -204,6 +219,7 @@ export default function PvPPage() {
 
         case "match:event": {
           const event = message.payload;
+          console.log("[PvP] ⚡ Match event:", event.minute + "' - " + event.description);
           setEvents((prev) => {
             const updated = [...prev, event];
             if (event.type === "goal") {
@@ -213,6 +229,7 @@ export default function PvPPage() {
               const awayGoals = updated.filter(
                 (e) => e.type === "goal" && e.actorName === "away",
               ).length;
+              console.log("[PvP] Score update:", homeGoals + "-" + awayGoals);
               setMatchScore({ home: homeGoals, away: awayGoals });
             }
             return updated;
@@ -222,6 +239,7 @@ export default function PvPPage() {
         }
 
         case "match:end":
+          console.log("[PvP] 🏁 Match ended!", message.payload);
           setMatchResult(message.payload);
           setPvpState("result");
           savePvPRewards(message.payload);

@@ -112,10 +112,13 @@ export const matchmaking = {
    */
   async findMatch(entry: QueueEntry): Promise<QueueEntry | null> {
     if (isRedisAvailable()) {
+      console.log(`[PvP-Server] findMatch: Redis available, searching for ${entry.username} (rating ${entry.squadRating})`);
       const opponentId = await findMatchAndClaim(entry.userId, entry.squadRating);
       if (opponentId) {
+        console.log(`[PvP-Server] findMatch: Found opponent ${opponentId} in Redis`);
         // Get opponent info from Redis to populate username/rating
         const info = await getPlayerInfo(opponentId);
+        console.log(`[PvP-Server] findMatch: Opponent info:`, info);
         // Handle array (Upstash REST auto-parses JSON), JSON string, or CSV string
         let parsedSquadPlayers: string[] | undefined;
         const raw = (info as any)?.squadPlayers;
@@ -150,10 +153,12 @@ export const matchmaking = {
           squadPlayerPositions: parsedSquadPositions,
         };
       }
+      console.log(`[PvP-Server] findMatch: No opponent found for ${entry.username}`);
       return null;
     }
 
     // In-memory fallback
+    console.log(`[PvP-Server] findMatch: Redis NOT available, using in-memory`);
     return fallbackQueue.findMatch(entry);
   },
 
@@ -161,7 +166,9 @@ export const matchmaking = {
    * Add a player to the queue.
    */
   async add(entry: QueueEntry): Promise<void> {
+    console.log(`[PvP-Server] addToQueue: ${entry.username} (rating ${entry.squadRating})`);
     if (isRedisAvailable()) {
+      console.log(`[PvP-Server] addToQueue: Using Redis`);
       await addToQueue(entry.userId, entry.squadRating);
       await storePlayerInfo(entry.userId, {
         username: entry.username,
@@ -170,7 +177,9 @@ export const matchmaking = {
         squadPlayerPositions: JSON.stringify(entry.squadPlayerPositions || []),
         instanceId: currentInstanceId,
       });
+      console.log(`[PvP-Server] addToQueue: Done`);
     } else {
+      console.log(`[PvP-Server] addToQueue: Using in-memory`);
       fallbackQueue.add(entry);
     }
   },
@@ -179,10 +188,13 @@ export const matchmaking = {
    * Remove a player from the queue.
    */
   async remove(userId: string): Promise<void> {
+    console.log(`[PvP-Server] removeFromQueue: ${userId}`);
     if (isRedisAvailable()) {
       await removeFromQueue(userId);
+      console.log(`[PvP-Server] removeFromQueue: Done via Redis`);
     } else {
       fallbackQueue.remove(userId);
+      console.log(`[PvP-Server] removeFromQueue: Done via in-memory`);
     }
   },
 
@@ -200,6 +212,7 @@ export const matchmaking = {
     if (pollTimer) return;
     currentInstanceId = instanceId;
     pollTimer = setInterval(pollPendingMatches, POLL_INTERVAL_MS);
+    console.log(`[matchmaking] Polling started for instance ${instanceId.slice(0, 8)}...`);
   },
 
   /** Stop polling */
@@ -209,6 +222,7 @@ export const matchmaking = {
       pollTimer = null;
     }
     currentInstanceId = "";
+    console.log("[matchmaking] Polling stopped");
   },
 
   isPolling(): boolean {

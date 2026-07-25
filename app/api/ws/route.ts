@@ -31,19 +31,24 @@ export function GET() {
     onZeroConnections: () => matchmaking.stopPolling(),
   });
   return experimental_upgradeWebSocket((ws) => {
+    console.log("[PvP-Server-Vercel] ⚡ New WebSocket connection via /api/ws");
+
     ws.on("message", (data: WebSocketData) => {
+      let raw = "";
       try {
-        const raw = data.toString();
+        raw = data.toString();
         const message: ClientMessage = JSON.parse(raw);
+        console.log(`[PvP-Server-Vercel] Received: ${message.type}`);
         handleMessage(ws, message).catch((err) =>
           console.error("[ws] handler error:", err)
         );
       } catch {
-        // malformed message — ignore
+        console.warn("[PvP-Server-Vercel] Failed to parse:", raw.slice(0, 200));
       }
     });
 
     ws.on("close", () => {
+      console.log("[PvP-Server-Vercel] WebSocket disconnected");
       const conn = hub.getConnectionBySocket(ws);
       if (conn) {
         clearRecentlyJoined(conn.userId);

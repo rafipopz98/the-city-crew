@@ -40,22 +40,26 @@ const wss = new WebSocketServer({ port: PORT });
 console.log(`\x1b[36m[dev-ws]\x1b[0m WebSocket server running on ws://localhost:${PORT}`);
 
 wss.on("connection", (ws: WebSocket) => {
-  console.warn("[PvP-Server] New WebSocket connection (total:", wss.clients.size, ")");
+  console.log("\x1b[36m[dev-ws]\x1b[0m client connected");
+  console.log("[PvP-Server] New WebSocket connection (total:", wss.clients.size, ")");
 
   ws.on("message", (data: Buffer) => {
+    let raw = "";
     try {
-      const raw = data.toString();
+      raw = data.toString();
       const message: ClientMessage = JSON.parse(raw);
+      console.log(`[PvP-Server] Received message: ${message.type}`);
       handleMessage(ws, message).catch((err) =>
         console.error("[dev-ws] handler error:", err)
       );
     } catch {
-      // malformed message — ignore
+      console.warn("[PvP-Server] Failed to parse message:", raw.slice(0, 200));
     }
   });
 
   ws.on("close", () => {
-    console.warn("[PvP-Server] WebSocket disconnected (remaining:", wss.clients.size - 1, ")");
+    console.log("\x1b[36m[dev-ws]\x1b[0m client disconnected");
+    console.log("[PvP-Server] WebSocket disconnected (remaining:", wss.clients.size - 1, ")");
 
     // Clear the duplicate-join flag so the next page navigation isn't blocked
     const conn = hub.getConnectionBySocket(ws);

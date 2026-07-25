@@ -62,6 +62,8 @@ async function handleJoin(
 ): Promise<void> {
   const { userId, squadRating, username, squadPlayers, squadPlayerPositions } = payload;
 
+  console.log(`[PvP-Server] handleJoin: user=${username}(${userId}) rating=${squadRating}`);
+
   if (squadRating <= 0) {
     console.warn(`[PvP-Server] Invalid squad rating for ${username}`);
     send(ws, {
@@ -74,6 +76,7 @@ async function handleJoin(
 
   // ── Prevent duplicate joins from React Strict Mode ───────────────────
   if (recentlyJoined.has(userId)) {
+    console.log(`[PvP-Server] ⏭️ Skipping duplicate join for ${username} (Strict Mode)`);
     hub.register(ws, userId, username);
     send(ws, {
       type: "match:ack",
@@ -86,10 +89,12 @@ async function handleJoin(
   setTimeout(() => recentlyJoined.delete(userId), 5000);
 
   // Register the connection
+  console.log(`[PvP-Server] Registering connection for ${username}`);
   hub.register(ws, userId, username);
 
   // Remove stale queue entry (findMatchAndClaim only removes the opponent,
   // so we need to clean up our own stale entry separately)
+  console.log(`[PvP-Server] Removing ${username} from queue (if present)`);
   await matchmaking.remove(userId);
 
   const entry: QueueEntry = {
@@ -103,12 +108,15 @@ async function handleJoin(
   };
 
   // Try to find a match in Redis (or in-memory fallback)
+  console.log(`[PvP-Server] Searching for match for ${username} (rating ${squadRating})`);
   const opponent = await matchmaking.findMatch(entry);
 
   if (opponent) {
+    console.log(`[PvP-Server] 🎯 Match found! ${username} vs ${opponent.username} (rating ${opponent.squadRating})`);
     // We found a match! Now determine if opponent is on this instance or remote.
     const opponentConn = hub.getConnection(opponent.userId);
     const isSameInstance = !!opponentConn;
+    console.log(`[PvP-Server] Opponent on ${isSameInstance ? "same instance" : "different instance"}`);
 
     if (isSameInstance) {
       // ── Both players on this instance — run match directly ─────────────
@@ -117,6 +125,7 @@ async function handleJoin(
       // ── Opponent is on another instance — remote match ──────────────────
       // We are the host instance. Store match info + run sim, then notify remote.
       const matchId = `match_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      console.log(`[PvP-Server] Remote match: ${matchId}`);
 
       // Send ACK to local player
       send(ws, {
@@ -142,6 +151,7 @@ async function handleJoin(
       // Store match info for remote instance
       await matchmaking.storeMatchInfo(matchId, userId, opponent.userId);
       if (opponentInfo?.instanceId) {
+        console.log(`[PvP-Server] Notifying remote instance ${opponentInfo.instanceId.slice(0, 8)}...`);
         await matchmaking.notifyRemoteInstance(opponentInfo.instanceId, matchId);
       } else {
         console.warn("[PvP-Server] Opponent has no instanceId — cannot notify");
@@ -160,6 +170,7 @@ async function handleJoin(
       }, 1000);
     }    } else {
       // ── No match found — add to queue ─────────────────────────────────────
+      console.log(`[PvP-Server] No match found for ${username}, adding to queue`);
       await matchmaking.add(entry);
 
       send(ws, {
@@ -172,6 +183,7 @@ async function handleJoin(
         type: "matchmaking:waiting",
         payload: { position: 1 },
       });
+      console.log(`[PvP-Server] ${username} added to queue, waiting for opponent`);
     }
 }
 

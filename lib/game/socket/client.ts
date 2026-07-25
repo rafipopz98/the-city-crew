@@ -36,9 +36,11 @@ export function useSocket() {
     if (cancelledRef.current || wsRef.current?.readyState === WebSocket.OPEN) return;
 
     const url = getWsUrl();
+    console.log(`[PvP] Connecting to WebSocket at ${url}...`);
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
+      console.log("[PvP] ✅ WebSocket connected!");
       setConnected(true);
       reconnectDelayRef.current = 1000;
     };
@@ -53,12 +55,16 @@ export function useSocket() {
 
       // Handle ACK messages (resolve the joinQueue promise)
       if (message.type === "match:ack") {
+        console.log("[PvP] 📩 Received match:ack:", message.payload);
         if (joinQueueResolveRef.current) {
           joinQueueResolveRef.current(message.payload);
           joinQueueResolveRef.current = null;
         }
         return;
       }
+
+      // Log all server messages
+      console.log(`[PvP] 📩 Server message: ${message.type}`, message.payload);
 
       // Forward to registered handlers
       for (const handler of handlersRef.current) {
@@ -71,12 +77,14 @@ export function useSocket() {
     };
 
     ws.onclose = () => {
+      console.log("[PvP] ❌ WebSocket disconnected");
       setConnected(false);
       wsRef.current = null;
 
       // Reconnect with exponential backoff
       if (!cancelledRef.current) {
         const delay = reconnectDelayRef.current;
+        console.log(`[PvP] Reconnecting in ${delay}ms...`);
         reconnectTimerRef.current = setTimeout(() => {
           connect();
         }, delay);
@@ -84,7 +92,8 @@ export function useSocket() {
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (err) => {
+      console.error("[PvP] WebSocket error:", err);
       // onclose will fire after this, so reconnection is handled there
     };
 
@@ -135,6 +144,7 @@ export function useSocket() {
       squadPlayers?: string[];
       squadPlayerPositions?: string[];
     }): Promise<{ success: boolean; message?: string }> => {
+      console.log("[PvP] Sending matchmaking:join", { userId: data.userId, rating: data.squadRating, username: data.username });
       return new Promise((resolve) => {
         joinQueueResolveRef.current = resolve;
 
@@ -145,8 +155,10 @@ export function useSocket() {
         };
 
         if (wsRef.current?.readyState === WebSocket.OPEN) {
+          console.log("[PvP] WebSocket OPEN, sending join message...");
           wsRef.current.send(JSON.stringify(message));
         } else {
+          console.warn("[PvP] WebSocket NOT open, resolving with failure");
           resolve({ success: false, message: "Not connected" });
           joinQueueResolveRef.current = null;
         }
@@ -154,6 +166,7 @@ export function useSocket() {
         // Timeout after 10 seconds if no ACK
         setTimeout(() => {
           if (joinQueueResolveRef.current) {
+            console.warn("[PvP] ⏱️ Join queue timed out after 10s");
             joinQueueResolveRef.current({ success: false, message: "Request timed out" });
             joinQueueResolveRef.current = null;
           }
@@ -164,6 +177,7 @@ export function useSocket() {
   );
 
   const leaveQueue = useCallback(() => {
+    console.log("[PvP] Leaving queue");
     const message: ClientMessage = {
       type: "matchmaking:leave",
     };
