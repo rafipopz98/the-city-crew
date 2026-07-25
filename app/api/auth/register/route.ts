@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     await connectDB();
     console.log("done with db");
 
-    const { first_name, last_name, email, password, utm_params, first_landing_page, conversion_page } =
+    const { first_name, last_name, username, email, password, utm_params, first_landing_page, conversion_page } =
       await req.json();
 
     const normalizedEmail = email?.toLowerCase();
@@ -33,6 +33,17 @@ export async function POST(req: Request) {
         { message: "Password must be at least 6 characters" },
         { status: 400 },
       );
+    }
+
+    // check if username already taken
+    if (username) {
+      const existingUsername = await UserModel.findOne({ username: username.toLowerCase() });
+      if (existingUsername) {
+        return NextResponse.json(
+          { message: "Username already taken" },
+          { status: 409 },
+        );
+      }
     }
 
     // check existing user
@@ -58,6 +69,7 @@ export async function POST(req: Request) {
       last_name,
       email: normalizedEmail,
       password: hashedPassword,
+      ...(username ? { username: username.toLowerCase() } : {}),
       ...(utm_params ? { utm_params } : {}),
       ...(first_landing_page ? { first_landing_page } : {}),
       ...(conversion_page ? { conversion_page } : {}),

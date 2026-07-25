@@ -35,6 +35,7 @@ export const SignUpPage = ({
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
+    username: "",
     email: "",
     password: "",
     confirm_password: "",
@@ -77,6 +78,16 @@ export const SignUpPage = ({
         return;
       }
 
+      if (form.username && (form.username.length < 3 || form.username.length > 20)) {
+        setError("Username must be 3-20 characters");
+        return;
+      }
+
+      if (form.username && !/^[a-zA-Z0-9_]+$/.test(form.username)) {
+        setError("Username can only contain letters, numbers, and underscores");
+        return;
+      }
+
       if (form.password !== form.confirm_password) {
         setError("Passwords do not match");
         return;
@@ -86,6 +97,7 @@ export const SignUpPage = ({
       const payload: Record<string, unknown> = {
         first_name: form.firstName,
         last_name: form.lastName,
+        username: form.username,
         email: form.email,
         password: form.password,
       };
@@ -160,6 +172,28 @@ export const SignUpPage = ({
                     />
                   </GlassInputWrapper>
                 </div>
+              </div>
+
+              {/* USERNAME */}
+              <div>
+                <label className="text-sm text-[#06182e]">
+                  Manager Name <span className="text-[#06182e]/40">(optional)</span>
+                </label>
+
+                <GlassInputWrapper>
+                  <input
+                    value={form.username}
+                    placeholder="Choose your manager name"
+                    onChange={(e) =>
+                      setForm({ ...form, username: e.target.value })
+                    }
+                    maxLength={20}
+                    className="w-full bg-transparent p-4 text-[#06182e] text-sm placeholder:text-[#06182e] focus:outline-none"
+                  />
+                </GlassInputWrapper>
+                <p className="text-xs text-[#06182e]/30 mt-1">
+                  Letters, numbers, and underscores. 3-20 characters.
+                </p>
               </div>
 
               {/* EMAIL */}

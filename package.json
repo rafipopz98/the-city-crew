@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "dev:game": "next dev --webpack & npx tsx socket-server.ts",
     "build": "next build",
     "start": "next start",
+    "socket": "npx tsx socket-server.ts",
     "lint": "eslint"
   },
   "dependencies": {
@@ -28,6 +30,8 @@
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",
     "swr": "^2.4.2",
     "thesvg": "^3.2.12"

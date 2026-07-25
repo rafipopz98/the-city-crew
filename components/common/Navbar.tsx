@@ -126,13 +126,19 @@ const Navbar = ({ className = "" }: NavbarProps) => {
                 href="/admin/dashboard"
                 isActive={pathname === "/admin/dashboard"}
                 variant="cta"
+                className="px-3 py-1.5"
               >
                 Admin Dashboard
               </NavLink>
             )}
           </>
         ) : (
-          <NavLink href="/login" isActive={false} variant="cta" className="px-3 py-1.5">
+          <NavLink
+            href="/login"
+            isActive={false}
+            variant="cta"
+            className="px-3 py-1.5"
+          >
             Login
           </NavLink>
         )}
@@ -192,7 +198,7 @@ const Navbar = ({ className = "" }: NavbarProps) => {
                       isActive={pathname === "/admin/dashboard"}
                       variant="mobile"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="bg-[#06182e]! border-2 border-[#e09225] w-full sm:w-auto"
+                      className="bg-[#06182e]! border-2 border-[#e09225] w-full sm:w-auto px-3 py-1.5"
                     >
                       Admin Dashboard
                     </NavLink>

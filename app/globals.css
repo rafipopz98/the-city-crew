@@ -133,3 +133,12 @@ select {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}

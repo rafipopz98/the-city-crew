@@ -11,6 +11,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "About Us", href: "/about-us" },
   { label: "Player Stats", href: "/player-stats" },
   { label: "Matches", href: "/matches" },
+  { label: "Game", href: "/game" },
   { label: "Lineup Builder", href: "/lineup-builder" },
 ];
 
