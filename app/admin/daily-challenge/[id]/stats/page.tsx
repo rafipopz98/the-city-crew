@@ -142,7 +142,7 @@ function StatsPageSkeleton() {
             {Array.from({ length: 3 }).map((_, j) => (
               <div
                 key={j}
-                className="p-3 rounded-xl bg-[#06182e]/[0.02] border border-[#06182e]/5 mb-2"
+                className="p-3 rounded-xl bg-[#06182e]/2 border border-[#06182e]/5 mb-2"
               >
                 <div className="h-4 w-3/4 rounded bg-[#06182e]/8 mb-2" />
                 <div className="h-3 w-1/2 rounded bg-[#06182e]/8" />
@@ -159,7 +159,7 @@ function StatsPageSkeleton() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-4 p-3 rounded-xl bg-[#06182e]/[0.02]"
+              className="flex items-center gap-4 p-3 rounded-xl bg-[#06182e]/2"
             >
               <div className="w-8 h-8 rounded-full bg-[#06182e]/8" />
               <div className="flex-1 space-y-1.5">
@@ -325,7 +325,7 @@ export default function ChallengeStatsPage() {
           <span className="text-sm font-medium uppercase tracking-wider text-[#e09225]">
             Challenge Analytics
           </span>
-          <h1 className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight text-[#06182e] break-words">
+          <h1 className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight text-[#06182e] wrap-break-word">
             {data.challenge.title}
           </h1>
           <p className="text-sm text-[#06182e]/50 mt-1">
@@ -511,7 +511,7 @@ export default function ChallengeStatsPage() {
               {displayedParticipants.map((p) => (
                 <div
                   key={`${p.email}-${p.rank}`}
-                  className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto_auto] gap-2 sm:gap-4 px-4 py-3 hover:bg-[#06182e]/[0.02] transition-colors items-center"
+                  className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto_auto] gap-2 sm:gap-4 px-4 py-3 hover:bg-[#06182e]/2 transition-colors items-center"
                 >
                   {/* Rank - mobile shows inline */}
                   <div className="flex items-center gap-3 sm:gap-0">

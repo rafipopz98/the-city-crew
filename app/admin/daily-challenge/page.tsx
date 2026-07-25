@@ -254,7 +254,7 @@ export default function AdminDailyChallengePage() {
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between">
-        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-5 shadow-sm w-full sm:w-auto sm:min-w-[480px]">
+        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-5 shadow-sm w-full sm:w-auto sm:min-w-120">
           <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
             <div className="relative flex-1">
               <Search
