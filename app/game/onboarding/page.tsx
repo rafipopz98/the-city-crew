@@ -292,7 +292,7 @@ export default function OnboardingPage() {
               Here are your 5 players to start your journey
             </motion.p>
 
-            <div className="grid grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-8">
               {starterPlayers.map((player: any, i: number) => (
                 <motion.div
                   key={player._id}

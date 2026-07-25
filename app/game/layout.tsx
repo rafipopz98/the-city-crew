@@ -33,17 +33,6 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(true);
-
-  // Check orientation
-  useEffect(() => {
-    const check = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   // Redirect to onboarding if not set up
   useEffect(() => {
@@ -84,15 +73,6 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-[#0a1628] text-white overflow-hidden">
-      {/* Orientation Warning */}
-      {!isLandscape && (
-        <div className="fixed inset-0 z-9999 bg-[#0a1628] flex flex-col items-center justify-center p-8">
-          <div className="text-6xl mb-6">📱</div>
-          <h2 className="text-xl font-bold text-white mb-2">Rotate Your Device</h2>
-          <p className="text-gray-400 text-center">TCC Manager is designed for landscape mode. Please rotate your device.</p>
-        </div>
-      )}
-
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a1628]/95 backdrop-blur-lg border-b border-white/5">
         <div className="flex items-center justify-between px-4 py-2 h-14">
@@ -159,7 +139,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
             exit={{ opacity: 0, y: -10 }}
             className="fixed top-14 left-0 right-0 z-40 bg-[#0a1628]/98 backdrop-blur-lg border-b border-white/5 md:hidden"
           >
-            <nav className="p-4 grid grid-cols-6 gap-1">
+            <nav className="p-4 grid grid-cols-4 gap-1">
               {[...NAV_ITEMS, HOW_TO_PLAY].map((item) => {
                 const active = isActive(item.href);
                 return (

@@ -180,7 +180,7 @@ export default function CollectionPage() {
           </div>
 
           {/* Filter Pills */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex overflow-x-auto gap-2 pb-1 -mb-1 scrollbar-none">
             {/* Ownership */}
             <div className="flex gap-1 p-1 bg-white/5 rounded-lg">
               {(["all", "owned", "locked"] as const).map((f) => (

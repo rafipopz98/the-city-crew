@@ -110,7 +110,7 @@ export default function ShopPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex overflow-x-auto gap-2 pb-1 -mb-1 scrollbar-none">
           <div className="relative flex-1 min-w-50 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input

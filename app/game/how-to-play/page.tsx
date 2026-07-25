@@ -80,15 +80,19 @@ export default function HowToPlayPage() {
         {/* Game Loop */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
           <h2 className="text-lg font-bold text-white mb-4">The Game Loop</h2>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-4">
             {["Play", "Earn XP", "Earn Coins", "Buy Players", "Build Squad", "Win More"].map((step, i) => (
-              <div key={step} className="flex flex-col items-center gap-2">
+              <div key={step} className="flex flex-col items-center gap-2 min-w-[70px]">
                 <div className="w-10 h-10 rounded-full bg-[#e09225]/10 border border-[#e09225]/30 flex items-center justify-center">
                   <span className="text-[#e09225] font-bold text-sm">{i + 1}</span>
                 </div>
-                <p className="text-[10px] text-gray-400 text-center max-w-16">{step}</p>
-                {i < 5 && <div className="hidden sm:block w-4 h-0.5 bg-white/10" />}
+                <p className="text-[10px] text-gray-400 text-center leading-tight">{step}</p>
               </div>
+            ))}
+          </div>
+          <div className="hidden sm:flex items-center justify-between gap-3 mt-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex-1 h-0.5 bg-white/10" />
             ))}
           </div>
         </div>
