@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, User, Sparkles, ArrowRight, Swords, Shield, Zap } from "lucide-react";
@@ -15,40 +15,8 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [starterPlayers, setStarterPlayers] = useState<any[]>([]);
   const [revealIndex, setRevealIndex] = useState(-1);
-  const [hasExistingUsername, setHasExistingUsername] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-
-  // Check if user already set a username during sign-up
-  useEffect(() => {
-    const checkUsername = async () => {
-      try {
-        const res = await fetch("/api/game/user/onboarding", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.hasUsername && data.username) {
-            setHasExistingUsername(true);
-            setUsername(data.username);
-          }
-        }
-      } catch {
-        // If check fails, just show the username step normally
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-    checkUsername();
-  }, []);
-
   const handleStart = () => {
-    if (hasExistingUsername) {
-      // Skip username step, go straight to claiming squad
-      handleSubmitUsername();
-    } else {
-      setStep("username");
-    }
+    setStep("username");
   };
 
   const handleSubmitUsername = async () => {
@@ -217,7 +185,7 @@ export default function OnboardingPage() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#e09225]/10 border-2 border-[#e09225]/30 flex items-center justify-center">
                 <User className="w-8 h-8 text-[#e09225]" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Choose Your Manager Name</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">Choose Your Username</h2>
               <p className="text-gray-400 text-sm">This will be displayed on leaderboards</p>
             </div>
 
@@ -231,7 +199,7 @@ export default function OnboardingPage() {
                     setError("");
                   }}
                   onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmitUsername()}
-                  placeholder="Enter your manager name..."
+                  placeholder="Enter your username..."
                   maxLength={20}
                   className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#e09225]/50 text-lg"
                   autoFocus

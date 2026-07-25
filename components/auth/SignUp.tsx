@@ -177,13 +177,13 @@ export const SignUpPage = ({
               {/* USERNAME */}
               <div>
                 <label className="text-sm text-[#06182e]">
-                  Manager Name <span className="text-[#06182e]/40">(optional)</span>
+                  Username <span className="text-[#06182e]/40">(optional)</span>
                 </label>
 
                 <GlassInputWrapper>
                   <input
                     value={form.username}
-                    placeholder="Choose your manager name"
+                    placeholder="Choose your username"
                     onChange={(e) =>
                       setForm({ ...form, username: e.target.value })
                     }

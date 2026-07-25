@@ -7,7 +7,7 @@ const STEPS = [
   {
     title: "Get Started",
     items: [
-      "Choose your manager name",
+      "Choose your username",
       "Receive 5 starter players",
       "Build your first 5-a-side squad",
     ],
