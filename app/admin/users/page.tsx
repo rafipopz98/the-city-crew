@@ -123,41 +123,60 @@ export default function AdminUsersPage() {
               {users.map((user) => (
                 <div
                   key={user._id}
-                  className="flex items-center gap-4 p-4 hover:bg-[#f4ebda] transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-4 hover:bg-[#f4ebda] transition-colors"
                 >
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#e09225]/20 to-[#e09225]/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-[#e09225]">
-                      {user.first_name?.[0]}{user.last_name?.[0]}
+                  {/* Avatar + Name row - mobile */}
+                  <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#e09225]/20 to-[#e09225]/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-[#e09225]">
+                        {user.first_name?.[0]}{user.last_name?.[0]}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#06182e] truncate">
+                        {user.first_name} {user.last_name}
+                      </p>
+                      <p className="flex items-center gap-1 text-xs text-[#06182e]/50 truncate sm:hidden">
+                        <Mail size={12} className="shrink-0" />
+                        {user.email}
+                      </p>
+                    </div>
+
+                    {/* Role badge - mobile */}
+                    <span
+                      className={`sm:hidden flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${
+                        user.role === "admin"
+                          ? "bg-[#e09225]/10 text-[#e09225]"
+                          : "bg-[#06182e]/8 text-[#06182e]/60"
+                      }`}
+                    >
+                      <Shield size={12} />
+                      {user.role}
                     </span>
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#06182e] truncate">
-                      {user.first_name} {user.last_name}
-                    </p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="flex items-center gap-1 text-xs text-[#06182e]/50">
-                        <Mail size={12} />
-                        {user.email}
+                  {/* Email + Date - desktop */}
+                  <div className="hidden sm:flex sm:flex-1 sm:items-center sm:gap-3 min-w-0">
+                    <span className="flex items-center gap-1 text-xs text-[#06182e]/50 truncate">
+                      <Mail size={12} className="shrink-0" />
+                      {user.email}
+                    </span>
+                    {user.createdAt && (
+                      <span className="flex items-center gap-1 text-xs text-[#06182e]/40 shrink-0">
+                        <Calendar size={12} />
+                        {new Date(user.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </span>
-                      {user.createdAt && (
-                        <span className="flex items-center gap-1 text-xs text-[#06182e]/40">
-                          <Calendar size={12} />
-                          {new Date(user.createdAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
 
-                  {/* Role */}
+                  {/* Role - desktop */}
                   <span
-                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium ${
+                    className={`hidden sm:flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium shrink-0 ${
                       user.role === "admin"
                         ? "bg-[#e09225]/10 text-[#e09225]"
                         : "bg-[#06182e]/8 text-[#06182e]/60"

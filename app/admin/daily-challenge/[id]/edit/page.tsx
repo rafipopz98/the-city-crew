@@ -106,9 +106,9 @@ export default function EditChallengePage() {
   const canPublish = isDraft && questions.length === 20;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-20">
+    <div className="max-w-5xl mx-auto space-y-8 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
@@ -116,9 +116,15 @@ export default function EditChallengePage() {
           >
             <ArrowLeft size={20} />
           </button>
+          <span className="text-sm font-medium uppercase tracking-wider text-[#e09225]">
+            Challenge Detail
+          </span>
+        </div>
+
+        <div className="mt-2 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[#06182e]">
+              <h1 className="text-4xl font-bold tracking-tight text-[#06182e]">
                 {challenge.title}
               </h1>
               <span
@@ -133,53 +139,53 @@ export default function EditChallengePage() {
                 {isDraft ? "Draft" : isActive ? "Active" : "Completed"}
               </span>
             </div>
-            <p className="text-sm text-[#06182e]/50 mt-1">
+            <p className="mt-2 text-[#06182e]/60">
               {challenge.challengeDate}
             </p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {isActive && (
-            <button
-              onClick={handleComplete}
-              disabled={publishing}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200 transition-all"
+          <div className="flex items-center gap-3">
+            {isActive && (
+              <button
+                onClick={handleComplete}
+                disabled={publishing}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200 hover:-translate-y-0.5 transition-all"
+              >
+                {publishing ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={14} />
+                )}
+                Complete
+              </button>
+            )}
+            {isDraft && canPublish && (
+              <button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 hover:-translate-y-0.5 transition-all shadow-sm hover:shadow-md"
+              >
+                {publishing ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trophy size={14} />
+                )}
+                Publish Challenge
+              </button>
+            )}
+            <Link
+              href={`/admin/daily-challenge/${params.id}/stats`}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#06182e]/5 text-[#06182e]/70 text-sm font-medium hover:bg-[#06182e]/10 hover:-translate-y-0.5 transition-all"
             >
-              {publishing ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <CheckCircle2 size={14} />
-              )}
-              Complete
-            </button>
-          )}
-          {isDraft && canPublish && (
-            <button
-              onClick={handlePublish}
-              disabled={publishing}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 hover:-translate-y-0.5 transition-all shadow-sm hover:shadow-md"
-            >
-              {publishing ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Trophy size={14} />
-              )}
-              Publish Challenge
-            </button>
-          )}
-          <Link
-            href={`/admin/daily-challenge/${params.id}/stats`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#06182e]/5 text-[#06182e]/70 text-sm font-medium hover:bg-[#06182e]/10 hover:-translate-y-0.5 transition-all"
-          >
-            <BarChart3 size={14} />
-            Stats
-          </Link>
+              <BarChart3 size={14} />
+              Stats
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* Questions Overview */}
-      <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-[#06182e]/5 p-6 shadow-sm">
+      <div className="bg-[#ece1cf] rounded-2xl border border-[#06182e]/10 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-[#06182e]">

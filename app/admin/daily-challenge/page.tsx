@@ -6,16 +6,13 @@ import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Trophy,
-  Clock,
   Users,
   CheckCircle2,
   Eye,
   Trash2,
-  AlertTriangle,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -64,12 +61,12 @@ function ChallengeRow({
   const router = useRouter();
 
   return (
-    <div className="group grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-4 border-b border-[#06182e]/5 hover:bg-[#06182e]/2 transition-colors last:border-b-0">
+    <div className="group grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-4 border-b border-[#06182e]/8 hover:bg-[#f4ebda] transition-colors last:border-b-0">
       {/* Title */}
       <div className="min-w-0">
         <Link
           href={`/admin/daily-challenge/${challenge._id}/edit`}
-          className="text-sm font-medium text-[#06182e] hover:text-[#e09225] transition-colors truncate block"
+          className="text-sm font-medium text-[#06182e] hover:text-[#e09225] transition-colors truncate"
         >
           {challenge.title}
         </Link>
@@ -210,65 +207,106 @@ export default function AdminDailyChallengePage() {
     }
   };
 
+  const draftCount = challenges.filter((c) => c.status === "draft").length;
+  const activeCount = challenges.filter((c) => c.status === "active").length;
+  const completedCount = challenges.filter((c) => c.status === "completed").length;
+  const totalParticipants = challenges.reduce(
+    (sum, c) => sum + c.totalParticipants,
+    0,
+  );
+
+  const statsCards = [
+    { label: "Total Challenges", value: pagination.total },
+    { label: "Draft", value: draftCount },
+    { label: "Active", value: activeCount },
+    { label: "Completed", value: completedCount },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#06182e]">
-            Daily Challenges
-          </h1>
-          <p className="text-sm text-[#06182e]/50 mt-1">
-            Create and manage daily football quizzes
-          </p>
+      <div>
+        <span className="text-sm font-medium uppercase tracking-wider text-[#e09225]">
+          Quiz Management
+        </span>
+        <h1 className="mt-2 text-4xl font-bold tracking-tight text-[#06182e]">
+          Daily Challenges
+        </h1>
+        <p className="mt-2 text-[#06182e]/60 max-w-xl">
+          Create and manage daily football quizzes, track participation, and
+          monitor performance.
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-5 shadow-sm">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {statsCards.map((stat) => (
+            <div key={stat.label}>
+              <p className="text-3xl font-bold text-[#06182e]">
+                {stat.value}
+              </p>
+              <p className="mt-1 text-sm text-[#06182e]/55">{stat.label}</p>
+            </div>
+          ))}
         </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between">
+        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-5 shadow-sm w-full sm:w-auto sm:min-w-[480px]">
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+            <div className="relative flex-1">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#06182e]/40"
+              />
+              <input
+                type="text"
+                placeholder="Search challenges..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-12 rounded-xl border border-[#06182e]/10 bg-[#ece1cf] pl-11 pr-4 text-[#06182e] placeholder:text-[#06182e]/30 outline-none transition focus:border-[#e09225]"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-12 rounded-xl border border-[#06182e]/10 bg-[#ece1cf] px-4 text-[#06182e] outline-none transition focus:border-[#e09225]"
+            >
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
         <Link
           href="/admin/daily-challenge/create"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#06182e] text-[#ece1cf] text-sm font-medium hover:bg-[#06182e]/90 hover:-translate-y-0.5 transition-all shadow-sm hover:shadow-md"
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#e09225] hover:bg-[#e09225]/90 text-white px-5 py-3 font-medium transition-all hover:-translate-y-0.5 shrink-0"
         >
-          <Plus size={16} />
+          <Plus size={18} />
           New Challenge
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#06182e]/30"
-          />
-          <input
-            type="text"
-            placeholder="Search challenges..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#06182e]/10 bg-white/50 text-sm text-[#06182e] placeholder:text-[#06182e]/30 focus:outline-none focus:ring-2 focus:ring-[#e09225]/20 focus:border-[#e09225]/30 transition-all"
-          />
-        </div>
-
-        <div className="relative">
-          <Filter
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#06182e]/30 pointer-events-none"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none pl-9 pr-8 py-2.5 rounded-xl border border-[#06182e]/10 bg-white/50 text-sm text-[#06182e] focus:outline-none focus:ring-2 focus:ring-[#e09225]/20 focus:border-[#e09225]/30 transition-all cursor-pointer"
-          >
-            <option value="">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-          </select>
+      {/* Section Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-[#06182e]">All Challenges</h2>
+          <p className="text-sm text-[#06182e]/55 mt-1">
+            {loading
+              ? "Loading..."
+              : `${pagination.total} challenge${pagination.total !== 1 ? "s" : ""}`}
+          </p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-[#06182e]/5 overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] overflow-hidden">
         {/* Header Row */}
-        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#06182e]/10 hover:bg-[#06182e]/2">
+        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#06182e]/10">
           <span className="text-[11px] uppercase tracking-wider text-[#06182e]/40 font-medium">
             Challenge
           </span>
@@ -332,7 +370,7 @@ export default function AdminDailyChallengePage() {
             <button
               onClick={() => fetchChallenges(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              className="p-2 rounded-lg border border-[#06182e]/10 text-[#06182e]/50 hover:text-[#06182e] hover:bg-white/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 rounded-lg border border-[#06182e]/10 text-[#06182e]/50 hover:text-[#06182e] hover:bg-[#f4ebda] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={16} />
             </button>
@@ -346,7 +384,7 @@ export default function AdminDailyChallengePage() {
                 className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
                   p === pagination.page
                     ? "bg-[#06182e] text-white"
-                    : "text-[#06182e]/50 hover:text-[#06182e] hover:bg-white/50"
+                    : "text-[#06182e]/50 hover:text-[#06182e] hover:bg-[#f4ebda]"
                 }`}
               >
                 {p}
@@ -355,7 +393,7 @@ export default function AdminDailyChallengePage() {
             <button
               onClick={() => fetchChallenges(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
-              className="p-2 rounded-lg border border-[#06182e]/10 text-[#06182e]/50 hover:text-[#06182e] hover:bg-white/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 rounded-lg border border-[#06182e]/10 text-[#06182e]/50 hover:text-[#06182e] hover:bg-[#f4ebda] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronRight size={16} />
             </button>

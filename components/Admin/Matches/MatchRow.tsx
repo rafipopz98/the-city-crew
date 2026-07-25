@@ -205,9 +205,9 @@ const MatchRow = ({
         transition-all duration-300 hover:border-[#e09225]
       "
     >
-      {/* Main Row - Same as before */}
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-center">
-        <div className="flex-1">
+      {/* Main Row */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+        <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.3em] text-black/40">
             <span>{match.competition}</span>
             {match.matchday && (
@@ -218,32 +218,32 @@ const MatchRow = ({
             )}
           </div>
 
-          <div className="mt-6 flex items-center gap-4">
-            <div className="flex flex-1 items-center justify-end gap-3">
-              <div className="text-right">
-                <h2 className="para text-lg lg:text-xl uppercase leading-tight">
+          <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 min-w-0">
+              <div className="text-right min-w-0">
+                <h2 className="para text-base sm:text-lg lg:text-xl uppercase leading-tight truncate">
                   {match.homeTeam.name}
                 </h2>
               </div>
               <Image
                 src={match.homeTeam.image}
                 alt={match.homeTeam.name}
-                width={40}
-                height={40}
-                className="shrink-0"
+                width={32}
+                height={32}
+                className="sm:w-10 sm:h-10 shrink-0"
               />
             </div>
 
             <div className="shrink-0">
               <div className="flex flex-col items-center">
-                <div className="flex items-center gap-3">
-                  <span className="para text-3xl lg:text-4xl tabular-nums font-bold">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="para text-2xl sm:text-3xl lg:text-4xl tabular-nums font-bold">
                     {match.homeTeamScore}
                   </span>
-                  <span className="para text-2xl lg:text-3xl text-black/20">
+                  <span className="para text-xl sm:text-2xl lg:text-3xl text-black/20">
                     –
                   </span>
-                  <span className="para text-3xl lg:text-4xl tabular-nums font-bold">
+                  <span className="para text-2xl sm:text-3xl lg:text-4xl tabular-nums font-bold">
                     {match.awayTeamScore}
                   </span>
                 </div>
@@ -256,16 +256,16 @@ const MatchRow = ({
               </div>
             </div>
 
-            <div className="flex flex-1 items-center gap-3">
+            <div className="flex flex-1 items-center gap-2 sm:gap-3 min-w-0">
               <Image
                 src={match.awayTeam.image}
                 alt={match.awayTeam.name}
-                width={40}
-                height={40}
-                className="shrink-0"
+                width={32}
+                height={32}
+                className="sm:w-10 sm:h-10 shrink-0"
               />
-              <div>
-                <h2 className="para text-lg lg:text-xl uppercase leading-tight">
+              <div className="min-w-0">
+                <h2 className="para text-base sm:text-lg lg:text-xl uppercase leading-tight truncate">
                   {match.awayTeam.name}
                 </h2>
               </div>
@@ -335,16 +335,16 @@ const MatchRow = ({
           )}
         </div>
 
-        <div className="flex items-center gap-6 xl:flex-col xl:gap-3">
+        <div className="flex items-center gap-4 lg:flex-col lg:gap-3">
           <button
             onClick={() => onEdit(match)}
             className="group/edit flex items-center gap-2 border-b border-black pb-1 uppercase text-xs transition hover:border-[#e09225] hover:text-[#e09225]"
           >
-            Edit
             <Edit2
               size={14}
               className="transition group-hover/edit:rotate-12"
             />
+            <span className="hidden sm:inline">Edit</span>
           </button>
           <button
             onClick={() => onDelete(match._id)}
@@ -358,7 +358,7 @@ const MatchRow = ({
       {/* Expanded Details */}
       {showDetails && (
         <div className="mt-6 pt-6 border-t border-black/10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <h4 className="text-[10px] uppercase tracking-[0.2em] text-black/40 mb-3 flex items-center gap-2">
                 <Goal size={14} />

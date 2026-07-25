@@ -151,6 +151,25 @@ export async function GET(req: NextRequest) {
       { $sort: { _id: 1 } },
     ]);
 
+    // Fetch participants with their details
+    const participants = await ChallengeAttemptModel.find({
+      challengeId: challenge._id,
+      status: "completed",
+    })
+      .select("userId score completionTimeMs submittedAt")
+      .populate("userId", "first_name last_name email")
+      .sort({ score: -1, completionTimeMs: 1 })
+      .lean();
+
+    const participantsList = participants.map((p: any, index: number) => ({
+      rank: index + 1,
+      name: `${p.userId?.first_name || ""} ${p.userId?.last_name || ""}`.trim() || "Unknown",
+      email: p.userId?.email || "",
+      score: p.score,
+      completionTimeMs: p.completionTimeMs,
+      submittedAt: p.submittedAt,
+    }));
+
     return NextResponse.json({
       challenge: {
         title: challenge.title,
@@ -179,6 +198,7 @@ export async function GET(req: NextRequest) {
       mostMissedQuestions: mostMissed,
       mostCorrectQuestions: mostCorrect,
       dailyCompletionCount,
+      participants: participantsList,
     });
   } catch (error) {
     await logError("/api/admin/daily-challenge/stats", "GET", error);

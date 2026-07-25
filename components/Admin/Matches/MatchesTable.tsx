@@ -17,6 +17,26 @@ type Props = {
 
 const MATCHES_PER_PAGE = 10;
 
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const pages: (number | "...")[] = [];
+  // Always show first page
+  pages.push(1);
+  if (current > 3) pages.push("...");
+  // Pages around current
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  if (current < total - 2) pages.push("...");
+  // Always show last page
+  if (total > 1) pages.push(total);
+  return pages;
+}
+
 const MatchesTable = ({
   search,
   season,
@@ -182,44 +202,58 @@ const MatchesTable = ({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-12 flex items-center justify-center gap-4">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border border-black/20 px-4 py-2 uppercase text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:border-black hover:bg-black hover:text-white transition"
-          >
-            Previous
-          </button>
+        <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4">
+          <div className="flex items-center justify-center gap-2 order-2 sm:order-1">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="border border-black/20 px-3 sm:px-4 py-2 uppercase text-xs sm:text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:border-black hover:bg-black hover:text-white transition"
+            >
+              Previous
+            </button>
 
-          <div className="flex items-center gap-2">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`
-                  w-10 h-10 flex items-center justify-center border text-sm
-                  transition-all duration-300
-                  ${
-                    currentPage === page
-                      ? "border-[#e09225] bg-[#e09225] text-black"
-                      : "border-black/20 hover:border-black hover:bg-black hover:text-white"
-                  }
-                `}
-              >
-                {page}
-              </button>
-            ))}
+            {/* Page numbers - show limited on mobile */}
+            <div className="hidden sm:flex items-center gap-2">
+              {getPageNumbers(currentPage, totalPages).map((page, i) =>
+                page === "..." ? (
+                  <span key={`ellipsis-${i}`} className="w-8 h-10 flex items-center justify-center text-sm text-black/30">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page as number)}
+                    className={`
+                      w-8 h-10 flex items-center justify-center border text-sm
+                      transition-all duration-300
+                      ${
+                        currentPage === page
+                          ? "border-[#e09225] bg-[#e09225] text-black"
+                          : "border-black/20 hover:border-black hover:bg-black hover:text-white"
+                      }
+                    `}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* Mobile: just show current/total */}
+            <span className="sm:hidden text-xs text-black/50 px-2 whitespace-nowrap">
+              {currentPage} / {totalPages}
+            </span>
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="border border-black/20 px-3 sm:px-4 py-2 uppercase text-xs sm:text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:border-black hover:bg-black hover:text-white transition"
+            >
+              Next
+            </button>
           </div>
 
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border border-black/20 px-4 py-2 uppercase text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:border-black hover:bg-black hover:text-white transition"
-          >
-            Next
-          </button>
-
-          <p className="ml-4 text-sm text-black/50">
+          <p className="hidden sm:block text-sm text-black/50 order-1 sm:order-2 ml-0 sm:ml-4">
             Page {currentPage} of {totalPages}
           </p>
         </div>

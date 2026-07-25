@@ -17,12 +17,13 @@ const MatchesHeader = ({ onAddMatch }: MatchesHeaderProps) => {
         <h1
           className="
               para
-              text-[3.5rem]
+              text-4xl
               leading-[0.9]
               uppercase
               text-black
 
-              md:text-[5rem]
+              md:text-[3.5rem]
+              lg:text-[5rem]
             "
         >
           Matches
@@ -33,8 +34,11 @@ const MatchesHeader = ({ onAddMatch }: MatchesHeaderProps) => {
               mt-5
               max-w-2xl
 
-              text-[15px]
-              leading-8
+              text-sm
+              leading-7
+
+              md:text-[15px]
+              md:leading-8
 
               text-black/60
             "

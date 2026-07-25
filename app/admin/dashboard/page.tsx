@@ -57,6 +57,7 @@ interface RecentActivity {
   matches: any[];
   players: any[];
   polls: any[];
+  dailyChallenges?: any[];
 }
 
 export default function AdminDashboardPage() {
@@ -64,6 +65,8 @@ export default function AdminDashboardPage() {
   const [recent, setRecent] = useState<RecentActivity | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [dailyChallenges, setDailyChallenges] = useState<any[]>([]);
+  const [dcLoading, setDcLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchStats = useCallback(async () => {
@@ -98,10 +101,27 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  const fetchDailyChallenges = useCallback(async () => {
+    try {
+      setDcLoading(true);
+      const res = await fetch("/api/admin/daily-challenge?limit=5", {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDailyChallenges(data.challenges || []);
+      }
+    } catch (err) {
+      console.error("Failed to load daily challenges:", err);
+    } finally {
+      setDcLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     // Fetch both in parallel
-    Promise.all([fetchStats(), fetchRecent()]);
-  }, [fetchStats, fetchRecent]);
+    Promise.all([fetchStats(), fetchRecent(), fetchDailyChallenges()]);
+  }, [fetchStats, fetchRecent, fetchDailyChallenges]);
 
   if (!recent) {
     return (
@@ -343,48 +363,106 @@ export default function AdminDashboardPage() {
             ))}
       </div>
 
+      {/* ── Daily Challenges ── */}
+      <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-4 sm:p-6 overflow-hidden">
+        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+          <h2 className="text-base sm:text-lg font-bold text-[#06182e] flex items-center gap-2 min-w-0">
+            <BarChart3 size={18} className="text-[#e09225] shrink-0" />
+            <span className="truncate">Daily Challenges</span>
+          </h2>
+          <Link
+            href="/admin/daily-challenge"
+            className="text-xs sm:text-sm font-medium text-[#e09225] hover:underline shrink-0"
+          >
+            View All
+          </Link>
+        </div>
+
+        <div className="space-y-3 sm:space-y-4">
+          {dcLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="animate-pulse p-2.5 sm:p-3">
+                <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-[#06182e]/10 rounded w-1/4" />
+              </div>
+            ))
+          ) : dailyChallenges.length > 0 ? (
+            dailyChallenges.map((dc: any) => (
+              <div
+                key={dc._id}
+                className="flex items-start gap-2 p-2.5 sm:p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#06182e] truncate">
+                    {dc.title}
+                  </p>
+                  <p className="text-xs text-[#06182e]/50 mt-0.5 truncate">
+                    {dc.challengeDate} • {dc.totalParticipants || 0} participant{dc.totalParticipants !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 text-[10px] sm:text-xs px-2 py-1 rounded-full font-medium ${
+                    dc.status === "active"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : dc.status === "draft"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {dc.status}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center justify-center py-6 sm:py-8">
+              <Link
+                href="/admin/daily-challenge/create"
+                className="inline-flex items-center gap-2 text-sm text-[#e09225] hover:underline"
+              >
+                <Plus size={14} />
+                Create your first challenge
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Recent Activity */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Blogs */}
-        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-[#06182e] flex items-center gap-2">
-              <FileText size={20} className="text-[#e09225]" />
-              Recent Blogs
+        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-4 sm:p-6 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-bold text-[#06182e] flex items-center gap-2 min-w-0">
+              <FileText size={18} className="text-[#e09225] shrink-0" />
+              <span className="truncate">Recent Blogs</span>
             </h2>
             <Link
               href="/admin/blogs"
-              className="text-sm font-medium text-[#e09225] hover:underline"
+              className="text-xs sm:text-sm font-medium text-[#e09225] hover:underline shrink-0"
             >
               View All
             </Link>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse flex items-center justify-between p-3"
-                >
-                  <div className="flex-1">
-                    <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-[#06182e]/10 rounded w-1/4" />
-                  </div>
-                  <div className="h-6 bg-[#06182e]/10 rounded w-16" />
+                <div key={i} className="animate-pulse p-2.5 sm:p-3">
+                  <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-[#06182e]/10 rounded w-1/4" />
                 </div>
               ))
             ) : recent?.blogs?.length > 0 ? (
               recent.blogs.map((blog) => (
                 <div
                   key={blog._id}
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
+                  className="flex items-start gap-2 p-2.5 sm:p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#06182e] truncate">
                       {blog.title}
                     </p>
-                    <p className="text-xs text-[#06182e]/50 mt-1">
+                    <p className="text-xs text-[#06182e]/50 mt-0.5 truncate">
                       {new Date(blog.createdAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -393,7 +471,7 @@ export default function AdminDashboardPage() {
                     </p>
                   </div>
                   <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    className={`shrink-0 text-[10px] sm:text-xs px-2 py-1 rounded-full font-medium ${
                       blog.status === "published"
                         ? "bg-green-100 text-green-700"
                         : blog.status === "draft"
@@ -406,7 +484,7 @@ export default function AdminDashboardPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#06182e]/50 text-center py-8">
+              <p className="text-sm text-[#06182e]/50 text-center py-6 sm:py-8">
                 No blogs yet
               </p>
             )}
@@ -414,54 +492,48 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Matches */}
-        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-[#06182e] flex items-center gap-2">
-              <Trophy size={20} className="text-[#e09225]" />
-              Recent Matches
+        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-4 sm:p-6 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-bold text-[#06182e] flex items-center gap-2 min-w-0">
+              <Trophy size={18} className="text-[#e09225] shrink-0" />
+              <span className="truncate">Recent Matches</span>
             </h2>
             <Link
               href="/admin/matches"
-              className="text-sm font-medium text-[#e09225] hover:underline"
+              className="text-xs sm:text-sm font-medium text-[#e09225] hover:underline shrink-0"
             >
               View All
             </Link>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse flex items-center justify-between p-3"
-                >
-                  <div className="flex-1">
-                    <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-[#06182e]/10 rounded w-1/2" />
-                  </div>
-                  <div className="h-6 bg-[#06182e]/10 rounded w-16" />
+                <div key={i} className="animate-pulse p-2.5 sm:p-3">
+                  <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-[#06182e]/10 rounded w-1/2" />
                 </div>
               ))
             ) : recent?.matches?.length > 0 ? (
               recent.matches.map((match) => (
                 <div
                   key={match._id}
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
+                  className="flex items-start gap-2 p-2.5 sm:p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#06182e] truncate">
                       {match.homeTeam} vs {match.awayTeam}
                     </p>
-                    <p className="text-xs text-[#06182e]/50 mt-1">
-                      {match.competition} •{" "}
-                      {new Date(match.matchDate).toLocaleDateString("en-US", {
+                    <p className="text-xs text-[#06182e]/50 mt-0.5 truncate">
+                      {match.competition}
+                      {match.matchDate && ` • ${new Date(match.matchDate).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
-                      })}
+                      })}`}
                     </p>
                   </div>
                   <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    className={`shrink-0 text-[10px] sm:text-xs px-2 py-1 rounded-full font-medium ${
                       match.status === "finished"
                         ? "bg-blue-100 text-blue-700"
                         : match.status === "live"
@@ -476,7 +548,7 @@ export default function AdminDashboardPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#06182e]/50 text-center py-8">
+              <p className="text-sm text-[#06182e]/50 text-center py-6 sm:py-8">
                 No matches yet
               </p>
             )}
@@ -484,50 +556,44 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Players */}
-        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-[#06182e] flex items-center gap-2">
-              <Users size={20} className="text-[#e09225]" />
-              Recent Players
+        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-4 sm:p-6 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-bold text-[#06182e] flex items-center gap-2 min-w-0">
+              <Users size={18} className="text-[#e09225] shrink-0" />
+              <span className="truncate">Recent Players</span>
             </h2>
             <Link
               href="/admin/players"
-              className="text-sm font-medium text-[#e09225] hover:underline"
+              className="text-xs sm:text-sm font-medium text-[#e09225] hover:underline shrink-0"
             >
               View All
             </Link>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse flex items-center justify-between p-3"
-                >
-                  <div className="flex-1">
-                    <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-[#06182e]/10 rounded w-1/3" />
-                  </div>
-                  <div className="h-4 bg-[#06182e]/10 rounded w-12" />
+                <div key={i} className="animate-pulse p-2.5 sm:p-3">
+                  <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-[#06182e]/10 rounded w-1/3" />
                 </div>
               ))
             ) : recent?.players?.length > 0 ? (
               recent.players.map((player) => (
                 <div
                   key={player._id}
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
+                  className="flex items-start gap-2 p-2.5 sm:p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#06182e] truncate">
                       {player.name}
                     </p>
-                    <p className="text-xs text-[#06182e]/50 mt-1">
+                    <p className="text-xs text-[#06182e]/50 mt-0.5 truncate">
                       {player.position}
                       {player.number && ` • #${player.number}`}
                     </p>
                   </div>
-                  <span className="text-xs text-[#06182e]/50">
+                  <span className="shrink-0 text-[10px] sm:text-xs text-[#06182e]/50 whitespace-nowrap">
                     {new Date(player.createdAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -536,7 +602,7 @@ export default function AdminDashboardPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#06182e]/50 text-center py-8">
+              <p className="text-sm text-[#06182e]/50 text-center py-6 sm:py-8">
                 No players yet
               </p>
             )}
@@ -544,50 +610,44 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Polls */}
-        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-[#06182e] flex items-center gap-2">
-              <BarChart3 size={20} className="text-[#e09225]" />
-              Recent Polls
+        <div className="rounded-2xl border border-[#06182e]/10 bg-[#ece1cf] p-4 sm:p-6 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-bold text-[#06182e] flex items-center gap-2 min-w-0">
+              <BarChart3 size={18} className="text-[#e09225] shrink-0" />
+              <span className="truncate">Recent Polls</span>
             </h2>
             <Link
               href="/admin/polls"
-              className="text-sm font-medium text-[#e09225] hover:underline"
+              className="text-xs sm:text-sm font-medium text-[#e09225] hover:underline shrink-0"
             >
               View All
             </Link>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse flex items-center justify-between p-3"
-                >
-                  <div className="flex-1">
-                    <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-[#06182e]/10 rounded w-1/4" />
-                  </div>
-                  <div className="h-6 bg-[#06182e]/10 rounded w-16" />
+                <div key={i} className="animate-pulse p-2.5 sm:p-3">
+                  <div className="h-4 bg-[#06182e]/10 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-[#06182e]/10 rounded w-1/4" />
                 </div>
               ))
             ) : recent?.polls?.length > 0 ? (
               recent.polls.map((poll) => (
                 <div
                   key={poll._id}
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
+                  className="flex items-start gap-2 p-2.5 sm:p-3 rounded-xl hover:bg-[#f4ebda] transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#06182e] truncate">
                       {poll.title}
                     </p>
-                    <p className="text-xs text-[#06182e]/50 mt-1">
+                    <p className="text-xs text-[#06182e]/50 mt-0.5 truncate">
                       {poll.total_votes} vote{poll.total_votes !== 1 ? "s" : ""}
                     </p>
                   </div>
                   <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    className={`shrink-0 text-[10px] sm:text-xs px-2 py-1 rounded-full font-medium ${
                       poll.is_active
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-700"
@@ -598,7 +658,7 @@ export default function AdminDashboardPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#06182e]/50 text-center py-8">
+              <p className="text-sm text-[#06182e]/50 text-center py-6 sm:py-8">
                 No polls yet
               </p>
             )}

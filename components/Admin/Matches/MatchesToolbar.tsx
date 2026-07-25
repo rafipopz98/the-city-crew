@@ -52,15 +52,15 @@ const MatchesToolbar = ({
         flex-col
         gap-5
 
-        xl:flex-row
-        xl:items-center
+        lg:flex-row
+        lg:items-center
       "
       >
         {/* Search */}
 
         <div className="relative flex-1">
           <Search
-            size={18}
+            size={16}
             className="
             absolute
             left-0
@@ -86,7 +86,7 @@ const MatchesToolbar = ({
             pb-3
             pl-8
 
-            text-[17px]
+            text-sm
 
             outline-none
 
@@ -106,7 +106,7 @@ const MatchesToolbar = ({
           className="
           flex
           flex-wrap
-          gap-6
+          gap-4 sm:gap-6
         "
         >
           <select
@@ -120,7 +120,7 @@ const MatchesToolbar = ({
 
             pb-3
 
-            text-[15px]
+            text-sm
             uppercase
 
             outline-none
@@ -153,7 +153,7 @@ const MatchesToolbar = ({
 
             pb-3
 
-            text-[15px]
+            text-sm
             uppercase
 
             outline-none
@@ -184,7 +184,7 @@ const MatchesToolbar = ({
 
             pb-3
 
-            text-[15px]
+            text-sm
             uppercase
 
             outline-none
