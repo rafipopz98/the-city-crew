@@ -3,7 +3,12 @@
  * Simulates a match between two real players based on their squad ratings.
  */
 
-import type { MatchSocketEvent, MatchSocketResult } from "./types";
+interface MatchEvent {
+  minute: number;
+  type: "attack" | "chance" | "goal" | "save" | "half_time" | "full_time" | "possession";
+  description: string;
+  actorName: string;
+}
 
 function randomBetween(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -32,7 +37,7 @@ interface PvPResult {
   awayShots: number;
   homeShotsOnTarget: number;
   awayShotsOnTarget: number;
-  events: MatchSocketEvent[];
+  events: MatchEvent[];
   playerOfTheMatch: string;
   winner: "home" | "away" | "draw";
   homeRewards: { xp: number; coins: number };
@@ -45,7 +50,7 @@ export function simulatePvPMatch(
   homePlayerNames?: string[],
   awayPlayerNames?: string[],
 ): PvPResult {
-  const events: MatchSocketEvent[] = [];
+  const events: MatchEvent[] = [];
   let homeScore = 0, awayScore = 0;
   let homeShots = 0, awayShots = 0;
   let homeShotsOnTarget = 0, awayShotsOnTarget = 0;

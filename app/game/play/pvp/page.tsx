@@ -16,12 +16,35 @@ import {
   User,
   Home,
   RefreshCw,
-  Star,
   AlertTriangle,
   ArrowLeft,
 } from "lucide-react";
 import { useSocket } from "@/lib/game/socket/client";
-import type { MatchSocketEvent, MatchSocketResult } from "@/lib/game/socket/types";
+import type { ServerMessage } from "@/lib/game/socket/protocol";
+
+interface MatchSocketEvent {
+  minute: number;
+  type: "attack" | "chance" | "goal" | "save" | "half_time" | "full_time" | "possession";
+  description: string;
+  actorName: string;
+}
+
+interface MatchSocketResult {
+  matchId: string;
+  homeScore: number;
+  awayScore: number;
+  homePossession: number;
+  awayPossession: number;
+  homeShots: number;
+  awayShots: number;
+  homeShotsOnTarget: number;
+  awayShotsOnTarget: number;
+  events: MatchSocketEvent[];
+  playerOfTheMatch: string;
+  winner: "home" | "away" | "draw";
+  homeRewards: { xp: number; coins: number };
+  awayRewards: { xp: number; coins: number };
+}
 
 type PvPState = "loading" | "no_squad" | "connecting" | "queue" | "found" | "countdown" | "playing" | "result" | "error";
 
@@ -125,55 +148,60 @@ export default function PvPPage() {
 
   // Register socket listeners
   useEffect(() => {
-    registerListeners({
-      "matchmaking:waiting": (data: { position: number }) => {
-        setQueuePosition(data.position);
-      },
+    const cleanup = registerListeners((message: ServerMessage) => {
+      switch (message.type) {
+        case "matchmaking:waiting":
+          setQueuePosition(message.payload.position);
+          break;
 
-      "matchmaking:found": (data) => {
-        setMatchId(data.matchId);
-        setOpponent(data.opponent);
-        setPlayerSide(data.playerSide);
-        setPvpState("found");
-      },
+        case "matchmaking:found":
+          setMatchId(message.payload.matchId);
+          setOpponent(message.payload.opponent);
+          setPlayerSide(message.payload.playerSide);
+          setPvpState("found");
+          break;
 
-      "match:countdown": (data: { seconds: number }) => {
-        setCountdownNum(data.seconds);
-        if (data.seconds >= 0) {
-          setPvpState("countdown");
-        }
-      },
-
-      "match:event": (event: MatchSocketEvent) => {
-        setEvents((prev) => {
-          const updated = [...prev, event];
-          if (event.type === "goal") {
-            const homeGoals = updated.filter(
-              (e) => e.type === "goal" && e.actorName === "home",
-            ).length;
-            const awayGoals = updated.filter(
-              (e) => e.type === "goal" && e.actorName === "away",
-            ).length;
-            setMatchScore({ home: homeGoals, away: awayGoals });
+        case "match:countdown":
+          setCountdownNum(message.payload.seconds);
+          if (message.payload.seconds >= 0) {
+            setPvpState("countdown");
           }
-          return updated;
-        });
-        setPvpState("playing");
-      },
+          break;
 
-      "match:end": (result: MatchSocketResult) => {
-        setMatchResult(result);
-        setPvpState("result");
-        // Save rewards to backend
-        savePvPRewards(result);
-      },
+        case "match:event": {
+          const event = message.payload;
+          setEvents((prev) => {
+            const updated = [...prev, event];
+            if (event.type === "goal") {
+              const homeGoals = updated.filter(
+                (e) => e.type === "goal" && e.actorName === "home",
+              ).length;
+              const awayGoals = updated.filter(
+                (e) => e.type === "goal" && e.actorName === "away",
+              ).length;
+              setMatchScore({ home: homeGoals, away: awayGoals });
+            }
+            return updated;
+          });
+          setPvpState("playing");
+          break;
+        }
 
-      "match:error": (data: { message: string }) => {
-        setPvpState("error");
-        setErrorMsg(data.message || "Match error occurred");
-        hasJoinedRef.current = false;
-      },
+        case "match:end":
+          setMatchResult(message.payload);
+          setPvpState("result");
+          savePvPRewards(message.payload);
+          break;
+
+        case "match:error":
+          setPvpState("error");
+          setErrorMsg(message.payload.message || "Match error occurred");
+          hasJoinedRef.current = false;
+          break;
+      }
     });
+
+    return cleanup;
   }, [registerListeners, playerSide, opponent]);
 
   // Scroll to latest event
@@ -506,22 +534,14 @@ export default function PvPPage() {
               </div>
               <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
                 <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Match Stats</h3>
-                <StatRow label="Possession" left={playerSide === "home" ? matchResult.homePossession : matchResult.awayPossession}
+                <StatRow label="Possession" showPercent left={playerSide === "home" ? matchResult.homePossession : matchResult.awayPossession}
                   right={playerSide === "home" ? matchResult.awayPossession : matchResult.homePossession} />
                 <StatRow label="Shots" left={playerSide === "home" ? matchResult.homeShots : matchResult.awayShots}
                   right={playerSide === "home" ? matchResult.awayShots : matchResult.homeShots} />
                 <StatRow label="Shots on Target" left={playerSide === "home" ? matchResult.homeShotsOnTarget : matchResult.awayShotsOnTarget}
                   right={playerSide === "home" ? matchResult.awayShotsOnTarget : matchResult.homeShotsOnTarget} />
               </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-amber-500/20">
-                <div className="flex items-center gap-3">
-                  <Star className="w-5 h-5 text-amber-400" />
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider">Player of the Match</p>
-                    <p className="text-white font-bold">{matchResult.playerOfTheMatch}</p>
-                  </div>
-                </div>
-              </div>
+
               <div className="bg-linear-to-r from-[#e09225]/20 to-[#e09225]/5 rounded-xl p-6 border border-[#e09225]/20">
                 <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Your Rewards</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -552,13 +572,15 @@ export default function PvPPage() {
   );
 }
 
-function StatRow({ label, left, right }: { label: string; left: number; right: number }) {
+function StatRow({ label, left, right, showPercent }: { label: string; left: number; right: number; showPercent?: boolean }) {
   const total = left + right;
   const leftPercent = total > 0 ? (left / total) * 100 : 50;
   return (
     <div>
       <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-        <span className="font-bold text-white">{left}%</span><span>{label}</span><span className="font-bold text-white">{right}%</span>
+        <span className="font-bold text-white">{left}{showPercent ? '%' : ''}</span>
+        <span>{label}</span>
+        <span className="font-bold text-white">{right}{showPercent ? '%' : ''}</span>
       </div>
       <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden flex">
         <div className="h-full bg-green-500 rounded-l-full" style={{ width: `${leftPercent}%` }} />

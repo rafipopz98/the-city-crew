@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, Trophy, Star, Clock, Home, RefreshCw, Zap, Target, Shield } from "lucide-react";
+import { Swords, Trophy, Clock, Home, RefreshCw, Zap } from "lucide-react";
 
 interface MatchEvent {
   minute: number;
@@ -302,21 +302,12 @@ export default function MatchSimulationPage() {
             {/* Stats */}
             <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
               <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Match Stats</h3>
-              <StatRow label="Possession" left={matchData.userPossession} right={matchData.opponentPossession} />
+              <StatRow label="Possession" left={matchData.userPossession} right={matchData.opponentPossession} showPercent />
               <StatRow label="Shots" left={matchData.userShots} right={matchData.opponentShots} />
               <StatRow label="Shots on Target" left={matchData.userShotsOnTarget} right={matchData.opponentShotsOnTarget} />
             </div>
 
-            {/* POTM */}
-            <div className="bg-white/5 rounded-xl p-4 border border-amber-500/20">
-              <div className="flex items-center gap-3">
-                <Star className="w-5 h-5 text-amber-400" />
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Player of the Match</p>
-                  <p className="text-white font-bold">{matchData.playerOfTheMatch.shortName}</p>
-                </div>
-              </div>
-            </div>                {/* Rewards */}
+            {/* Rewards */}
             <div className="bg-linear-to-r from-[#e09225]/20 to-[#e09225]/5 rounded-xl p-6 border border-[#e09225]/20">
               <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Rewards Saved ✓</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -348,16 +339,16 @@ export default function MatchSimulationPage() {
   );
 }
 
-function StatRow({ label, left, right }: { label: string; left: number; right: number }) {
+function StatRow({ label, left, right, showPercent }: { label: string; left: number; right: number; showPercent?: boolean }) {
   const total = left + right;
   const leftPercent = total > 0 ? (left / total) * 100 : 50;
 
   return (
     <div>
       <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-        <span className="font-bold text-white">{left}%</span>
+        <span className="font-bold text-white">{left}{showPercent ? '%' : ''}</span>
         <span>{label}</span>
-        <span className="font-bold text-white">{right}%</span>
+        <span className="font-bold text-white">{right}{showPercent ? '%' : ''}</span>
       </div>
       <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden flex">
         <div className="h-full bg-green-500 rounded-l-full" style={{ width: `${leftPercent}%` }} />
