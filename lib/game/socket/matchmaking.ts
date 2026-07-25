@@ -116,13 +116,28 @@ export const matchmaking = {
       if (opponentId) {
         // Get opponent info from Redis to populate username/rating
         const info = await getPlayerInfo(opponentId);
-        // Handle both JSON and CSV formats (stale data without JSON.stringify)
+        // Handle array (Upstash REST auto-parses JSON), JSON string, or CSV string
         let parsedSquadPlayers: string[] | undefined;
-        if (info?.squadPlayers) {
+        const raw = (info as any)?.squadPlayers;
+        if (Array.isArray(raw)) {
+          parsedSquadPlayers = raw;
+        } else if (typeof raw === "string") {
           try {
-            parsedSquadPlayers = JSON.parse(info.squadPlayers);
+            parsedSquadPlayers = JSON.parse(raw);
           } catch {
-            parsedSquadPlayers = info.squadPlayers.split(",").map((s) => s.trim());
+            parsedSquadPlayers = raw.split(",").map((s: string) => s.trim());
+          }
+        }
+        // Handle positions similarly
+        let parsedSquadPositions: string[] | undefined;
+        const rawPos = (info as any)?.squadPlayerPositions;
+        if (Array.isArray(rawPos)) {
+          parsedSquadPositions = rawPos;
+        } else if (typeof rawPos === "string") {
+          try {
+            parsedSquadPositions = JSON.parse(rawPos);
+          } catch {
+            // ignore — positions are not critical
           }
         }
         return {
@@ -132,6 +147,7 @@ export const matchmaking = {
           squadRating: parseInt(info?.squadRating || "0", 10),
           joinedAt: Date.now(),
           squadPlayerNames: parsedSquadPlayers,
+          squadPlayerPositions: parsedSquadPositions,
         };
       }
       return null;
@@ -151,6 +167,7 @@ export const matchmaking = {
         username: entry.username,
         squadRating: String(entry.squadRating),
         squadPlayers: JSON.stringify(entry.squadPlayerNames || []),
+        squadPlayerPositions: JSON.stringify(entry.squadPlayerPositions || []),
         instanceId: currentInstanceId,
       });
     } else {
@@ -183,7 +200,6 @@ export const matchmaking = {
     if (pollTimer) return;
     currentInstanceId = instanceId;
     pollTimer = setInterval(pollPendingMatches, POLL_INTERVAL_MS);
-    console.log(`[matchmaking] Polling started for instance ${instanceId.slice(0, 8)}...`);
   },
 
   /** Stop polling */
@@ -193,7 +209,6 @@ export const matchmaking = {
       pollTimer = null;
     }
     currentInstanceId = "";
-    console.log("[matchmaking] Polling stopped");
   },
 
   isPolling(): boolean {

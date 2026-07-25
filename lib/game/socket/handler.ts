@@ -11,7 +11,7 @@ import type { WebSocket } from "ws";
 import { hub } from "./hub";
 import { matchmaking } from "./matchmaking";
 import { simulatePvPMatch } from "./matchEngine";
-import { getRedis, getPlayerInfo } from "./redis";
+import { getPlayerInfo } from "./redis";
 import type {
   ClientMessage,
   ServerMessage,
@@ -19,6 +19,28 @@ import type {
   MatchEndPayload,
   MatchEventPayload,
 } from "./protocol";
+
+// ─── Duplicate Join Prevention ─────────────────────────────────────────────
+// React Strict Mode double-mounts components, causing TWO matchmaking:join
+// messages for the same user within milliseconds. This Set tracks users who
+// recently joined and skips the second processing.
+const recentlyJoined = new Set<string>();
+
+/** Clear the duplicate-join flag for a user (called when WebSocket disconnects) */
+export function clearRecentlyJoined(userId: string): void {
+  recentlyJoined.delete(userId);
+}
+
+// ─── User-Targeted Broadcast ───────────────────────────────────────────────
+// Always sends to the user's latest WebSocket from the hub. If a user
+// reconnects mid-match (e.g. WebSocket replaced by Strict Mode remount),
+// match events still reach them because we look up the current ws every time.
+function sendToUser(userId: string, message: ServerMessage): void {
+  const conn = hub.getConnection(userId);
+  if (conn) {
+    send(conn.ws, message);
+  }
+}
 
 export async function handleMessage(ws: WebSocket, message: ClientMessage): Promise<void> {
   switch (message.type) {
@@ -35,12 +57,13 @@ export async function handleMessage(ws: WebSocket, message: ClientMessage): Prom
 
 async function handleJoin(
   ws: WebSocket,
-  payload: { userId: string; squadRating: number; username: string; squadPlayers?: string[] },
+  payload: { userId: string; squadRating: number; username: string; squadPlayers?: string[]; squadPlayerPositions?: string[] },
   ackId?: string,
 ): Promise<void> {
-  const { userId, squadRating, username, squadPlayers } = payload;
+  const { userId, squadRating, username, squadPlayers, squadPlayerPositions } = payload;
 
   if (squadRating <= 0) {
+    console.warn(`[PvP-Server] Invalid squad rating for ${username}`);
     send(ws, {
       type: "match:ack",
       id: ackId || "",
@@ -49,10 +72,24 @@ async function handleJoin(
     return;
   }
 
+  // ── Prevent duplicate joins from React Strict Mode ───────────────────
+  if (recentlyJoined.has(userId)) {
+    hub.register(ws, userId, username);
+    send(ws, {
+      type: "match:ack",
+      id: ackId || "",
+      payload: { success: true },
+    });
+    return;
+  }
+  recentlyJoined.add(userId);
+  setTimeout(() => recentlyJoined.delete(userId), 5000);
+
   // Register the connection
   hub.register(ws, userId, username);
 
-  // Remove from queue if already there
+  // Remove stale queue entry (findMatchAndClaim only removes the opponent,
+  // so we need to clean up our own stale entry separately)
   await matchmaking.remove(userId);
 
   const entry: QueueEntry = {
@@ -62,6 +99,7 @@ async function handleJoin(
     squadRating,
     joinedAt: Date.now(),
     squadPlayerNames: squadPlayers,
+    squadPlayerPositions,
   };
 
   // Try to find a match in Redis (or in-memory fallback)
@@ -74,7 +112,7 @@ async function handleJoin(
 
     if (isSameInstance) {
       // ── Both players on this instance — run match directly ─────────────
-      await runLocalMatch(ws, opponentConn!.ws, entry, opponent, ackId);
+      await runLocalMatch(userId, opponent.userId, entry, opponent, ackId);
     } else {
       // ── Opponent is on another instance — remote match ──────────────────
       // We are the host instance. Store match info + run sim, then notify remote.
@@ -105,6 +143,8 @@ async function handleJoin(
       await matchmaking.storeMatchInfo(matchId, userId, opponent.userId);
       if (opponentInfo?.instanceId) {
         await matchmaking.notifyRemoteInstance(opponentInfo.instanceId, matchId);
+      } else {
+        console.warn("[PvP-Server] Opponent has no instanceId — cannot notify");
       }
 
       // Start countdown for local player
@@ -118,22 +158,21 @@ async function handleJoin(
           void runMatchAndStore(ws, matchId, entry, opponent, "home");
         }
       }, 1000);
+    }    } else {
+      // ── No match found — add to queue ─────────────────────────────────────
+      await matchmaking.add(entry);
+
+      send(ws, {
+        type: "match:ack",
+        id: ackId || "",
+        payload: { success: true },
+      });
+
+      send(ws, {
+        type: "matchmaking:waiting",
+        payload: { position: 1 },
+      });
     }
-  } else {
-    // ── No match found — add to queue ─────────────────────────────────────
-    await matchmaking.add(entry);
-
-    send(ws, {
-      type: "match:ack",
-      id: ackId || "",
-      payload: { success: true },
-    });
-
-    send(ws, {
-      type: "matchmaking:waiting",
-      payload: { position: 1 },
-    });
-  }
 }
 
 async function handleLeave(ws: WebSocket): Promise<void> {
@@ -147,20 +186,16 @@ async function handleLeave(ws: WebSocket): Promise<void> {
 // ─── Local Match (both players on same instance) ───────────────────────────
 
 async function runLocalMatch(
-  homeWs: WebSocket,
-  awayWs: WebSocket,
+  homeUserId: string,
+  awayUserId: string,
   homePlayer: QueueEntry,
   awayPlayer: QueueEntry,
   ackId?: string,
 ): Promise<void> {
   const matchId = `match_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const roomName = `match:${matchId}`;
 
-  hub.joinRoom(roomName, homeWs);
-  hub.joinRoom(roomName, awayWs);
-
-  // Notify both players
-  hub.send(homeWs, {
+  // Notify both players using latest ws from hub
+  sendToUser(homeUserId, {
     type: "matchmaking:found",
     payload: {
       matchId,
@@ -168,7 +203,7 @@ async function runLocalMatch(
       playerSide: "home",
     },
   });
-  hub.send(awayWs, {
+  sendToUser(awayUserId, {
     type: "matchmaking:found",
     payload: {
       matchId,
@@ -177,22 +212,28 @@ async function runLocalMatch(
     },
   });
 
-  // Send ACK
-  send(homeWs, {
-    type: "match:ack",
-    id: ackId || "",
-    payload: { success: true },
-  });
+  // Send ACK to home player
+  const homeConn = hub.getConnection(homeUserId);
+  if (homeConn) {
+    send(homeConn.ws, {
+      type: "match:ack",
+      id: ackId || "",
+      payload: { success: true },
+    });
+  }
 
-  // Countdown
+  // Countdown — use sendToUser to always get latest WebSocket from hub
   let cd = 3;
-  hub.broadcastToRoom(roomName, { type: "match:countdown", payload: { seconds: 3 } });
+  sendToUser(homeUserId, { type: "match:countdown", payload: { seconds: 3 } });
+  sendToUser(awayUserId, { type: "match:countdown", payload: { seconds: 3 } });
+
   const countdownInterval = setInterval(() => {
     cd--;
-    hub.broadcastToRoom(roomName, { type: "match:countdown", payload: { seconds: cd } });
+    sendToUser(homeUserId, { type: "match:countdown", payload: { seconds: cd } });
+    sendToUser(awayUserId, { type: "match:countdown", payload: { seconds: cd } });
     if (cd < 0) {
       clearInterval(countdownInterval);
-      void runMatch(matchId, roomName, homePlayer, awayPlayer);
+      void runMatch(matchId, homeUserId, awayUserId, homePlayer, awayPlayer);
     }
   }, 1000);
 }
@@ -201,7 +242,8 @@ async function runLocalMatch(
 
 async function runMatch(
   matchId: string,
-  roomName: string,
+  homeUserId: string,
+  awayUserId: string,
   homePlayer: QueueEntry,
   awayPlayer: QueueEntry,
 ): Promise<void> {
@@ -210,20 +252,25 @@ async function runMatch(
     awayPlayer.squadRating,
     homePlayer.squadPlayerNames,
     awayPlayer.squadPlayerNames,
+    homePlayer.squadPlayerPositions,
+    awayPlayer.squadPlayerPositions,
   );
 
-  // Stream events
+  // Stream events — uses sendToUser so it always picks up the latest
+  // WebSocket from the hub (handles reconnects mid-match).
   for (const event of result.events) {
     await delay(1000 + Math.random() * 1000);
-    hub.broadcastToRoom(roomName, {
-      type: "match:event",
+    const msg = {
+      type: "match:event" as const,
       payload: {
         minute: event.minute,
         type: event.type,
         description: event.description,
         actorName: event.actorName,
       },
-    });
+    };
+    sendToUser(homeUserId, msg);
+    sendToUser(awayUserId, msg);
   }
 
   await delay(1000);
@@ -250,17 +297,8 @@ async function runMatch(
     awayRewards: result.awayRewards,
   };
 
-  hub.broadcastToRoom(roomName, { type: "match:end", payload: finalResult });
-
-  // Clean up room after 10 seconds
-  setTimeout(() => {
-    const room = hub.getRoom(roomName);
-    if (room) {
-      for (const ws of room.connections) {
-        hub.leaveRoom(roomName, ws);
-      }
-    }
-  }, 10000);
+  sendToUser(homeUserId, { type: "match:end", payload: finalResult });
+  sendToUser(awayUserId, { type: "match:end", payload: finalResult });
 }
 
 // ─── Remote Match (opponent on different instance) ─────────────────────────
@@ -277,6 +315,8 @@ async function runMatchAndStore(
     awayPlayer.squadRating,
     homePlayer.squadPlayerNames,
     awayPlayer.squadPlayerNames,
+    homePlayer.squadPlayerPositions,
+    awayPlayer.squadPlayerPositions,
   );
 
   // Store full result in Redis for the remote instance

@@ -17,7 +17,7 @@ import { resolve } from "path";
 config({ path: resolve(".env.local") });
 
 import { WebSocketServer, WebSocket } from "ws";
-import { handleMessage, streamRemoteMatch } from "../lib/game/socket/handler";
+import { handleMessage, streamRemoteMatch, clearRecentlyJoined } from "../lib/game/socket/handler";
 import { hub } from "../lib/game/socket/hub";
 import { setOnMatchReady } from "../lib/game/socket/matchmaking";
 import type { ClientMessage } from "../lib/game/socket/protocol";
@@ -34,22 +34,28 @@ const wss = new WebSocketServer({ port: PORT });
 console.log(`\x1b[36m[dev-ws]\x1b[0m WebSocket server running on ws://localhost:${PORT}`);
 
 wss.on("connection", (ws: WebSocket) => {
-  console.log("\x1b[36m[dev-ws]\x1b[0m client connected");
+  console.warn("[PvP-Server] New WebSocket connection (total:", wss.clients.size, ")");
 
   ws.on("message", (data: Buffer) => {
-    let message: ClientMessage;
     try {
-      message = JSON.parse(data.toString());
+      const raw = data.toString();
+      const message: ClientMessage = JSON.parse(raw);
+      handleMessage(ws, message).catch((err) =>
+        console.error("[dev-ws] handler error:", err)
+      );
     } catch {
-      return;
+      // malformed message — ignore
     }
-    handleMessage(ws, message).catch((err) =>
-      console.error("[dev-ws] handler error:", err)
-    );
   });
 
   ws.on("close", () => {
-    console.log("\x1b[36m[dev-ws]\x1b[0m client disconnected");
+    console.warn("[PvP-Server] WebSocket disconnected (remaining:", wss.clients.size - 1, ")");
+
+    // Clear the duplicate-join flag so the next page navigation isn't blocked
+    const conn = hub.getConnectionBySocket(ws);
+    if (conn) {
+      clearRecentlyJoined(conn.userId);
+    }
     hub.unregister(ws);
   });
 

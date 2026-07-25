@@ -18,6 +18,8 @@ export interface MatchmakingJoinPayload {
   squadRating: number;
   username: string;
   squadPlayers?: string[];
+  /** Parallel array of positions: GK/DEF/MID/FWD for each squadPlayer */
+  squadPlayerPositions?: string[];
 }
 
 export interface MatchmakingLeavePayload {}
@@ -93,4 +95,6 @@ export interface QueueEntry {
   squadRating: number;
   joinedAt: number;
   squadPlayerNames?: string[];
+  /** Parallel array of positions: GK/DEF/MID/FWD for each squadPlayer */
+  squadPlayerPositions?: string[];
 }

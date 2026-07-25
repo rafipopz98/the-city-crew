@@ -39,7 +39,6 @@ export function useSocket() {
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
-      console.log("🎮 WebSocket connected");
       setConnected(true);
       reconnectDelayRef.current = 1000;
     };
@@ -72,15 +71,15 @@ export function useSocket() {
     };
 
     ws.onclose = () => {
-      console.log("🎮 WebSocket disconnected");
       setConnected(false);
       wsRef.current = null;
 
       // Reconnect with exponential backoff
       if (!cancelledRef.current) {
+        const delay = reconnectDelayRef.current;
         reconnectTimerRef.current = setTimeout(() => {
           connect();
-        }, reconnectDelayRef.current);
+        }, delay);
         reconnectDelayRef.current = Math.min(reconnectDelayRef.current * 2, 30000);
       }
     };
@@ -134,6 +133,7 @@ export function useSocket() {
       squadRating: number;
       username: string;
       squadPlayers?: string[];
+      squadPlayerPositions?: string[];
     }): Promise<{ success: boolean; message?: string }> => {
       return new Promise((resolve) => {
         joinQueueResolveRef.current = resolve;

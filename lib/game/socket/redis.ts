@@ -48,14 +48,14 @@ export function isRedisAvailable(): boolean {
 /** Add a player to the matchmaking queue (sorted by rating) */
 export async function addToQueue(userId: string, rating: number): Promise<void> {
   const r = getRedis();
-  if (!r) return;
+  if (!r) { console.warn("[Redis] addToQueue: Redis unavailable"); return; }
   await r.zadd("game:queue", { score: rating, member: userId });
 }
 
 /** Remove a player from the queue */
 export async function removeFromQueue(userId: string): Promise<void> {
   const r = getRedis();
-  if (!r) return;
+  if (!r) { console.warn("[Redis] removeFromQueue: Redis unavailable"); return; }
   await r.zrem("game:queue", userId);
 }
 
@@ -65,29 +65,21 @@ export async function removeFromQueue(userId: string): Promise<void> {
  */
 export async function findMatchAndClaim(userId: string, rating: number): Promise<string | null> {
   const r = getRedis();
-  if (!r) return null;
+  if (!r) { console.warn("[Redis] findMatchAndClaim: Redis unavailable"); return null; }
 
   const min = rating - RATING_RANGE;
-  const max = rating + RATING_RANGE;    // Get all queued players within rating range
-    const candidates = await r.zrange("game:queue", min, max, { byScore: true });
+  const max = rating + RATING_RANGE;
+  const candidates = await r.zrange("game:queue", min, max, { byScore: true });
 
   for (const candidateId of candidates) {
     if (candidateId === userId) continue;
 
-    // Try to atomically claim both players (remove from queue)
-    const removed = await r.zrem("game:queue", userId, candidateId as string);
-
-    if (removed === 2) {
-      // Both removed — we claimed this match!
+    const removed = await r.zrem("game:queue", candidateId as string);
+    if (removed >= 1) {
       return candidateId as string;
     }
 
-    // Race condition — someone else claimed one of them.
-    // If we were removed but opponent wasn't, re-add ourselves.
-    if (removed === 1) {
-      await r.zadd("game:queue", { score: rating, member: userId });
-    }
-    // Try next candidate
+    // removed === 0 means another instance already claimed this candidate
   }
 
   return null;

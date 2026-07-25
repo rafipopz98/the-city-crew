@@ -89,7 +89,8 @@ export default function PvPPage() {
         setSquad(sq);
         setPvpState("connecting");
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[PvP] Failed to load profile:", err);
         setPvpState("error");
         setErrorMsg("Failed to load profile");
       });
@@ -97,9 +98,15 @@ export default function PvPPage() {
 
   // Auto-join queue when connected
   useEffect(() => {
-    if (!connected || !gameUser || !squad) return;
-    if (pvpState === "queue" && hasJoinedRef.current) return; // already joined
-    if (pvpState !== "connecting" && pvpState !== "queue") return;
+    if (!connected || !gameUser || !squad) {
+      return;
+    }
+    if (pvpState === "queue" && hasJoinedRef.current) {
+      return;
+    }
+    if (pvpState !== "connecting" && pvpState !== "queue") {
+      return;
+    }
 
     const rating = Math.round(
       squad.players.reduce((sum: number, p: any) => sum + (p.playerId?.overall || 0), 0) /
@@ -107,6 +114,7 @@ export default function PvPPage() {
     );
 
     const playerNames = squad.players.map((p: any) => p.playerId?.short_name || "Player");
+    const playerPositions = squad.players.map((p: any) => p.position || "MID");
 
     hasJoinedRef.current = true;
     setPvpState("queue");
@@ -117,8 +125,9 @@ export default function PvPPage() {
       squadRating: rating,
       username: gameUser.username,
       squadPlayers: playerNames,
+      squadPlayerPositions: playerPositions,
     }).catch((err) => {
-      console.error("Queue join failed:", err);
+      console.error("[PvP] Queue join failed:", err);
       hasJoinedRef.current = false;
       setPvpState("error");
       setErrorMsg("Could not connect to the game server. Make sure the socket server is running.");
@@ -219,6 +228,7 @@ export default function PvPPage() {
           break;
 
         case "match:error":
+          console.error("[PvP] Match error:", message.payload.message);
           setPvpState("error");
           setErrorMsg(message.payload.message || "Match error occurred");
           hasJoinedRef.current = false;
@@ -302,6 +312,21 @@ export default function PvPPage() {
       case "half_time": case "full_time": return <span className="text-xl">⏱️</span>;
       default: return <span className="text-xl">⚡</span>;
     }
+  };
+
+  /** Small badge showing which team this event belongs to */
+  const TeamBadge = ({ actorName }: { actorName: string }) => {
+    if (!actorName) return null;
+    const isMyTeam = actorName === playerSide;
+    return (
+      <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+        isMyTeam
+          ? "bg-green-500/15 text-green-400 border border-green-500/25"
+          : "bg-red-500/15 text-red-400 border border-red-500/25"
+      }`}>
+        {isMyTeam ? "YOU" : "OPP"}
+      </span>
+    );
   };
 
   const getResultEmoji = (winner: string) => {
@@ -514,11 +539,20 @@ export default function PvPPage() {
               <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                 {events.map((event, i) => (
                   <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                    className={`flex items-start gap-3 p-3 rounded-xl ${event.type === "goal" ? "bg-white/5 border border-white/10" : ""}`}
+                    className={`flex items-start gap-3 p-3 rounded-xl ${
+                      event.type === "goal"
+                        ? event.actorName === playerSide
+                          ? "bg-green-500/5 border border-green-500/15"
+                          : "bg-red-500/5 border border-red-500/15"
+                        : ""
+                    }`}
                   >
-                    <span className="text-xs font-bold text-gray-500 w-12 shrink-0">{event.minute}'</span>
+                    <span className="text-xs font-bold text-gray-500 w-10 shrink-0">{event.minute}'</span>
                     <span className="shrink-0">{getEventIcon(event.type)}</span>
-                    <p className="text-sm text-gray-300">{event.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-300 leading-snug">{event.description}</p>
+                    </div>
+                    <TeamBadge actorName={event.actorName} />
                   </motion.div>
                 ))}
                 <div ref={eventsEndRef} />

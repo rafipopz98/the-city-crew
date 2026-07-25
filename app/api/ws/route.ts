@@ -9,7 +9,7 @@
 
 import { experimental_upgradeWebSocket } from "@vercel/functions";
 import type { WebSocketData } from "@vercel/functions";
-import { handleMessage, streamRemoteMatch } from "@/lib/game/socket/handler";
+import { handleMessage, streamRemoteMatch, clearRecentlyJoined } from "@/lib/game/socket/handler";
 import { hub } from "@/lib/game/socket/hub";
 import { setOnMatchReady } from "@/lib/game/socket/matchmaking";
 import type { ClientMessage } from "@/lib/game/socket/protocol";
@@ -25,29 +25,28 @@ export function GET() {
     console.warn("[ws] setOnMatchReady not available — cross-instance PvP won't work");
   }
   return experimental_upgradeWebSocket((ws) => {
-    // Register is done by the first message (matchmaking:join)
-    // We just attach the message handler
-
     ws.on("message", (data: WebSocketData) => {
-      let message: ClientMessage;
       try {
-        message = JSON.parse(data.toString());
+        const raw = data.toString();
+        const message: ClientMessage = JSON.parse(raw);
+        handleMessage(ws, message).catch((err) =>
+          console.error("[ws] handler error:", err)
+        );
       } catch {
-        return; // ignore non-JSON
+        // malformed message — ignore
       }
-
-      handleMessage(ws, message).catch((err) =>
-        console.error("[ws] handler error:", err)
-      );
     });
 
     ws.on("close", () => {
-      console.log("[ws] client disconnected");
+      const conn = hub.getConnectionBySocket(ws);
+      if (conn) {
+        clearRecentlyJoined(conn.userId);
+      }
       hub.unregister(ws);
     });
 
     ws.on("error", (err) => {
-      console.error("[ws] error:", err.message);
+      console.error("[PvP-Server-Vercel] error:", err.message);
       hub.unregister(ws);
     });
   });
