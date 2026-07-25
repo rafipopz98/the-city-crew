@@ -4,11 +4,12 @@
  * Manages all WebSocket connections on this Function instance.
  * Handles room membership, broadcasting, and connection lifecycle.
  *
- * Without Redis, matchmaking is limited to players on the same instance.
+ * With Redis, matchmaking works across Vercel regions.
  */
 
 import type { WebSocket } from "ws";
 import type { ServerMessage } from "./protocol";
+import crypto from "crypto";
 
 // ─── Connection Metadata ───────────────────────────────────────────────────
 interface Connection {
@@ -26,6 +27,12 @@ interface Room {
 
 // ─── Hub State ─────────────────────────────────────────────────────────────
 class Hub {
+  /** Unique ID for this Function instance (used for cross-region notifications) */
+  readonly instanceId: string;
+
+  constructor() {
+    this.instanceId = crypto.randomUUID();
+  }
   /** All connections on this instance, keyed by userId */
   private connections = new Map<string, Connection>();
 
@@ -47,6 +54,12 @@ class Hub {
 
     this.connections.set(userId, { ws, userId, username, connectedAt: Date.now() });
     this.socketToUser.set(ws, userId);
+
+    // Start polling when first connection registers
+    if (this.connections.size === 1) {
+      const { matchmaking } = require("./matchmaking");
+      matchmaking.startPolling(this.instanceId);
+    }
   }
 
   unregister(ws: WebSocket): void {
@@ -60,6 +73,17 @@ class Hub {
 
     this.connections.delete(userId);
     this.socketToUser.delete(ws);
+
+    // Stop polling when last connection disconnects
+    if (this.connections.size === 0) {
+      const { matchmaking } = require("./matchmaking");
+      matchmaking.stopPolling();
+    }
+  }
+
+  /** Number of active connections on this instance */
+  get connectionCount(): number {
+    return this.connections.size;
   }
 
   getUserId(ws: WebSocket): string | undefined {

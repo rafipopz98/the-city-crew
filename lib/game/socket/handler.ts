@@ -2,39 +2,42 @@
  * WebSocket Message Handler
  *
  * Processes incoming messages from WebSocket clients.
- * Handles matchmaking, countdown, match simulation, and event streaming.
+ * Uses Redis-backed matchmaking for cross-region support.
+ * When players are on different Vercel instances, the match runs on the
+ * host instance and results are stored in Redis for the remote player.
  */
 
 import type { WebSocket } from "ws";
 import { hub } from "./hub";
 import { matchmaking } from "./matchmaking";
 import { simulatePvPMatch } from "./matchEngine";
+import { getRedis, getPlayerInfo } from "./redis";
 import type {
   ClientMessage,
   ServerMessage,
   QueueEntry,
   MatchEndPayload,
+  MatchEventPayload,
 } from "./protocol";
 
-export function handleMessage(ws: WebSocket, message: ClientMessage): void {
+export async function handleMessage(ws: WebSocket, message: ClientMessage): Promise<void> {
   switch (message.type) {
     case "matchmaking:join":
-      handleJoin(ws, message.payload, message.id);
+      await handleJoin(ws, message.payload, message.id);
       break;
     case "matchmaking:leave":
-      handleLeave(ws);
+      await handleLeave(ws);
       break;
     case "match:ready":
-      // Currently unused, but kept for future use
       break;
   }
 }
 
-function handleJoin(
+async function handleJoin(
   ws: WebSocket,
   payload: { userId: string; squadRating: number; username: string; squadPlayers?: string[] },
   ackId?: string,
-): void {
+): Promise<void> {
   const { userId, squadRating, username, squadPlayers } = payload;
 
   if (squadRating <= 0) {
@@ -50,110 +53,151 @@ function handleJoin(
   hub.register(ws, userId, username);
 
   // Remove from queue if already there
-  matchmaking.remove(/* socket doesn't have a real socketId without Socket.IO,
-                        but we can use userId as a proxy */ userId);
+  await matchmaking.remove(userId);
 
   const entry: QueueEntry = {
     userId,
     username,
-    socketId: userId, // Use userId as socketId since we don't have Socket.IO IDs
+    socketId: userId,
     squadRating,
     joinedAt: Date.now(),
     squadPlayerNames: squadPlayers,
   };
 
-  // Try to find a match
-  const opponent = matchmaking.findMatch(entry);
+  // Try to find a match in Redis (or in-memory fallback)
+  const opponent = await matchmaking.findMatch(entry);
 
   if (opponent) {
-    // Remove opponent from queue
-    matchmaking.remove(opponent.socketId);
-
-    // Create match room
-    const matchId = `match_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const roomName = `match:${matchId}`;
-
-    // Add both players to the room
-    hub.joinRoom(roomName, ws);
+    // We found a match! Now determine if opponent is on this instance or remote.
     const opponentConn = hub.getConnection(opponent.userId);
-    if (opponentConn) {
-      hub.joinRoom(roomName, opponentConn.ws);
-    }
+    const isSameInstance = !!opponentConn;
 
-    // Notify both players
-    hub.send(ws, {
-      type: "matchmaking:found",
-      payload: {
-        matchId,
-        opponent: { username: opponent.username, squadRating: opponent.squadRating },
-        playerSide: "home",
-      },
-    });
+    if (isSameInstance) {
+      // ── Both players on this instance — run match directly ─────────────
+      await runLocalMatch(ws, opponentConn!.ws, entry, opponent, ackId);
+    } else {
+      // ── Opponent is on another instance — remote match ──────────────────
+      // We are the host instance. Store match info + run sim, then notify remote.
+      const matchId = `match_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    if (opponentConn) {
-      hub.send(opponentConn.ws, {
+      // Send ACK to local player
+      send(ws, {
+        type: "match:ack",
+        id: ackId || "",
+        payload: { success: true },
+      });
+
+      // Get opponent info from Redis
+      const opponentInfo = await getPlayerInfo(opponent.userId);
+      const oppUsername = opponentInfo?.username || "Opponent";
+
+      // Notify local player that opponent was found
+      send(ws, {
         type: "matchmaking:found",
         payload: {
           matchId,
-          opponent: { username, squadRating },
-          playerSide: "away",
+          opponent: { username: oppUsername, squadRating: opponent.squadRating },
+          playerSide: "home",
         },
       });
-    }
 
-    // Start countdown
-    let cd = 3;
-    hub.broadcastToRoom(roomName, {
-      type: "match:countdown",
-      payload: { seconds: 3 },
-    });
-
-    const countdownInterval = setInterval(() => {
-      cd--;
-      hub.broadcastToRoom(roomName, {
-        type: "match:countdown",
-        payload: { seconds: cd },
-      });
-      if (cd < 0) {
-        clearInterval(countdownInterval);
-        // Start the match simulation
-        void runMatch(matchId, roomName, entry, opponent);
+      // Store match info for remote instance
+      await matchmaking.storeMatchInfo(matchId, userId, opponent.userId);
+      if (opponentInfo?.instanceId) {
+        await matchmaking.notifyRemoteInstance(opponentInfo.instanceId, matchId);
       }
-    }, 1000);
 
-    // Send ACK
-    send(ws, {
-      type: "match:ack",
-      id: ackId || "",
-      payload: { success: true },
-    });
+      // Start countdown for local player
+      let cd = 3;
+      const countdownInterval = setInterval(() => {
+        cd--;
+        send(ws, { type: "match:countdown", payload: { seconds: cd } });
+        if (cd < 0) {
+          clearInterval(countdownInterval);
+          // Run match and stream events to local player
+          void runMatchAndStore(ws, matchId, entry, opponent, "home");
+        }
+      }, 1000);
+    }
   } else {
-    // Add to queue
-    matchmaking.add(entry);
+    // ── No match found — add to queue ─────────────────────────────────────
+    await matchmaking.add(entry);
 
-    hub.send(ws, {
-      type: "matchmaking:waiting",
-      payload: { position: matchmaking.size },
-    });
-
-    // Send ACK
     send(ws, {
       type: "match:ack",
       id: ackId || "",
       payload: { success: true },
+    });
+
+    send(ws, {
+      type: "matchmaking:waiting",
+      payload: { position: 1 },
     });
   }
 }
 
-function handleLeave(ws: WebSocket): void {
+async function handleLeave(ws: WebSocket): Promise<void> {
   const conn = hub.getConnectionBySocket(ws);
   if (conn) {
-    matchmaking.remove(conn.userId);
+    await matchmaking.remove(conn.userId);
     hub.unregister(ws);
   }
 }
 
-// ─── Match Execution ───────────────────────────────────────────────────────
+// ─── Local Match (both players on same instance) ───────────────────────────
+
+async function runLocalMatch(
+  homeWs: WebSocket,
+  awayWs: WebSocket,
+  homePlayer: QueueEntry,
+  awayPlayer: QueueEntry,
+  ackId?: string,
+): Promise<void> {
+  const matchId = `match_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const roomName = `match:${matchId}`;
+
+  hub.joinRoom(roomName, homeWs);
+  hub.joinRoom(roomName, awayWs);
+
+  // Notify both players
+  hub.send(homeWs, {
+    type: "matchmaking:found",
+    payload: {
+      matchId,
+      opponent: { username: awayPlayer.username, squadRating: awayPlayer.squadRating },
+      playerSide: "home",
+    },
+  });
+  hub.send(awayWs, {
+    type: "matchmaking:found",
+    payload: {
+      matchId,
+      opponent: { username: homePlayer.username, squadRating: homePlayer.squadRating },
+      playerSide: "away",
+    },
+  });
+
+  // Send ACK
+  send(homeWs, {
+    type: "match:ack",
+    id: ackId || "",
+    payload: { success: true },
+  });
+
+  // Countdown
+  let cd = 3;
+  hub.broadcastToRoom(roomName, { type: "match:countdown", payload: { seconds: 3 } });
+  const countdownInterval = setInterval(() => {
+    cd--;
+    hub.broadcastToRoom(roomName, { type: "match:countdown", payload: { seconds: cd } });
+    if (cd < 0) {
+      clearInterval(countdownInterval);
+      void runMatch(matchId, roomName, homePlayer, awayPlayer);
+    }
+  }, 1000);
+}
+
+// ─── Match Execution (both players on this instance) ───────────────────────
 
 async function runMatch(
   matchId: string,
@@ -168,7 +212,7 @@ async function runMatch(
     awayPlayer.squadPlayerNames,
   );
 
-  // Stream events one by one with delays
+  // Stream events
   for (const event of result.events) {
     await delay(800 + Math.random() * 600);
     hub.broadcastToRoom(roomName, {
@@ -182,7 +226,6 @@ async function runMatch(
     });
   }
 
-  // Send final result after a short delay
   await delay(1000);
 
   const finalResult: MatchEndPayload = {
@@ -207,14 +250,10 @@ async function runMatch(
     awayRewards: result.awayRewards,
   };
 
-  hub.broadcastToRoom(roomName, {
-    type: "match:end",
-    payload: finalResult,
-  });
+  hub.broadcastToRoom(roomName, { type: "match:end", payload: finalResult });
 
   // Clean up room after 10 seconds
   setTimeout(() => {
-    // Remove all connections from the room
     const room = hub.getRoom(roomName);
     if (room) {
       for (const ws of room.connections) {
@@ -223,6 +262,133 @@ async function runMatch(
     }
   }, 10000);
 }
+
+// ─── Remote Match (opponent on different instance) ─────────────────────────
+
+async function runMatchAndStore(
+  homeWs: WebSocket,
+  matchId: string,
+  homePlayer: QueueEntry,
+  awayPlayer: QueueEntry,
+  side: "home" | "away",
+): Promise<void> {
+  const result = simulatePvPMatch(
+    homePlayer.squadRating,
+    awayPlayer.squadRating,
+    homePlayer.squadPlayerNames,
+    awayPlayer.squadPlayerNames,
+  );
+
+  // Store full result in Redis for the remote instance
+  const finalResult: MatchEndPayload = {
+    matchId,
+    homeScore: result.homeScore,
+    awayScore: result.awayScore,
+    homePossession: result.homePossession,
+    awayPossession: result.awayPossession,
+    homeShots: result.homeShots,
+    awayShots: result.awayShots,
+    homeShotsOnTarget: result.homeShotsOnTarget,
+    awayShotsOnTarget: result.awayShotsOnTarget,
+    events: result.events.map((e) => ({
+      minute: e.minute,
+      type: e.type,
+      description: e.description,
+      actorName: e.actorName,
+    })),
+    playerOfTheMatch: result.playerOfTheMatch,
+    winner: result.winner,
+    homeRewards: result.homeRewards,
+    awayRewards: result.awayRewards,
+  };
+
+  await matchmaking.storeResult(matchId, JSON.stringify(finalResult));
+
+  // Stream events to local player
+  for (const event of result.events) {
+    await delay(800 + Math.random() * 600);
+    send(homeWs, {
+      type: "match:event",
+      payload: {
+        minute: event.minute,
+        type: event.type,
+        description: event.description,
+        actorName: event.actorName,
+      },
+    });
+  }
+
+  await delay(1000);
+
+  send(homeWs, { type: "match:end", payload: finalResult });
+}
+
+// ─── Cross-Instance Match Streaming ────────────────────────────────────────
+// Called when the poller finds a pending match for a player on this instance.
+
+export async function streamRemoteMatch(
+  ws: WebSocket,
+  matchId: string,
+  opponentUserId: string,
+): Promise<void> {
+  // Get opponent info
+  const opponentInfo = await getPlayerInfo(opponentUserId);
+  const oppUsername = opponentInfo?.username || "Opponent";
+  const oppRating = parseInt(opponentInfo?.squadRating || "0", 10);
+
+  // Determine which side we are
+  const matchInfo = await matchmaking.getInfo(matchId);
+  const isHome = matchInfo?.homeUser === hub.getUserId(ws);
+  const side = isHome ? "home" as const : "away" as const;
+
+  // Notify the player about the match
+  send(ws, {
+    type: "matchmaking:found",
+    payload: {
+      matchId,
+      opponent: { username: oppUsername, squadRating: oppRating },
+      playerSide: side,
+    },
+  });
+
+  // Wait for result to be available in Redis (poll with timeout)
+  let resultJson: string | null = null;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    resultJson = await matchmaking.getResult(matchId);
+    if (resultJson) break;
+    await delay(1000);
+  }
+
+  if (!resultJson) {
+    send(ws, { type: "match:error", payload: { message: "Match result not found" } });
+    return;
+  }
+
+  const result: MatchEndPayload = JSON.parse(resultJson);
+
+  // Short countdown
+  send(ws, { type: "match:countdown", payload: { seconds: 1 } });
+  await delay(1000);
+
+  // Stream events
+  for (const event of result.events) {
+    await delay(800 + Math.random() * 600);
+    send(ws, {
+      type: "match:event",
+      payload: {
+        minute: event.minute,
+        type: event.type,
+        description: event.description,
+        actorName: event.actorName,
+      },
+    });
+  }
+
+  await delay(1000);
+  send(ws, { type: "match:end", payload: result });
+}
+
+// ─── Utilities ─────────────────────────────────────────────────────────────
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

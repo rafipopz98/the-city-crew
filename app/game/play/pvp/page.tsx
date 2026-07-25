@@ -126,10 +126,27 @@ export default function PvPPage() {
 
   // Queue timer
   useEffect(() => {
-    if (pvpState !== "queue") return;
+    if (pvpState !== "queue") {
+      setQueueTime(0);
+      return;
+    }
     const interval = setInterval(() => setQueueTime((t) => t + 1), 1000);
     return () => clearInterval(interval);
   }, [pvpState]);
+
+  // Queue timeout (30 seconds)
+  useEffect(() => {
+    if (pvpState !== "queue" || queueTime < 30) return;
+    leaveQueue();
+    hasJoinedRef.current = false;
+    setPvpState("error");
+    setErrorMsg(
+      "Could not find an opponent. This can happen if:\n" +
+      "• No other players are online right now\n" +
+      "• You and your friend are on different server regions\n" +
+      "Try again or play a Bot match instead."
+    );
+  }, [queueTime, pvpState, leaveQueue]);
 
   // Socket connection timeout
   useEffect(() => {

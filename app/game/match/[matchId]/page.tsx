@@ -42,10 +42,15 @@ export default function MatchSimulationPage() {
   const [loading, setLoading] = useState(true);
   const [visibleEvents, setVisibleEvents] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
+  const [liveUserScore, setLiveUserScore] = useState(0);
+  const [liveOpponentScore, setLiveOpponentScore] = useState(0);
   const [gameUser, setGameUser] = useState<any>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     loadMatchData();
   }, []);
 
@@ -103,6 +108,21 @@ export default function MatchSimulationPage() {
       setLoading(false);
     }
   };
+
+  // Derive live scores from visible goal events
+  useEffect(() => {
+    if (!matchData) return;
+    const visible = matchData.events.slice(0, visibleEvents);
+    let user = 0, opponent = 0;
+    for (const ev of visible) {
+      if (ev.type === "goal") {
+        if (ev.isUserEvent) user++;
+        else opponent++;
+      }
+    }
+    setLiveUserScore(user);
+    setLiveOpponentScore(opponent);
+  }, [visibleEvents, matchData]);
 
   const startEventAnimation = (events: MatchEvent[]) => {
     let i = 0;
@@ -206,12 +226,12 @@ export default function MatchSimulationPage() {
                 <div className="text-center flex-1">
                   <p className="text-sm text-gray-400 mb-1">{gameUser?.username || "You"}</p>
                   <motion.p
-                    key={matchData.userScore}
+                    key={liveUserScore}
                     initial={{ scale: 1.5 }}
                     animate={{ scale: 1 }}
                     className="text-5xl font-bold text-white"
                   >
-                    {matchData.userScore}
+                    {liveUserScore}
                   </motion.p>
                 </div>
                 <div className="px-4">
@@ -220,19 +240,19 @@ export default function MatchSimulationPage() {
                 <div className="text-center flex-1">
                   <p className="text-sm text-gray-400 mb-1">Opponent</p>
                   <motion.p
-                    key={matchData.opponentScore}
+                    key={liveOpponentScore}
                     initial={{ scale: 1.5 }}
                     animate={{ scale: 1 }}
                     className="text-5xl font-bold text-white"
                   >
-                    {matchData.opponentScore}
+                    {liveOpponentScore}
                   </motion.p>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-2 mt-2">
                 <Clock className="w-3 h-3 text-gray-500" />
                 <span className="text-xs text-gray-500">
-                  Simulating... ({matchData.duration_seconds}s)
+                  Simulating match events...
                 </span>
               </div>
             </motion.div>

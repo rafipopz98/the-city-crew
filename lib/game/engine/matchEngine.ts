@@ -250,8 +250,8 @@ export function simulateMatch(
   const userMidBonus = userRating.midfield / (userRating.midfield + opponentRating.midfield);
   const userPossession = Math.round(30 + userMidBonus * 40); // 30-70 range
 
-  // ─── Simulation Loop (20 "minutes" of action) ──────────────────────────
-  const totalMinutes = 20;
+  // ─── Simulation Loop (90 minutes of action) ──────────────────────────
+  const totalMinutes = 90;
   const userAttacker = userSquad.players.find((p) => p.position === "FWD");
   const opponentAttacker = opponent.players.find((p) => p.position === "FWD");
   const userGK = userSquad.players.find((p) => p.position === "GK");
@@ -348,7 +348,7 @@ export function simulateMatch(
 
   // Half time
   events.push({
-    minute: 10,
+    minute: 45,
     type: "half_time",
     description: `HALF TIME: ${userScore} - ${opponentScore}`,
     playerName: "",
@@ -357,7 +357,7 @@ export function simulateMatch(
 
   // Second half attacks
   for (let m = 0; m < 5; m++) {
-    const minute = randMinute() + 10;
+    const minute = randMinute() + 45;
     const isUserAttack = Math.random() * 100 < userPossession;
 
     if (isUserAttack) {
@@ -470,7 +470,7 @@ export function simulateMatch(
     opponentShotsOnTarget,
     events,
     playerOfTheMatch: potm,
-    duration_seconds: 20 + Math.floor(Math.random() * 10),
+    duration_seconds: 25 + Math.floor(Math.random() * 10),
   };
 }
 

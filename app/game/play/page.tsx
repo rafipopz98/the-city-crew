@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -36,6 +36,7 @@ export default function PlayPage() {
   const gameUser = userData?.gameUser;
   const squad = squadData?.squad;
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasStartedMatchRef = useRef(false);
 
   const loading = userLoading || squadLoading;
 
@@ -84,6 +85,8 @@ export default function PlayPage() {
   };
 
   const handleStartMatch = async () => {
+    if (hasStartedMatchRef.current) return;
+    hasStartedMatchRef.current = true;
     setMatchState("starting");
     try {
       const data = await startMatch.mutateAsync();
@@ -110,6 +113,30 @@ export default function PlayPage() {
     }
   };
 
+  // ─── Hooks must be before early returns! ────────────────────────────────
+  const squadRating = useMemo(
+    () =>
+      squad?.players?.length
+        ? Math.round(
+            squad.players.reduce((sum: number, p: any) => sum + (p.playerId?.overall || 0), 0) /
+              squad.players.length,
+          )
+        : 0,
+    [squad],
+  );
+
+  // Stable opponent rating (computed once when opponent is found)
+  const [opponentRating, setOpponentRating] = useState<number | null>(null);
+  useEffect(() => {
+    if (matchState === "found" && opponentRating === null && squadRating > 0) {
+      setOpponentRating(Math.max(60, squadRating + Math.floor(Math.random() * 10) - 5));
+    }
+    if (matchState === "idle") {
+      setOpponentRating(null);
+    }
+  }, [matchState, squadRating]);
+
+  // ─── Early returns ──────────────────────────────────────────────────────
   if (loading) {
     return <LoadingState text="Getting ready..." />;
   }
@@ -132,13 +159,6 @@ export default function PlayPage() {
       />
     );
   }
-
-  const squadRating = squad?.players?.length
-    ? Math.round(
-        squad.players.reduce((sum: number, p: any) => sum + (p.playerId?.overall || 0), 0) /
-          squad.players.length,
-      )
-    : 0;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -378,7 +398,7 @@ export default function PlayPage() {
                   <div className="text-center flex-1">
                     <p className="text-lg font-bold text-white">Opponent (AI)</p>
                     <p className="text-3xl font-bold text-[#e09225]">
-                      {Math.max(60, squadRating + Math.floor(Math.random() * 10) - 5)}
+                      {opponentRating ?? "-"}
                     </p>
                     <p className="text-xs text-gray-500">Squad Rating</p>
                   </div>
@@ -386,7 +406,7 @@ export default function PlayPage() {
 
                 <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
                   <Bot className="w-4 h-4" />
-                  <span>Bot match • 25 min simulation</span>
+                  <span>Bot match • 90 min simulation</span>
                 </div>
               </div>
 

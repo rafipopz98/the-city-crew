@@ -9,9 +9,16 @@
 
 import { experimental_upgradeWebSocket } from "@vercel/functions";
 import type { WebSocketData } from "@vercel/functions";
-import { handleMessage } from "@/lib/game/socket/handler";
+import { handleMessage, streamRemoteMatch } from "@/lib/game/socket/handler";
 import { hub } from "@/lib/game/socket/hub";
+import { setOnMatchReady } from "@/lib/game/socket/matchmaking";
 import type { ClientMessage } from "@/lib/game/socket/protocol";
+import type { WebSocket } from "ws";
+
+// Wire up cross-instance match streaming
+setOnMatchReady(async (ws: WebSocket, matchId: string, opponentUserId: string) => {
+  await streamRemoteMatch(ws, matchId, opponentUserId);
+});
 
 export function GET() {
   return experimental_upgradeWebSocket((ws) => {
@@ -26,7 +33,9 @@ export function GET() {
         return; // ignore non-JSON
       }
 
-      handleMessage(ws, message);
+      handleMessage(ws, message).catch((err) =>
+        console.error("[ws] handler error:", err)
+      );
     });
 
     ws.on("close", () => {

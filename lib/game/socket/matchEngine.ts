@@ -73,7 +73,7 @@ export function simulatePvPMatch(
 
   // Simulate ~8-12 events
   const attackCount = randomBetween(8, 12);
-  const timer = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+  const timer = [3, 8, 12, 18, 24, 30, 35, 42, 50, 55, 65, 72, 78, 82, 88];
 
   for (let i = 0; i < attackCount; i++) {
     const minute = timer[i] || randomBetween(2, 24);
@@ -144,7 +144,7 @@ export function simulatePvPMatch(
 
   // Half time
   events.push({
-    minute: 12,
+    minute: 45,
     type: "half_time",
     description: `HALF TIME: ${homeScore} - ${awayScore}`,
     actorName: "",
@@ -152,7 +152,7 @@ export function simulatePvPMatch(
 
   // Second half (fewer events)
   for (let i = 0; i < 4; i++) {
-    const minute = timer[i + 6] || randomBetween(14, 24);
+    const minute = timer[i + 6] || randomBetween(50, 88);
     const isHomeAttack = Math.random() * 100 < homePossession;
 
     if (isHomeAttack) {
@@ -220,7 +220,7 @@ export function simulatePvPMatch(
   events.sort((a, b) => a.minute - b.minute);
 
   events.push({
-    minute: 25,
+    minute: 90,
     type: "full_time",
     description: `FULL TIME: ${homeScore} - ${awayScore}`,
     actorName: "",

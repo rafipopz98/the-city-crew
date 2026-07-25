@@ -10,10 +10,22 @@
  * Reuses the same hub/handler/matchmaking logic as the Vercel deployment.
  */
 
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// Load .env.local so Redis client finds KV_REST_API_URL / KV_REST_API_TOKEN
+config({ path: resolve(".env.local") });
+
 import { WebSocketServer, WebSocket } from "ws";
-import { handleMessage } from "../lib/game/socket/handler";
+import { handleMessage, streamRemoteMatch } from "../lib/game/socket/handler";
 import { hub } from "../lib/game/socket/hub";
+import { setOnMatchReady } from "../lib/game/socket/matchmaking";
 import type { ClientMessage } from "../lib/game/socket/protocol";
+
+// Wire up cross-instance match streaming
+setOnMatchReady(async (ws: WebSocket, matchId: string, opponentUserId: string) => {
+  await streamRemoteMatch(ws, matchId, opponentUserId);
+});
 
 const PORT = 3001;
 
@@ -31,7 +43,9 @@ wss.on("connection", (ws: WebSocket) => {
     } catch {
       return;
     }
-    handleMessage(ws, message);
+    handleMessage(ws, message).catch((err) =>
+      console.error("[dev-ws] handler error:", err)
+    );
   });
 
   ws.on("close", () => {
