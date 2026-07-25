@@ -116,15 +116,22 @@ export const matchmaking = {
       if (opponentId) {
         // Get opponent info from Redis to populate username/rating
         const info = await getPlayerInfo(opponentId);
+        // Handle both JSON and CSV formats (stale data without JSON.stringify)
+        let parsedSquadPlayers: string[] | undefined;
+        if (info?.squadPlayers) {
+          try {
+            parsedSquadPlayers = JSON.parse(info.squadPlayers);
+          } catch {
+            parsedSquadPlayers = info.squadPlayers.split(",").map((s) => s.trim());
+          }
+        }
         return {
           userId: opponentId,
           username: info?.username || "Opponent",
           socketId: opponentId,
           squadRating: parseInt(info?.squadRating || "0", 10),
           joinedAt: Date.now(),
-          squadPlayerNames: info?.squadPlayers
-            ? JSON.parse(info.squadPlayers)
-            : undefined,
+          squadPlayerNames: parsedSquadPlayers,
         };
       }
       return null;

@@ -133,7 +133,7 @@ export default function MatchSimulationPage() {
         clearInterval(interval);
         setTimeout(() => setShowResult(true), 1500);
       }
-    }, 1200);
+    }, 1500);
   };
 
   const getEventIcon = (type: string) => {

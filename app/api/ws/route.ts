@@ -15,12 +15,15 @@ import { setOnMatchReady } from "@/lib/game/socket/matchmaking";
 import type { ClientMessage } from "@/lib/game/socket/protocol";
 import type { WebSocket } from "ws";
 
-// Wire up cross-instance match streaming
-setOnMatchReady(async (ws: WebSocket, matchId: string, opponentUserId: string) => {
-  await streamRemoteMatch(ws, matchId, opponentUserId);
-});
-
 export function GET() {
+  // Wire up cross-instance match streaming (inside GET so it's lazy)
+  if (typeof setOnMatchReady === "function") {
+    setOnMatchReady(async (ws: WebSocket, matchId: string, opponentUserId: string) => {
+      await streamRemoteMatch(ws, matchId, opponentUserId);
+    });
+  } else {
+    console.warn("[ws] setOnMatchReady not available — cross-instance PvP won't work");
+  }
   return experimental_upgradeWebSocket((ws) => {
     // Register is done by the first message (matchmaking:join)
     // We just attach the message handler

@@ -97,7 +97,8 @@ export default function PvPPage() {
 
   // Auto-join queue when connected
   useEffect(() => {
-    if (!connected || !gameUser || !squad || hasJoinedRef.current) return;
+    if (!connected || !gameUser || !squad) return;
+    if (pvpState === "queue" && hasJoinedRef.current) return; // already joined
     if (pvpState !== "connecting" && pvpState !== "queue") return;
 
     const rating = Math.round(
@@ -147,6 +148,13 @@ export default function PvPPage() {
       "Try again or play a Bot match instead."
     );
   }, [queueTime, pvpState, leaveQueue]);
+
+  // Reset join flag on disconnect so auto-join re-fires on reconnect
+  useEffect(() => {
+    if (!connected && (pvpState === "queue" || pvpState === "connecting")) {
+      hasJoinedRef.current = false;
+    }
+  }, [connected, pvpState]);
 
   // Socket connection timeout
   useEffect(() => {

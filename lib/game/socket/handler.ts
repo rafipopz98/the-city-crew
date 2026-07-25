@@ -214,7 +214,7 @@ async function runMatch(
 
   // Stream events
   for (const event of result.events) {
-    await delay(800 + Math.random() * 600);
+    await delay(1000 + Math.random() * 1000);
     hub.broadcastToRoom(roomName, {
       type: "match:event",
       payload: {
@@ -306,7 +306,7 @@ async function runMatchAndStore(
 
   // Stream events to local player
   for (const event of result.events) {
-    await delay(800 + Math.random() * 600);
+    await delay(1000 + Math.random() * 1000);
     send(homeWs, {
       type: "match:event",
       payload: {
@@ -372,7 +372,7 @@ export async function streamRemoteMatch(
 
   // Stream events
   for (const event of result.events) {
-    await delay(800 + Math.random() * 600);
+    await delay(1000 + Math.random() * 1000);
     send(ws, {
       type: "match:event",
       payload: {
