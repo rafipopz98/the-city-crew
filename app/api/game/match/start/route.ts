@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { GameUserModel } from "@/lib/game/models/GameUser";
 import { GameSquadModel } from "@/lib/game/models/GameSquad";
 import { GameMatchModel } from "@/lib/game/models/GameMatch";
-import { simulateMatch, calculateRewards, type MatchPlayer } from "@/lib/game/engine/matchEngine";
+import { simulateMatch, calculateRewards, MATCH_FEE, type MatchPlayer } from "@/lib/game/engine/matchEngine";
 import { logError } from "@/lib/errorLogger";
 import { verifyToken } from "@/lib/auth/jwt";
 import { cookies } from "next/headers";
@@ -78,11 +78,21 @@ export async function POST() {
         ? "loss"
         : "draw";
 
+    // Check entry fee & deduct
+    if (gameUser.coins < MATCH_FEE) {
+      return NextResponse.json(
+        { message: `You need at least ${MATCH_FEE} coins to play a match. Earn coins by winning matches!` },
+        { status: 400 },
+      );
+    }
+    gameUser.coins -= MATCH_FEE;
+
     // Calculate rewards
     const userRating = Math.round(
       userMatchPlayers.reduce((sum, p) => sum + p.overall, 0) / userMatchPlayers.length,
     );
-    const rewards = calculateRewards(matchResult, userRating);
+    const rewards = calculateRewards(matchResult, userRating, result.userScore, result.opponentScore);
+    const feeDeducted = MATCH_FEE;
 
     // Save match to DB
     const match = await GameMatchModel.create({
@@ -131,7 +141,7 @@ export async function POST() {
       gameUser.total_draws += 1;
     }
 
-    // Apply rewards
+    // Apply rewards (fee already deducted above)
     gameUser.xp += rewards.xp;
     gameUser.coins += rewards.coins;
     await gameUser.save();
@@ -143,6 +153,12 @@ export async function POST() {
         matchResult,
         rewards,
         userRating,
+        feeDeducted: MATCH_FEE,
+        breakdown: {
+          goalsScored: result.userScore,
+          goalsConceded: result.opponentScore,
+          cleanSheet: result.opponentScore === 0,
+        },
       },
       gameUser: {
         xp: gameUser.xp,

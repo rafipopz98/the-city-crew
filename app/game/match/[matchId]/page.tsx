@@ -15,6 +15,12 @@ interface MatchEvent {
   actorName?: string;
 }
 
+interface RewardBreakdown {
+  goalsScored: number;
+  goalsConceded: number;
+  cleanSheet: boolean;
+}
+
 interface MatchResult {
   userScore: number;
   opponentScore: number;
@@ -34,6 +40,8 @@ interface MatchResult {
   rewards: { xp: number; coins: number };
   userRating: number;
   duration_seconds: number;
+  feeDeducted?: number;
+  breakdown?: RewardBreakdown;
 }
 
 export default function MatchSimulationPage() {
@@ -222,7 +230,7 @@ export default function MatchSimulationPage() {
           >
             {/* ── Fixed Scoreboard ── */}
             <div className="shrink-0 bg-[#0a1628] border-b border-white/5 px-4 md:px-6 py-4">
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-2xl mx-auto space-y-2">
                 <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] rounded-2xl border border-white/10 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     {/* Home team */}
@@ -256,6 +264,11 @@ export default function MatchSimulationPage() {
                       </p>
                     </div>
                   </div>
+                </div>
+                {/* Disconnect warning */}
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-amber-500/70 bg-amber-500/[0.04] border border-amber-500/10 rounded-lg px-3 py-1.5">
+                  <span className="text-amber-500/80">⚠</span>
+                  <span>Don&apos;t leave this screen — leaving forfeits the match and you lose your coins.</span>
                 </div>
               </div>
             </div>
@@ -422,21 +435,61 @@ export default function MatchSimulationPage() {
 
             {/* Rewards */}
             <div className="bg-linear-to-r from-[#e09225]/20 to-[#e09225]/5 rounded-xl p-6 border border-[#e09225]/20">
-              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Rewards Saved ✓</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Zap className="w-5 h-5 text-[#e09225]" />
-                    <span className="text-3xl font-bold text-white">+{matchData.rewards.xp}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">XP Earned</p>
+              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Rewards</h3>
+              
+              {/* XP */}
+              <div className="flex items-center justify-between py-2 border-b border-white/5 mb-3">
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Zap className="w-4 h-4 text-[#e09225]" />
+                  <span className="text-sm">XP Earned</span>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Trophy className="w-5 h-5 text-amber-400" />
-                    <span className="text-3xl font-bold text-white">+{matchData.rewards.coins}</span>
+                <span className="text-xl font-bold text-white">+{matchData.rewards.xp}</span>
+              </div>
+
+              {/* Coin breakdown */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <span>Entry Fee</span>
                   </div>
-                  <p className="text-xs text-gray-500">Coins Earned</p>
+                  <span className="text-red-400 font-medium">-{matchData.feeDeducted || 5}</span>
+                </div>
+
+                {matchData.matchResult === "win" && (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-400">Scoreline</span>
+                      <span className="text-green-400 font-medium">{matchData.userScore} – {matchData.opponentScore}</span>
+                    </div>
+                    {matchData.opponentScore === 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">Clean Sheet Bonus</span>
+                        <span className="text-green-400 font-medium">✓</span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {matchData.matchResult === "draw" && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Draw — Fee partially refunded</span>
+                    <span className="text-amber-400 font-medium">+{matchData.rewards.coins}</span>
+                  </div>
+                )}
+
+                {matchData.matchResult === "loss" && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Loss — Entry fee lost</span>
+                    <span className="text-red-400 font-medium">0</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-2">
+                  <span className="text-sm font-medium text-gray-300">Net Coins</span>
+                  <span className={`text-lg font-bold ${matchData.rewards.coins > 0 ? 'text-green-400' : matchData.rewards.coins < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                    {matchData.rewards.coins > 0 ? '+' : ''}{matchData.rewards.coins}
+                  </span>
                 </div>
               </div>
             </div>

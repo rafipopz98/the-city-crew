@@ -388,19 +388,26 @@ export function simulatePvPMatch(
     ? winningPlayers[Math.floor(Math.random() * winningPlayers.length)].name
     : "Unknown";
 
-  // Rewards (winning gets more)
-  const baseXp = 8;
-  const baseCoins = 10;
+  // ── Rewards (coin-based with bonus system) ──────────────────────────────
+  const matchFee = 5;
 
-  const homeRewards = {
-    xp: baseXp + (winner === "home" ? 2 : winner === "draw" ? 1 : 0) + randomBetween(0, 2),
-    coins: baseCoins + (winner === "home" ? 10 : winner === "draw" ? 5 : 2) + randomBetween(0, 5),
+  const calcRewards = (isWinner: boolean, isDraw: boolean, scored: number, conceded: number) => {
+    const xp = isWinner ? 5 : isDraw ? 3 : 1;
+
+    let coins: number;
+    if (isWinner) {
+      coins = 20 + scored * 10 - conceded * 2 + (conceded === 0 ? 15 : 0);
+    } else if (isDraw) {
+      coins = matchFee; // refund
+    } else {
+      coins = 0; // fee is lost
+    }
+
+    return { xp, coins };
   };
 
-  const awayRewards = {
-    xp: baseXp + (winner === "away" ? 2 : winner === "draw" ? 1 : 0) + randomBetween(0, 2),
-    coins: baseCoins + (winner === "away" ? 10 : winner === "draw" ? 5 : 2) + randomBetween(0, 5),
-  };
+  const homeRewards = calcRewards(winner === "home", winner === "draw", homeScore, awayScore);
+  const awayRewards = calcRewards(winner === "away", winner === "draw", awayScore, homeScore);
 
   return {
     homeScore,

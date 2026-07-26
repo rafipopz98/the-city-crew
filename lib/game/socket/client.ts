@@ -40,6 +40,11 @@ export function useSocket() {
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
+      // Only mark connected if this WebSocket is still the current one
+      if (wsRef.current !== ws) {
+        console.log("[PvP] ⏭ Ignoring stale onopen from old WebSocket");
+        return;
+      }
       console.log("[PvP] ✅ WebSocket connected!");
       setConnected(true);
       reconnectDelayRef.current = 1000;
@@ -145,7 +150,7 @@ export function useSocket() {
       squadPlayerPositions?: string[];
     }): Promise<{ success: boolean; message?: string }> => {
       console.log("[PvP] Sending matchmaking:join", { userId: data.userId, rating: data.squadRating, username: data.username });
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         joinQueueResolveRef.current = resolve;
 
         const message: ClientMessage = {
@@ -158,17 +163,18 @@ export function useSocket() {
           console.log("[PvP] WebSocket OPEN, sending join message...");
           wsRef.current.send(JSON.stringify(message));
         } else {
-          console.warn("[PvP] WebSocket NOT open, resolving with failure");
-          resolve({ success: false, message: "Not connected" });
+          console.warn("[PvP] WebSocket NOT open, rejecting");
           joinQueueResolveRef.current = null;
+          reject(new Error("WebSocket not connected"));
+          return;
         }
 
         // Timeout after 10 seconds if no ACK
         setTimeout(() => {
           if (joinQueueResolveRef.current) {
             console.warn("[PvP] ⏱️ Join queue timed out after 10s");
-            joinQueueResolveRef.current({ success: false, message: "Request timed out" });
             joinQueueResolveRef.current = null;
+            reject(new Error("Join queue request timed out"));
           }
         }, 10000);
       });

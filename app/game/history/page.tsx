@@ -62,6 +62,9 @@ function MatchCard({
   const isLoss = match.result === "loss";
   const accentColor = isWin ? "green" : isLoss ? "red" : "gray";
 
+  const cleanSheet = match.opponentScore === 0;
+  const netCoins = match.coinsEarned - 5;
+
   return (
     <motion.button
       initial={{ opacity: 0, y: 12 }}
@@ -87,54 +90,70 @@ function MatchCard({
           }`}
         />
 
-        <div className="flex items-center gap-4 pl-3">
-          {/* Score block */}
-          <div className="shrink-0 flex flex-col items-center min-w-[64px]">
-            <div
-              className={`text-lg font-extrabold leading-none ${
-                isWin ? "text-green-400" : isLoss ? "text-red-400" : "text-white"
-              }`}
-            >
-              {match.userScore} – {match.opponentScore}
-            </div>
-            <span
-              className={`mt-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                isWin
-                  ? "bg-green-500/15 text-green-400"
-                  : isLoss
-                    ? "bg-red-500/15 text-red-400"
-                    : "bg-gray-500/15 text-gray-400"
-              }`}
-            >
-              {match.result}
-            </span>
-          </div>
-
-          {/* Match info */}
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold truncate">
-              vs {match.opponentName}
-            </p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500 mt-1">
-              <span className="flex items-center gap-1">
-                <Zap className="w-3 h-3 text-[#e09225]" />
-                <span className="text-[#e09225]/80 font-medium">+{match.xpEarned} XP</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <Trophy className="w-3 h-3 text-amber-400/70" />
-                <span className="text-amber-400/80 font-medium">+{match.coinsEarned}</span>
-              </span>
-              <span className="flex items-center gap-1 text-gray-600">
-                <Target className="w-3 h-3" />
-                {match.userShots}–{match.opponentShots} shots
+        <div className="flex flex-col gap-2 pl-3">
+          {/* Top row: score + result + time */}
+          <div className="flex items-center gap-4">
+            {/* Score block */}
+            <div className="shrink-0 flex flex-col items-center min-w-[64px]">
+              <div
+                className={`text-lg font-extrabold leading-none ${
+                  isWin ? "text-green-400" : isLoss ? "text-red-400" : "text-white"
+                }`}
+              >
+                {match.userScore} – {match.opponentScore}
+              </div>
+              <span
+                className={`mt-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                  isWin
+                    ? "bg-green-500/15 text-green-400"
+                    : isLoss
+                      ? "bg-red-500/15 text-red-400"
+                      : "bg-gray-500/15 text-gray-400"
+                }`}
+              >
+                {match.result}
               </span>
             </div>
+
+            {/* Match info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-semibold truncate">
+                vs {match.opponentName}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500 mt-1">
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-[#e09225]" />
+                  <span className="text-[#e09225]/80 font-medium">+{match.xpEarned} XP</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Trophy className="w-3 h-3 text-amber-400/70" />
+                  <span className={`font-medium ${netCoins >= 0 ? 'text-green-400/80' : 'text-red-400/80'}`}>
+                    {netCoins >= 0 ? '+' : ''}{netCoins} net
+                  </span>
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Target className="w-3 h-3" />
+                  {match.userShots}–{match.opponentShots} shots
+                </span>
+              </div>
+            </div>
+
+            {/* Time */}
+            <div className="shrink-0 flex items-center gap-1.5 text-[10px] text-gray-600">
+              <Clock className="w-3 h-3" />
+              <span className="whitespace-nowrap">{formatTimeAgo(match.createdAt)}</span>
+            </div>
           </div>
 
-          {/* Time */}
-          <div className="shrink-0 flex items-center gap-1.5 text-[10px] text-gray-600">
-            <Clock className="w-3 h-3" />
-            <span className="whitespace-nowrap">{formatTimeAgo(match.createdAt)}</span>
+          {/* Bottom row: coin breakdown */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-gray-600 pl-0">
+            <span>Fee: <span className="text-red-400">-5</span></span>
+            <span>Gross: <span className="text-amber-400/80">+{match.coinsEarned}</span></span>
+            {isWin && cleanSheet && (
+              <span className="flex items-center gap-1 text-green-400/70">
+                <span>🧹 Clean sheet</span>
+              </span>
+            )}
           </div>
         </div>
       </div>

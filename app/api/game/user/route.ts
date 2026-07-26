@@ -48,11 +48,11 @@ export async function GET() {
       userId: payload.userId,
     });
 
-    // Get active squad
+    // Get active squad (only need presence + id, no player data needed)
     const activeSquad = await GameSquadModel.findOne({
       userId: payload.userId,
       is_active: true,
-    }).populate("players.playerId");
+    }).select("_id").lean();
 
     return NextResponse.json({
       gameUser: {

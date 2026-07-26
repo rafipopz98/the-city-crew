@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import {
   Home,
   Swords,
+  Bot,
+  Wifi,
   Store,
   Library,
   User,
@@ -20,7 +22,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const NAV_ITEMS = [
   { label: "Home", icon: Home, href: "/game/home", shortcut: "1" },
-  { label: "Play", icon: Swords, href: "/game/play", shortcut: "2" },
+  { label: "Play", icon: Swords, href: "/game/play", shortcut: "2", isPlay: true },
   { label: "Shop", icon: Store, href: "/game/shop", shortcut: "3" },
   { label: "Upgrade", icon: TrendingUp, href: "/game/upgrade", shortcut: "4" },
   { label: "Collection", icon: Library, href: "/game/collection", shortcut: "5" },
@@ -35,6 +37,20 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [playMenuOpen, setPlayMenuOpen] = useState(false);
+  const playMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close play menu on click outside
+  useEffect(() => {
+    if (!playMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (playMenuRef.current && !playMenuRef.current.contains(e.target as Node)) {
+        setPlayMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [playMenuOpen]);
 
   // Redirect to onboarding if not set up
   useEffect(() => {
@@ -80,7 +96,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         <div className="flex items-center justify-between px-4 py-2 h-14">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push('/game/home')}
               className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition"
             >
               <ChevronLeft className="w-4 h-4 text-gray-400" />
@@ -96,18 +112,60 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
             {NAV_ITEMS.map((item) => {
               const active = isActive(item.href);
               return (
-                <button
-                  key={item.href}
-                  onClick={() => router.push(item.href)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    active
-                      ? "bg-[#e09225]/10 text-[#e09225]"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                </button>
+                <div key={item.href} className="relative">
+                  <button
+                    onClick={() => {
+                      if (item.isPlay) {
+                        setPlayMenuOpen(!playMenuOpen);
+                      } else {
+                        router.push(item.href);
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      active
+                        ? "bg-[#e09225]/10 text-[#e09225]"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                  </button>
+                  {/* Play dropdown */}
+                  {item.isPlay && playMenuOpen && (
+                    <motion.div
+                      ref={playMenuRef}
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute top-full left-0 mt-1 w-52 bg-[#0a1628] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
+                    >
+                      <button
+                        onClick={() => { router.push("/game/play"); setPlayMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                          <Bot className="w-4 h-4 text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">Bot Match</p>
+                          <p className="text-[10px] text-gray-500">Play against AI, instant match</p>
+                        </div>
+                      </button>
+                      <div className="mx-3 h-px bg-white/5" />
+                      <button
+                        onClick={() => { router.push("/game/play/pvp"); setPlayMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                          <Wifi className="w-4 h-4 text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">Online PvP</p>
+                          <p className="text-[10px] text-gray-500">Play against real players</p>
+                        </div>
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
               );
             })}
             <div className="w-px h-6 bg-white/10 mx-1" />

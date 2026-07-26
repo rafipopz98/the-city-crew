@@ -7,31 +7,35 @@ import {
   TrendingUp,
   ChevronRight,
   Coins,
-  Shield,
-  Zap,
-  Swords,
   User,
   Search,
   X,
   Sparkles,
-  ArrowUp,
   Library,
+  ArrowUp,
+  Zap,
+  Swords,
+  Shield,
+  Goal,
+  Eye,
+  Heart,
+  Footprints,
 } from "lucide-react";
 import { useInfiniteCollection } from "@/lib/game/hooks/useGameQuery";
-import { ErrorState } from "@/app/game/_components";
+import {
+  ErrorState,
+  PlayerCardBackground,
+  getRarityTheme,
+} from "@/app/game/_components";
 
-const RARITY_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
-  Basic:     { color: "#9ca3af", bg: "rgba(156,163,175,0.08)",  border: "rgba(156,163,175,0.2)" },
-  Common:    { color: "#6b7280", bg: "rgba(107,114,128,0.08)",  border: "rgba(107,114,128,0.2)" },
-  Uncommon:  { color: "#22c55e", bg: "rgba(34,197,94,0.08)",   border: "rgba(34,197,94,0.25)" },
-  Rare:      { color: "#06b6d4", bg: "rgba(6,182,212,0.08)",   border: "rgba(6,182,212,0.25)" },
-  Epic:      { color: "#a855f7", bg: "rgba(168,85,247,0.08)",  border: "rgba(168,85,247,0.25)" },
-  Legendary: { color: "#f59e0b", bg: "rgba(245,158,11,0.08)",  border: "rgba(245,158,11,0.25)" },
-};
-
-function getRarityCfg(rarity: string) {
-  return RARITY_CONFIG[rarity] || RARITY_CONFIG.Basic;
-}
+const STATS_CONFIG = [
+  { key: "pace", short: "PAC", label: "Pace", icon: Footprints, color: "#22c55e", emoji: "🏃" },
+  { key: "shooting", short: "SHO", label: "Shooting", icon: Goal, color: "#ef4444", emoji: "🎯" },
+  { key: "passing", short: "PAS", label: "Passing", icon: Eye, color: "#3b82f6", emoji: "🎯" },
+  { key: "dribbling", short: "DRI", label: "Dribbling", icon: Zap, color: "#a855f7", emoji: "⚡" },
+  { key: "defending", short: "DEF", label: "Defending", icon: Shield, color: "#f59e0b", emoji: "🛡️" },
+  { key: "physic", short: "PHY", label: "Physical", icon: Heart, color: "#ec4899", emoji: "💪" },
+];
 
 function getPositionIcon(pos: string) {
   switch (pos) {
@@ -43,38 +47,8 @@ function getPositionIcon(pos: string) {
   }
 }
 
-const STAT_LABELS: Record<string, string> = {
-  pace: "PAC", shooting: "SHO", passing: "PAS",
-  dribbling: "DRI", defending: "DEF", physic: "PHY",
-};
-
-// ─── Skeleton ───────────────────────────────────────────────────────────────
-function UpgradeSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-white/5 rounded-xl border border-white/5 p-4 animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-white/5 shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-32 bg-white/5 rounded" />
-              <div className="h-3 w-20 bg-white/5 rounded" />
-              <div className="flex gap-2 mt-2">
-                {[1, 2, 3, 4, 5, 6].map((s) => (
-                  <div key={s} className="h-6 w-12 bg-white/5 rounded" />
-                ))}
-              </div>
-            </div>
-            <div className="w-20 h-8 bg-white/5 rounded-lg" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Player Upgrade Row ────────────────────────────────────────────────────
-function UpgradeRow({
+// ─── Premium Upgrade Card ──────────────────────────────────────────────────
+function UpgradeCard({
   player,
   index,
   onClick,
@@ -83,152 +57,192 @@ function UpgradeRow({
   index: number;
   onClick: () => void;
 }) {
-  const rc = getRarityCfg(player.rarity);
-  const stats = ["pace", "shooting", "passing", "dribbling", "defending", "physic"] as const;
+  const theme = getRarityTheme(player.rarity);
+  const stats = STATS_CONFIG;
   const maxOverall = Math.max(
-    ...stats.map((s) => (player[`effective_${s}`] || player[s] || 0)),
-    99,
+    ...stats.map((s) => (player[`effective_${s.key}`] || player[s.key] || 0)),
+    1,
   );
 
   const totalUpgrades = stats.reduce(
-    (sum, s) => sum + (player.upgrade_levels?.[s] || 0),
+    (sum, s) => sum + (player.upgrade_levels?.[s.key] || 0),
     0,
   );
 
+  const hasRoomToGrow = stats.some((s) => (player[`effective_${s.key}`] || player[s.key] || 0) < 99);
+
+  const effectiveOVR = player.effective_overall || player.overall || 0;
+  const baseOVR = player.overall || 0;
+  const isUpgraded = effectiveOVR > baseOVR;
+
   return (
     <motion.button
-      layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: Math.min(index * 0.04, 0.3) }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.03, 0.25) }}
       onClick={onClick}
       className="w-full text-left group"
     >
-      <div
-        className="relative bg-white/[0.04] border border-white/10 rounded-xl p-4 transition-all duration-300 hover:bg-white/[0.07] hover:border-[#e09225]/30 hover:-translate-y-0.5 hover:shadow-lg"
-        style={{ borderColor: `color-mix(in srgb, ${rc.color} 20%, transparent)` }}
-      >
-        {/* Rarity accent left */}
-        <div
-          className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
-          style={{ backgroundColor: rc.color }}
-        />
+      <div className="relative rounded-2xl overflow-hidden border border-white/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30">
+        <PlayerCardBackground rarity={player.rarity} locked={false} />
 
-        <div className="flex items-center gap-4 pl-3">
-          {/* Player image */}
-          <div
-            className="w-14 h-14 rounded-full shrink-0 overflow-hidden border-2 flex items-center justify-center"
-            style={{ borderColor: `${rc.color}40`, backgroundColor: rc.bg }}
-          >
-            {player.image_url ? (
-              <img
-                src={player.image_url}
-                alt={player.short_name}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <User className="w-6 h-6 text-gray-600" />
-            )}
+        <div className="relative z-10 p-3.5 md:p-4">
+          {/* ── Top Row: Image + Info + Rating ── */}
+          <div className="flex items-center gap-3">
+            {/* Image */}
+            <div className="w-14 h-14 md:w-16 md:h-16 shrink-0 rounded-full overflow-hidden ring-2 ring-white/10 bg-black/30 flex items-center justify-center">
+              {player.image_url ? (
+                <img
+                  src={player.image_url}
+                  alt={player.short_name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <User className="w-6 h-6 text-white/30" />
+              )}
+            </div>
+
+            {/* Name + badges */}
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm md:text-base truncate">{player.short_name}</p>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <span
+                  className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+                  style={{ backgroundColor: `${theme?.accent}25`, color: theme?.accent }}
+                >
+                  {player.rarity}
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/10 text-gray-400 flex items-center gap-0.5">
+                  {getPositionIcon(player.positions?.[0] || "")}
+                  {player.positions?.[0] || "-"}
+                </span>
+                {totalUpgrades > 0 && (
+                  <span className="text-[9px] text-green-400 font-medium flex items-center gap-0.5">
+                    <ArrowUp className="w-2.5 h-2.5" />
+                    +{totalUpgrades}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Overall rating */}
+            <div className="text-center shrink-0">
+              <div
+                className="text-xl md:text-2xl font-extrabold leading-none tabular-nums"
+                style={{ color: theme?.accent }}
+              >
+                {effectiveOVR}
+              </div>
+              <p className="text-[7px] text-gray-500 uppercase tracking-wider mt-0.5">
+                {isUpgraded ? "UPGRADED" : "OVR"}
+              </p>
+            </div>
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-sm truncate">
-                {player.short_name}
-              </span>
-              <span
-                className="px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0"
-                style={{ backgroundColor: rc.bg, color: rc.color }}
-              >
-                {player.rarity}
-              </span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/10 text-gray-400 flex items-center gap-0.5 shrink-0">
-                {getPositionIcon(player.positions?.[0] || "")}
-                {player.positions?.[0] || "-"}
-              </span>
-            </div>
+          {/* ── Stats Block ── */}
+          <div className="mt-3 space-y-1.5">
+            {stats.map(({ key, short, label, emoji, color }) => {
+              const base = player[key] || 0;
+              const upg = player.upgrade_levels?.[key] || 0;
+              const effective = base + upg;
+              const pct = Math.min((effective / Math.max(maxOverall, 99)) * 100, 100);
 
-            {/* Overall comparison */}
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-lg font-extrabold text-white">
-                {player.effective_overall || player.overall}
-              </span>
-              {player.effective_overall > player.overall && (
-                <span className="text-[10px] text-green-400 font-medium flex items-center">
-                  <ArrowUp className="w-3 h-3" />+{player.effective_overall - player.overall}
-                </span>
-              )}
-              {totalUpgrades > 0 && (
-                <span className="text-[10px] text-amber-400 font-medium">
-                  {totalUpgrades} upgrade{totalUpgrades !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-
-            {/* Stat bars — compact row */}
-            <div className="flex gap-1.5 mt-2 flex-wrap">
-              {stats.map((stat) => {
-                const base = player[stat] || 0;
-                const upg = player.upgrade_levels?.[stat] || 0;
-                const effective = base + upg;
-                const pct = Math.min((effective / maxOverall) * 100, 100);
-                return (
-                  <div
-                    key={stat}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md bg-white/5"
-                    title={`${STAT_LABELS[stat]}: ${effective}${upg > 0 ? ` (+${upg})` : ""}`}
-                  >
-                    <span className="text-[8px] font-bold text-gray-500 uppercase">
-                      {STAT_LABELS[stat]}
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  {/* Stat label */}
+                  <div className="w-24 md:w-28 flex items-center gap-1.5 shrink-0">
+                    <span className="text-xs">{emoji}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
+                      {short}
                     </span>
-                    <div className="w-8 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: upg > 0 ? "#22c55e" : rc.color,
-                        }}
-                      />
-                    </div>
-                    <span className="text-[9px] font-bold text-white tabular-nums">
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="flex-1 h-2 bg-black/40 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: upg > 0 ? "#22c55e" : color,
+                        opacity: upg > 0 ? 1 : 0.7,
+                      }}
+                    />
+                  </div>
+
+                  {/* Value */}
+                  <div className="w-12 md:w-14 text-right shrink-0 flex items-center justify-end gap-0.5">
+                    <span className="text-sm md:text-base font-bold text-white tabular-nums leading-none">
                       {effective}
                     </span>
                     {upg > 0 && (
-                      <span className="text-[8px] text-green-400">+{upg}</span>
+                      <span className="text-[9px] text-green-400 font-bold leading-none">+{upg}</span>
                     )}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
 
-          {/* CTA */}
-          <div className="shrink-0 flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1 text-[10px] text-gray-500">
-              <Coins className="w-3 h-3 text-amber-400" />
+          {/* ── Footer ── */}
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/5">
+            <div className="flex items-center gap-1 text-[9px] text-gray-500">
+              <Coins className="w-3 h-3 text-amber-400/70" />
               {player.total_upgrade_cost > 0
-                ? `${player.total_upgrade_cost.toLocaleString()} invested`
+                ? `${player.total_upgrade_cost.toLocaleString()} coins invested`
                 : "Not upgraded"}
             </div>
-            <span className="flex items-center gap-1 text-xs font-bold text-[#e09225] group-hover:gap-2 transition-all">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-[#e09225] group-hover:gap-1.5 transition-all">
               Upgrade
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </div>
-
-          {/* Upgrade sparkle — any stat below 99 means room to grow */}
-          {stats.some((s) => (player[`effective_${s}`] || player[s] || 0) < 99) && (
-            <div className="absolute -top-1 -right-1">
-              <div className="w-5 h-5 rounded-full bg-[#e09225]/20 border border-[#e09225]/30 flex items-center justify-center animate-pulse">
-                <Sparkles className="w-3 h-3 text-[#e09225]" />
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Sparkle indicator */}
+        {hasRoomToGrow && (
+          <div className="absolute top-2 right-2 z-20">
+            <div className="w-5 h-5 rounded-full bg-[#e09225]/20 border border-[#e09225]/30 flex items-center justify-center animate-pulse">
+              <Sparkles className="w-3 h-3 text-[#e09225]" />
+            </div>
+          </div>
+        )}
       </div>
     </motion.button>
+  );
+}
+
+// ─── Skeleton ──────────────────────────────────────────────────────────────
+function UpgradeCardSkeleton() {
+  const shimmer = "bg-white/5 animate-pulse";
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="rounded-2xl border border-white/5 overflow-hidden">
+          <div className="p-4 space-y-3">
+            {/* Top row */}
+            <div className="flex items-start gap-3">
+              <div className={`w-16 h-16 rounded-full shrink-0 ${shimmer}`} />
+              <div className="flex-1 space-y-2">
+                <div className={`h-4 w-24 rounded ${shimmer}`} />
+                <div className={`h-3 w-16 rounded ${shimmer}`} />
+              </div>
+              <div className={`h-10 w-10 rounded-lg ${shimmer}`} />
+            </div>
+            {/* 6 stat rows */}
+            {[1, 2, 3, 4, 5, 6].map((s) => (
+              <div key={s} className="flex items-center gap-2">
+                <div className={`h-3 w-20 rounded ${shimmer}`} />
+                <div className={`flex-1 h-2 rounded-full ${shimmer}`} />
+                <div className={`h-3 w-8 rounded ${shimmer}`} />
+              </div>
+            ))}
+            {/* Footer */}
+            <div className={`h-4 w-32 rounded ${shimmer}`} />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -254,7 +268,6 @@ export default function UpgradePage() {
   });
 
   const allPlayers = data?.pages.flatMap((p) => p.collection) || [];
-  const firstPage = data?.pages[0];
   const upgradableCount = allPlayers.filter((p: any) => {
     const stats = ["pace", "shooting", "passing", "dribbling", "defending", "physic"];
     return stats.some((s) => (p[`effective_${s}`] || p[s] || 0) < 99);
@@ -264,16 +277,12 @@ export default function UpgradePage() {
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !hasNextPage || isFetchingNextPage) return;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage();
       },
       { rootMargin: "300px" },
     );
-
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
@@ -288,7 +297,7 @@ export default function UpgradePage() {
             <div className="h-4 w-48 bg-white/5 rounded" />
           </div>
           <div className="h-10 bg-white/5 rounded-xl" />
-          <UpgradeSkeleton />
+          <UpgradeCardSkeleton />
         </div>
       </div>
     );
@@ -313,7 +322,7 @@ export default function UpgradePage() {
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-[#e09225]" />
-              Upgrade
+              Upgrade Players
             </h1>
             <p className="text-gray-500 text-sm mt-0.5">
               {allPlayers.length} owned player{allPlayers.length !== 1 ? "s" : ""}
@@ -346,24 +355,24 @@ export default function UpgradePage() {
           )}
         </div>
 
-        {/* ── Quick info ── */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        {/* ── Info box ── */}
+        <div className="bg-white/5 rounded-xl p-3.5 border border-white/10">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#e09225]/15 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-[#e09225]" />
+            <div className="w-9 h-9 rounded-xl bg-[#e09225]/15 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-[#e09225]" />
             </div>
-            <div className="text-xs text-gray-400 space-y-1">
-              <p className="font-medium text-gray-300">How upgrades work</p>
-              <p>Each stat can be upgraded +1 at a time. Cost increases as the stat gets higher.</p>
+            <div className="text-[11px] text-gray-400 space-y-0.5">
+              <p className="font-medium text-gray-300 text-xs">How upgrading works</p>
+              <p>Each stat can be upgraded one level at a time. Cost rises as the stat gets higher.</p>
               <p>
-                <span className="text-amber-400">XP gate</span> — you need a minimum total XP to
-                upgrade to high stat values (XP is NOT consumed).
+                <span className="text-amber-400">XP gate</span> — higher stats require more total XP
+                (XP is never consumed, just a requirement).
               </p>
             </div>
           </div>
         </div>
 
-        {/* ── Player list ── */}
+        {/* ── Player cards ── */}
         <AnimatePresence mode="wait">
           {allPlayers.length === 0 ? (
             <motion.div
@@ -374,14 +383,12 @@ export default function UpgradePage() {
             >
               <Library className="w-14 h-14 text-gray-600 mx-auto mb-4" />
               <p className="text-gray-500 text-sm mb-1">No owned players yet</p>
-              <p className="text-gray-600 text-xs">
-                Buy players from the shop first to start upgrading
-              </p>
+              <p className="text-gray-600 text-xs">Buy players from the shop first to start upgrading</p>
             </motion.div>
           ) : (
-            <motion.div key="list" layout className="space-y-3">
+            <motion.div key="list" layout className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {allPlayers.map((player: any, i: number) => (
-                <UpgradeRow
+                <UpgradeCard
                   key={player._id}
                   player={player}
                   index={i}
@@ -415,9 +422,7 @@ export default function UpgradePage() {
             className="text-center py-4"
           >
             <div className="w-12 h-0.5 bg-white/5 rounded-full mx-auto mb-3" />
-            <p className="text-gray-600 text-xs">
-              Showing all {allPlayers.length} owned players
-            </p>
+            <p className="text-gray-600 text-xs">Showing all {allPlayers.length} owned players</p>
           </motion.div>
         )}
       </div>

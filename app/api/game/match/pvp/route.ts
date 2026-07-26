@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { GameUserModel } from "@/lib/game/models/GameUser";
 import { GameMatchModel } from "@/lib/game/models/GameMatch";
 import { logError } from "@/lib/errorLogger";
+import { MATCH_FEE } from "@/lib/game/engine/matchEngine";
 import { verifyToken } from "@/lib/auth/jwt";
 import { cookies } from "next/headers";
 
@@ -85,6 +86,15 @@ export async function POST(request: Request) {
     } else {
       gameUser.total_draws += 1;
     }
+
+    // Deduct match fee
+    if (gameUser.coins < MATCH_FEE) {
+      return NextResponse.json(
+        { message: `You need at least ${MATCH_FEE} coins to play. Earn coins by winning matches!` },
+        { status: 400 },
+      );
+    }
+    gameUser.coins -= MATCH_FEE;
 
     gameUser.xp += xpEarned || 0;
     gameUser.coins += coinsEarned || 0;

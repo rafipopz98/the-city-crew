@@ -18,6 +18,8 @@ import {
   Award,
   Frown,
   Handshake,
+  Coins,
+  AlertTriangle,
 } from "lucide-react";
 import { useSocket } from "@/lib/game/socket/client";
 import type { ServerMessage } from "@/lib/game/socket/protocol";
@@ -47,7 +49,7 @@ interface MatchSocketResult {
   awayRewards: { xp: number; coins: number };
 }
 
-type PvPState = "loading" | "no_squad" | "connecting" | "queue" | "found" | "countdown" | "playing" | "result" | "error";
+type PvPState = "loading" | "no_squad" | "no_coins" | "connecting" | "queue" | "found" | "countdown" | "playing" | "result" | "error";
 
 export default function PvPPage() {
   const router = useRouter();
@@ -91,6 +93,14 @@ export default function PvPPage() {
           setPvpState("no_squad");
           return;
         }
+
+        // Check entry fee
+        if ((userData.gameUser?.coins ?? 0) < 5) {
+          console.log("[PvP] Not enough coins — showing no_coins");
+          setPvpState("no_coins");
+          return;
+        }
+
         console.log("[PvP] Squad valid with", sq.players.length, "players");
         setSquad(sq);
         console.log("[PvP] Setting state to 'connecting'");
@@ -309,11 +319,11 @@ export default function PvPPage() {
     }
   };
 
-  // Cancel queue
+  // Cancel queue — go home
   const handleCancel = () => {
     leaveQueue();
     hasJoinedRef.current = false;
-    router.push("/game/play");
+    router.push("/game/home");
   };
 
   const squadRating = squad?.players?.length
@@ -381,6 +391,51 @@ export default function PvPPage() {
             </motion.div>
           )}
 
+          {/* No Coins */}
+          {pvpState === "no_coins" && (
+            <motion.div key="no-coins" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center"
+            >
+              <div className="w-20 h-20 rounded-full bg-amber-500/10 border-2 border-amber-500/20 flex items-center justify-center">
+                <Coins className="w-10 h-10 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white mb-2">Not Enough Coins</h2>
+                <p className="text-gray-400 text-sm max-w-xs mx-auto">
+                  You need at least <strong className="text-amber-400">5 coins</strong> to play an online match. The entry fee is deducted when the match starts.
+                </p>
+              </div>
+
+              <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-4 w-full max-w-sm">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Your balance</span>
+                  <span className="text-red-400 font-bold">{gameUser?.coins || 0} coins</span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-2">
+                  <span className="text-gray-400">Entry fee</span>
+                  <span className="text-amber-400 font-bold">5 coins</span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-500">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Win matches or buy from the shop to earn coins</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-2">
+                <button onClick={() => router.push("/game/shop")}
+                  className="px-6 py-3 bg-[#e09225] text-[#0a1628] font-bold rounded-xl"
+                >
+                  Go to Shop
+                </button>
+                <button onClick={() => router.push("/game/home")}
+                  className="px-6 py-3 bg-white/5 text-gray-300 border border-white/10 rounded-xl"
+                >
+                  Home
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* No Squad */}
           {pvpState === "no_squad" && (
             <motion.div key="no-squad" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -395,10 +450,10 @@ export default function PvPPage() {
                 >
                   Build Squad
                 </button>
-                <button onClick={() => router.push("/game/play")}
+                <button onClick={() => router.push("/game/home")}
                   className="px-6 py-3 bg-white/5 text-gray-300 border border-white/10 rounded-xl"
                 >
-                  Back
+                  Home
                 </button>
               </div>
             </motion.div>
@@ -421,7 +476,7 @@ export default function PvPPage() {
               <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-400 rounded-full animate-spin" />
               <p className="text-gray-400">Connecting to game server...</p>
               <p className="text-gray-600 text-xs">Make sure `npm run socket` is running on port 3001</p>
-              <button onClick={() => router.push("/game/play")}
+              <button onClick={() => router.push("/game/home")}
                 className="text-sm text-gray-500 hover:text-white mt-4"
               >
                 Cancel
@@ -449,6 +504,22 @@ export default function PvPPage() {
                 <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> {queueTime}s</span>
                 {queuePosition > 0 && <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Queue: {queuePosition}</span>}
               </div>
+
+              {/* Fee info */}
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 w-full max-w-sm space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-gray-400">
+                    <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Entry fee</span>
+                  </div>
+                  <span className="text-amber-400 font-bold">-5 coins</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Your balance</span>
+                  <span className="font-bold text-white">{gameUser?.coins || 0} coins</span>
+                </div>
+              </div>
+
               <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
                 <p className="text-sm text-gray-400">
                   Your Rating: <span className="text-white font-bold">{squadRating}</span>
@@ -513,6 +584,11 @@ export default function PvPPage() {
           {/* Playing */}
           {pvpState === "playing" && (
             <motion.div key="playing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              {/* Disconnect warning */}
+              <div className="flex items-center justify-center gap-1.5 text-[10px] text-amber-500/70 bg-amber-500/[0.04] border border-amber-500/10 rounded-lg px-3 py-1.5">
+                <span className="text-amber-500/80">⚠</span>
+                <span>Don&apos;t leave this screen — leaving forfeits the match and you lose your coins.</span>
+              </div>
               <div className="bg-linear-to-br from-blue-500/10 to-blue-600/5 rounded-2xl p-6 border border-blue-500/20">
                 <div className="flex items-center justify-between">
                   <div className="text-center flex-1">

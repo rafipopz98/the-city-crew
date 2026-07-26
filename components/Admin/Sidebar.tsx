@@ -44,6 +44,11 @@ const menu = [
     icon: Users,
   },
   {
+    name: "Game Players",
+    href: "/admin/game-players",
+    icon: Users,
+  },
+  {
     name: "Matches",
     href: "/admin/matches",
     icon: Watch,
@@ -51,6 +56,11 @@ const menu = [
   {
     name: "Users",
     href: "/admin/users",
+    icon: UserCheck,
+  },
+  {
+    name: "Game Users",
+    href: "/admin/game-users",
     icon: UserCheck,
   },
 ];

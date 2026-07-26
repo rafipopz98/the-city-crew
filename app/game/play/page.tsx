@@ -13,8 +13,11 @@ import {
   ArrowRight,
   Loader,
   Bot,
+  Coins,
+  Info,
 } from "lucide-react";
 import { useGameUser, useSquad, useStartMatch } from "@/lib/game/hooks/useGameQuery";
+import { MATCH_FEE } from "@/lib/game/engine/matchEngine";
 import { LoadingState, ErrorState } from "@/app/game/_components";
 
 type MatchState = "idle" | "searching" | "found" | "starting";
@@ -68,6 +71,11 @@ export default function PlayPage() {
   const handleStartSearch = () => {
     if (!squad || !squad.players || squad.players.length !== 5) {
       router.push("/game/squad");
+      return;
+    }
+
+    if (!gameUser || gameUser.coins < MATCH_FEE) {
+      router.push('/game/shop');
       return;
     }
 
@@ -171,6 +179,113 @@ export default function PlayPage() {
                 <p className="text-gray-400">Play against the AI. Instant match, instant rewards.</p>
               </div>
 
+              {/* Entry Fee Info */}
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <Coins className="w-4 h-4 text-amber-400" />
+                    <span>Entry Fee</span>
+                  </div>
+                  <span className="text-amber-400 font-bold">-{MATCH_FEE} coins</span>
+                </div>
+
+                <div className="border-t border-white/5 pt-2">
+                  <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                    <Swords className="w-4 h-4 text-green-400" />
+                    <span>Win reward — how it works</span>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-lg p-3 space-y-2">
+                    {/* Step 1 */}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-full bg-green-500/20 text-green-400 text-[9px] font-bold flex items-center justify-center">1</span>
+                        <span className="text-gray-400">Base win</span>
+                      </div>
+                      <span className="text-green-400 font-medium tabular-nums">+10</span>
+                    </div>
+                    {/* Step 2 */}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-full bg-green-500/20 text-green-400 text-[9px] font-bold flex items-center justify-center">2</span>
+                        <div>
+                          <span className="text-gray-400">Goals scored</span>
+                          <span className="text-gray-600 ml-1">× +5</span>
+                        </div>
+                      </div>
+                      <span className="text-green-400 font-medium tabular-nums">+5 each</span>
+                    </div>
+                    {/* Step 3 */}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-400 text-[9px] font-bold flex items-center justify-center">3</span>
+                        <div>
+                          <span className="text-gray-400">Goals conceded</span>
+                          <span className="text-gray-600 ml-1">× -1</span>
+                        </div>
+                      </div>
+                      <span className="text-red-400 font-medium tabular-nums">-1 each</span>
+                    </div>
+                    {/* Step 4 */}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-full bg-green-500/20 text-green-400 text-[9px] font-bold flex items-center justify-center">4</span>
+                        <div>
+                          <span className="text-gray-400">Clean sheet</span>
+                          <span className="text-gray-600 ml-1">if 0 conceded</span>
+                        </div>
+                      </div>
+                      <span className="text-green-400 font-medium tabular-nums">+7</span>
+                    </div>
+                    {/* Formula + Examples */}
+                    <div className="border-t border-white/5 pt-2 mt-1 space-y-1.5">
+                      <div className="text-[10px] text-gray-500 text-center font-mono">
+                        Base + (goals × 5) − (conceded × 1) + (clean? +7 : 0)
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="bg-white/[0.03] rounded px-2 py-1.5">
+                          <div className="text-[9px] text-gray-600 mb-0.5">3-1 win</div>
+                          <div className="text-[11px] text-white font-bold tabular-nums">
+                            10 + 15 − 1 = <span className="text-green-400">+24</span>
+                          </div>
+                        </div>
+                        <div className="bg-white/[0.03] rounded px-2 py-1.5">
+                          <div className="text-[9px] text-gray-600 mb-0.5">2-0 win</div>
+                          <div className="text-[11px] text-white font-bold tabular-nums">
+                            10 + 10 + 7 = <span className="text-green-400">+27</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm border-t border-white/5 pt-2">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <Info className="w-4 h-4 text-gray-500" />
+                    <span>Your balance</span>
+                  </div>
+                  <span className={`font-bold ${(gameUser?.coins || 0) >= MATCH_FEE ? 'text-white' : 'text-red-400'}`}>
+                    {gameUser?.coins || 0} coins
+                  </span>
+                </div>
+
+                {/* Loss info */}
+                <div className="text-[10px] text-gray-600 text-center border-t border-white/5 pt-2">
+                  Lose: <span className="text-red-400">0 coins</span> (fee lost) · Draw: <span className="text-amber-400">2 coins</span> (partial refund)
+                </div>
+
+                {(gameUser?.coins || 0) < MATCH_FEE && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 text-center">
+                    <p className="text-red-400 text-xs">
+                      Not enough coins!{' '}
+                      <button onClick={() => router.push('/game/shop')} className="underline font-medium hover:text-red-300">
+                        Buy coins in shop →
+                      </button>
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Squad Preview */}
               {squad && (
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
@@ -204,10 +319,11 @@ export default function PlayPage() {
               {/* Start button */}
               <button
                 onClick={handleStartSearch}
-                className="w-full py-5 bg-green-500 text-white font-bold text-lg rounded-xl hover:bg-green-500/90 transition flex items-center justify-center gap-3"
+                disabled={(gameUser?.coins || 0) < MATCH_FEE}
+                className="w-full py-5 bg-green-500 text-white font-bold text-lg rounded-xl hover:bg-green-500/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
-                <Bot className="w-6 h-6" />
-                Find Bot Match
+                <Coins className="w-5 h-5" />
+                {(gameUser?.coins || 0) >= MATCH_FEE ? `Find Bot Match (${MATCH_FEE} coins)` : 'Not Enough Coins'}
               </button>
 
               {(!squad || !squad.players || squad.players.length !== 5) && (

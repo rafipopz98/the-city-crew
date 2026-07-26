@@ -130,19 +130,21 @@ function StatUpgradeRow({
         </button>
       </div>
 
-      {/* Cost/reason helper — shown only when hovering or when blocked */}
-      <div className="flex items-center gap-3 pl-16 text-[10px] text-gray-600 h-0 overflow-hidden group-hover:h-5 transition-all duration-200">
+      {/* Cost/reason helper — always visible when blocked, hover for cost preview */}
+      <div className={`flex items-center gap-3 pl-16 text-[10px] transition-all duration-200 ${
+        canUpgrade ? 'h-0 overflow-hidden group-hover:h-5' : 'h-5'
+      }`}>
         {canUpgrade ? (
           <span>
             Next: <span className="text-amber-400/80">✦{coinCost}</span> coins · <span className="text-purple-400/80">{requiredXp} XP</span>
           </span>
         ) : !meetsXp ? (
-          <span className="text-red-400/60">
-            Need <strong>{requiredXp}</strong> XP (you have {gameUserXp})
+          <span className="text-red-400/60 flex items-center gap-1">
+            <span>⚠</span> Need <strong>{requiredXp}</strong> XP (you have {gameUserXp})
           </span>
         ) : (
-          <span className="text-red-400/60">
-            Need <strong>{coinCost}</strong> coins (you have {gameUserCoins})
+          <span className="text-red-400/60 flex items-center gap-1">
+            <span>⚠</span> Need <strong>{coinCost}</strong> coins (you have {gameUserCoins})
           </span>
         )}
       </div>

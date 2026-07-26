@@ -604,25 +604,56 @@ export function simulateMatch(
 }
 
 // ─── Rewards Calculation ────────────────────────────────────────────────────
-export function calculateRewards(result: "win" | "loss" | "draw", userRating: number): { xp: number; coins: number } {
-  const baseXP = 5;
-  const baseCoins = 5;
+const MATCH_FEE = 5;
+
+export { MATCH_FEE };
+
+/**
+ * Calculate match rewards based on result, scores, and squad rating.
+ *
+ * Coins (halved for bot matches — PvP uses full values in socket engine):
+ *   Win:  10 base + (goalsScored × 5) – (goalsConceded × 1) + (cleanSheet ? 7 : 0)
+ *   Draw: 2  (returns 2 of the 5 entry fee)
+ *   Loss: 0  (fee is lost → net -5)
+ *
+ * XP:
+ *   Win:  3
+ *   Draw: 2
+ *   Loss: 1
+ */
+export function calculateRewards(
+  result: "win" | "loss" | "draw",
+  userRating: number,
+  userScore: number = 0,
+  opponentScore: number = 0,
+): { xp: number; coins: number } {
+  let coins: number;
 
   switch (result) {
-    case "win":
-      return {
-        xp: baseXP + Math.floor(userRating / 20) + Math.floor(Math.random() * 5),
-        coins: Math.floor(baseCoins * 1.5) + Math.floor(Math.random() * 15),
-      };
-    case "draw":
-      return {
-        xp: baseXP + Math.floor(userRating / 40) + Math.floor(Math.random() * 3),
-        coins: Math.floor(baseCoins * 0.75) + Math.floor(Math.random() * 8),
-      };
-    case "loss":
-      return {
-        xp: Math.floor(baseXP / 2) + Math.floor(Math.random() * 3),
-        coins: Math.floor(baseCoins / 2) + Math.floor(Math.random() * 4),
-      };
+    case "win": {
+      const goalsBonus = userScore * 5;
+      const concededPenalty = opponentScore * 1;
+      const cleanSheetBonus = opponentScore === 0 ? 7 : 0;
+      coins = 10 + goalsBonus - concededPenalty + cleanSheetBonus;
+      break;
+    }
+    case "draw": {
+      coins = 2; // partial refund
+      break;
+    }
+    case "loss": {
+      coins = 0; // fee is lost
+      break;
+    }
   }
+
+  const xp = (() => {
+    switch (result) {
+      case "win":  return 3;
+      case "draw": return 2;
+      case "loss": return 1;
+    }
+  })();
+
+  return { xp, coins };
 }
