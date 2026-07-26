@@ -4,16 +4,16 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Swords,
   Store,
   Library,
   Trophy,
   TrendingUp,
   Star,
   ChevronRight,
-  Rocket,
   HelpCircle,
   BarChart3,
+  Bot,
+  Globe,
 } from "lucide-react";
 import { useGameUser } from "@/lib/game/hooks/useGameQuery";
 import { SkeletonStats } from "@/app/game/_components";
@@ -42,7 +42,7 @@ export default function GameHomePage() {
           </div>
           <SkeletonStats />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="h-32 bg-white/5 rounded-xl animate-pulse" />
             ))}
           </div>
@@ -71,15 +71,6 @@ export default function GameHomePage() {
 
   const quickActions = [
     {
-      label: "Play Match",
-      icon: Swords,
-      href: "/game/play",
-      color: "from-green-500/20 to-green-600/10",
-      border: "border-green-500/30",
-      textColor: "text-green-400",
-      description: "Start a 5v5 match",
-    },
-    {
       label: "Shop",
       icon: Store,
       href: "/game/shop",
@@ -87,6 +78,15 @@ export default function GameHomePage() {
       border: "border-purple-500/30",
       textColor: "text-purple-400",
       description: "Buy new players",
+    },
+    {
+      label: "Upgrade",
+      icon: TrendingUp,
+      href: "/game/upgrade",
+      color: "from-emerald-500/20 to-emerald-600/10",
+      border: "border-emerald-500/30",
+      textColor: "text-emerald-400",
+      description: "Boost player stats",
     },
     {
       label: "Collection",
@@ -173,11 +173,57 @@ export default function GameHomePage() {
           </div>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Play Now — two CTAs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          className="grid grid-cols-2 gap-3"
+        >
+          <button
+            onClick={() => router.push("/game/play")}
+            className="relative p-5 rounded-xl bg-linear-to-br from-green-500/25 to-green-600/10 border border-green-500/30 hover:bg-green-500/5 transition-all group text-left overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-green-500/5 blur-3xl" />
+            <div className="relative z-10">
+              <div className="w-12 h-12 rounded-xl bg-green-500/15 flex items-center justify-center mb-3">
+                <Bot className="w-6 h-6 text-green-400" />
+              </div>
+              <p className="text-white font-bold text-lg">Play Bot</p>
+              <p className="text-gray-500 text-sm mt-0.5">Quick match vs AI</p>
+              <div className="mt-3 flex items-center gap-2 text-xs text-green-400/80 font-medium">
+                <span>Instant match</span>
+                <span className="text-gray-600">•</span>
+                <span>Earn rewards</span>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push("/game/play/pvp")}
+            className="relative p-5 rounded-xl bg-linear-to-br from-blue-500/25 to-blue-600/10 border border-blue-500/30 hover:bg-blue-500/5 transition-all group text-left overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-blue-500/5 blur-3xl" />
+            <div className="relative z-10">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/15 flex items-center justify-center mb-3">
+                <Globe className="w-6 h-6 text-blue-400" />
+              </div>
+              <p className="text-white font-bold text-lg">Play Online</p>
+              <p className="text-gray-500 text-sm mt-0.5">Real-time PvP match</p>
+              <div className="mt-3 flex items-center gap-2 text-xs text-blue-400/80 font-medium">
+                <span>Live opponent</span>
+                <span className="text-gray-600">•</span>
+                <span>Higher rewards</span>
+              </div>
+            </div>
+          </button>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
         >
           <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -186,7 +232,7 @@ export default function GameHomePage() {
                 key={action.href}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.1 }}
+                transition={{ delay: 0.3 + i * 0.1 }}
                 onClick={() => router.push(action.href)}
                 className={`relative p-4 rounded-xl bg-linear-to-br ${action.color} border ${action.border} hover:bg-white/2 transition-all group text-left`}
               >
@@ -199,29 +245,6 @@ export default function GameHomePage() {
               </motion.button>
             ))}
           </div>
-        </motion.div>
-
-        {/* Quick Play */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <button
-            onClick={() => router.push("/game/play")}
-            className="w-full p-6 rounded-xl bg-linear-to-r from-[#e09225] to-[#e09225]/80 text-[#0a1628] flex items-center justify-between group hover:opacity-90 transition"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-[#0a1628]/20 flex items-center justify-center">
-                <Rocket className="w-7 h-7" />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-xl">Quick Play</p>
-                <p className="text-sm opacity-70">Jump into a match now</p>
-              </div>
-            </div>
-            <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition" />
-          </button>
         </motion.div>
 
         {/* Match History */}

@@ -4,29 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Clock,
-  Trophy,
-  Swords,
-  ChevronLeft,
-  ChevronRight,
-  Zap,
-  Target,
+  Clock, Trophy, Swords,
+  ChevronLeft, ChevronRight,
+  Zap, Target,
 } from "lucide-react";
 import { useMatchHistory } from "@/lib/game/hooks/useGameQuery";
 import { ErrorState } from "@/app/game/_components";
-
-function ResultBadge({ result }: { result: string }) {
-  const styles: Record<string, string> = {
-    win: "bg-green-500/15 text-green-400 border-green-500/30",
-    loss: "bg-red-500/15 text-red-400 border-red-500/30",
-    draw: "bg-gray-500/15 text-gray-400 border-gray-500/30",
-  };
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${styles[result] || styles.draw}`}>
-      {result}
-    </span>
-  );
-}
 
 function formatTimeAgo(dateStr: string) {
   const now = Date.now();
@@ -42,6 +25,124 @@ function formatTimeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString();
 }
 
+// ─── Skeleton ───────────────────────────────────────────────────────────────
+function HistorySkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-white/5 border border-white/5 rounded-xl p-4 animate-pulse"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-12 bg-white/5 rounded-lg shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-40 bg-white/5 rounded" />
+              <div className="h-3 w-28 bg-white/5 rounded" />
+            </div>
+            <div className="w-16 h-4 bg-white/5 rounded shrink-0" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Match Card ─────────────────────────────────────────────────────────────
+function MatchCard({
+  match,
+  index,
+  onClick,
+}: {
+  match: any;
+  index: number;
+  onClick: () => void;
+}) {
+  const isWin = match.result === "win";
+  const isLoss = match.result === "loss";
+  const accentColor = isWin ? "green" : isLoss ? "red" : "gray";
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.04, 0.3) }}
+      onClick={onClick}
+      className="w-full text-left group"
+    >
+      <div
+        className={`
+          relative bg-white/[0.04] border rounded-xl p-4
+          transition-all duration-200 hover:bg-white/[0.07]
+          hover:-translate-y-0.5
+          ${isWin ? "border-green-500/15 hover:border-green-500/25" : ""}
+          ${isLoss ? "border-red-500/15 hover:border-red-500/25" : ""}
+          ${!isWin && !isLoss ? "border-white/5 hover:border-white/10" : ""}
+        `}
+      >
+        {/* Left accent bar */}
+        <div
+          className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full ${
+            isWin ? "bg-green-500" : isLoss ? "bg-red-500" : "bg-gray-500"
+          }`}
+        />
+
+        <div className="flex items-center gap-4 pl-3">
+          {/* Score block */}
+          <div className="shrink-0 flex flex-col items-center min-w-[64px]">
+            <div
+              className={`text-lg font-extrabold leading-none ${
+                isWin ? "text-green-400" : isLoss ? "text-red-400" : "text-white"
+              }`}
+            >
+              {match.userScore} – {match.opponentScore}
+            </div>
+            <span
+              className={`mt-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                isWin
+                  ? "bg-green-500/15 text-green-400"
+                  : isLoss
+                    ? "bg-red-500/15 text-red-400"
+                    : "bg-gray-500/15 text-gray-400"
+              }`}
+            >
+              {match.result}
+            </span>
+          </div>
+
+          {/* Match info */}
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-semibold truncate">
+              vs {match.opponentName}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500 mt-1">
+              <span className="flex items-center gap-1">
+                <Zap className="w-3 h-3 text-[#e09225]" />
+                <span className="text-[#e09225]/80 font-medium">+{match.xpEarned} XP</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <Trophy className="w-3 h-3 text-amber-400/70" />
+                <span className="text-amber-400/80 font-medium">+{match.coinsEarned}</span>
+              </span>
+              <span className="flex items-center gap-1 text-gray-600">
+                <Target className="w-3 h-3" />
+                {match.userShots}–{match.opponentShots} shots
+              </span>
+            </div>
+          </div>
+
+          {/* Time */}
+          <div className="shrink-0 flex items-center gap-1.5 text-[10px] text-gray-600">
+            <Clock className="w-3 h-3" />
+            <span className="whitespace-nowrap">{formatTimeAgo(match.createdAt)}</span>
+          </div>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────
 export default function MatchHistoryPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
@@ -55,14 +156,12 @@ export default function MatchHistoryPage() {
   if (isLoading) {
     return (
       <div className="h-full overflow-y-auto">
-        <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
+        <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-5">
           <div className="animate-pulse">
             <div className="h-7 w-36 bg-white/5 rounded-lg mb-1" />
             <div className="h-4 w-24 bg-white/5 rounded" />
           </div>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-20 bg-white/5 rounded-xl animate-pulse" />
-          ))}
+          <HistorySkeleton />
         </div>
       </div>
     );
@@ -80,30 +179,23 @@ export default function MatchHistoryPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
-        {/* Header */}
+      <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-5">
+        {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-white">Match History</h1>
-            <p className="text-gray-500 text-sm">
+            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              <Swords className="w-5 h-5 text-[#e09225]" />
+              Match History
+            </h1>
+            <p className="text-gray-500 text-sm mt-0.5">
               {pagination?.total || 0} match{pagination?.total !== 1 ? "es" : ""} played
             </p>
           </div>
-          <button
-            onClick={() => router.push("/game/home")}
-            className="text-sm text-[#e09225] hover:underline"
-          >
-            Back to Home
-          </button>
         </div>
 
-        {/* Matches List */}
+        {/* ── Matches list ── */}
         {matches.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
+          <div className="text-center py-16">
             <Swords className="w-16 h-16 text-gray-700 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-400 mb-2">No matches yet</h3>
             <p className="text-gray-600 text-sm mb-6">Play your first match to see it here</p>
@@ -113,83 +205,66 @@ export default function MatchHistoryPage() {
             >
               Play Now
             </button>
-          </motion.div>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {matches.map((match: any, i: number) => (
-              <motion.button
+              <MatchCard
                 key={match.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.03 }}
+                match={match}
+                index={i}
                 onClick={() => router.push(`/game/match/${match.id}`)}
-                className="w-full flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/[0.02] hover:border-white/10 transition-all group text-left"
-              >
-                {/* Result badge */}
-                <div className="shrink-0">
-                  <ResultBadge result={match.result} />
-                </div>
-
-                {/* Score */}
-                <div className="flex items-center gap-2 text-lg font-bold shrink-0">
-                  <span className={match.result === "win" ? "text-green-400" : match.result === "loss" ? "text-red-400" : "text-white"}>
-                    {match.userScore}
-                  </span>
-                  <span className="text-gray-600">-</span>
-                  <span className={match.result === "loss" ? "text-green-400" : match.result === "win" ? "text-red-400" : "text-white"}>
-                    {match.opponentScore}
-                  </span>
-                </div>
-
-                {/* Opponent */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
-                    vs {match.opponentName}
-                  </p>
-                  <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3" />
-                      +{match.xpEarned} XP
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Trophy className="w-3 h-3" />
-                      +{match.coinsEarned} coins
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Target className="w-3 h-3" />
-                      {match.userShots}-{match.opponentShots} shots
-                    </span>
-                  </div>
-                </div>
-
-                {/* Time */}
-                <div className="flex items-center gap-1 text-[10px] text-gray-600 shrink-0">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatTimeAgo(match.createdAt)}</span>
-                </div>
-              </motion.button>
+              />
             ))}
           </div>
         )}
 
-        {/* Pagination */}
+        {/* ── Pagination ── */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="flex items-center gap-1 px-4 py-2 rounded-lg bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
             >
               <ChevronLeft className="w-4 h-4" />
               Previous
             </button>
-            <span className="text-sm text-gray-500">
-              Page {page} of {pagination.totalPages}
-            </span>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                .filter((p) => {
+                  // Show first, last, and surrounding pages
+                  return (
+                    p === 1 ||
+                    p === pagination.totalPages ||
+                    Math.abs(p - page) <= 1
+                  );
+                })
+                .map((p, idx, arr) => {
+                  const showEllipsis = idx > 0 && p - arr[idx - 1] > 1;
+                  return (
+                    <div key={p} className="flex items-center gap-2">
+                      {showEllipsis && (
+                        <span className="text-gray-600 text-sm">...</span>
+                      )}
+                      <button
+                        onClick={() => setPage(p)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
+                          p === page
+                            ? "bg-[#e09225]/20 text-[#e09225] border border-[#e09225]/30"
+                            : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={!pagination.hasMore}
-              className="flex items-center gap-1 px-4 py-2 rounded-lg bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
             >
               Next
               <ChevronRight className="w-4 h-4" />

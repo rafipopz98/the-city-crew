@@ -118,7 +118,9 @@ export async function GET(request: Request) {
       collection,
       total,
       page,
+      limit,
       totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
       allTotal,
       ownedCount,
     });

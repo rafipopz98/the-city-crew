@@ -6,8 +6,8 @@ import { GameOwnedPlayerModel } from "@/lib/game/models/GameOwnedPlayer";
 import { logError } from "@/lib/errorLogger";
 import { getUserIdFromAuth } from "@/lib/game/utils/auth";
 
-// GET /api/game/shop - Get shop players available for purchase
-export async function GET() {
+// GET /api/game/shop - Get paginated shop players available for purchase
+export async function GET(request: Request) {
   try {
     const auth = await getUserIdFromAuth();
     if (!auth) {
@@ -15,6 +15,10 @@ export async function GET() {
     }
 
     await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "12")));
 
     const [gameUser, ownedPlayerDocs] = await Promise.all([
       GameUserModel.findOne({ userId: auth.userId }).lean(),
@@ -29,8 +33,8 @@ export async function GET() {
     const userXp = gameUser.xp || 0;
     const userCoins = gameUser.coins || 0;
 
-    // Single aggregation pipeline — faster than loading all and filtering in JS
-    const shopItems = await GamePlayerModel.aggregate([
+    // Paginated aggregation pipeline
+    const pipeline: any = [
       {
         $addFields: {
           is_owned: { $in: [{ $toString: "$_id" }, [...ownedSet].map((id) => id)] },
@@ -48,18 +52,42 @@ export async function GET() {
       },
       { $sort: { sort_order: 1, overall: -1 } },
       {
-        $project: {
-          _id: 1, player_id: 1, short_name: 1, long_name: 1,
-          nationality: 1, positions: 1, overall: 1,
-          pace: 1, shooting: 1, passing: 1, dribbling: 1,
-          defending: 1, physic: 1, image_url: 1, rarity: 1,
-          required_xp: 1, price: 1,
-          is_owned: 1, can_afford: 1, xp_met: 1, locked: 1,
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 1, player_id: 1, short_name: 1, long_name: 1,
+                nationality: 1, positions: 1, overall: 1,
+                pace: 1, shooting: 1, passing: 1, dribbling: 1,
+                defending: 1, physic: 1, image_url: 1, rarity: 1,
+                required_xp: 1, price: 1,
+                is_owned: 1, can_afford: 1, xp_met: 1, locked: 1,
+              },
+            },
+          ],
         },
       },
-    ]);
+    ];
 
-    return NextResponse.json({ shopItems, userXp, userCoins });
+    const [result] = await GamePlayerModel.aggregate(pipeline);
+    const total = result.metadata[0]?.total || 0;
+    const shopItems = result.data;
+
+    return NextResponse.json({
+      shopItems,
+      userXp,
+      userCoins,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
+      },
+    });
   } catch (error) {
     await logError("/api/game/shop", "GET", error);
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });

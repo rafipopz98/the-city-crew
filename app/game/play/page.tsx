@@ -9,24 +9,19 @@ import {
   Users,
   Shield,
   Zap,
-  Trophy,
   Clock,
   ArrowRight,
   Loader,
-  Wifi,
   Bot,
-  Globe,
 } from "lucide-react";
 import { useGameUser, useSquad, useStartMatch } from "@/lib/game/hooks/useGameQuery";
 import { LoadingState, ErrorState } from "@/app/game/_components";
 
 type MatchState = "idle" | "searching" | "found" | "starting";
-type MatchMode = "bot" | "pvp";
 
 export default function PlayPage() {
   const router = useRouter();
   const [matchState, setMatchState] = useState<MatchState>("idle");
-  const [matchMode, setMatchMode] = useState<MatchMode>("bot");
   const [searchTime, setSearchTime] = useState(0);
 
   const { data: userData, isLoading: userLoading, isError: userError } = useGameUser();
@@ -53,10 +48,10 @@ export default function PlayPage() {
 
     searchTimerRef.current = setInterval(() => {
       setSearchTime((t) => {
-        if (t >= 5) {
+        if (t >= 3) {
           if (searchTimerRef.current) clearInterval(searchTimerRef.current);
           setMatchState("found");
-          return 5;
+          return 3;
         }
         return t + 1;
       });
@@ -73,11 +68,6 @@ export default function PlayPage() {
   const handleStartSearch = () => {
     if (!squad || !squad.players || squad.players.length !== 5) {
       router.push("/game/squad");
-      return;
-    }
-
-    if (matchMode === "pvp") {
-      router.push("/game/play/pvp");
       return;
     }
 
@@ -163,38 +153,8 @@ export default function PlayPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto p-4 md:p-6 flex flex-col items-center justify-center min-h-full gap-8">
-        {/* Mode Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex gap-2 bg-white/5 p-1.5 rounded-xl border border-white/10"
-        >
-          <button
-            onClick={() => setMatchMode("bot")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              matchMode === "bot"
-                ? "bg-[#e09225] text-[#0a1628] shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Bot className="w-4 h-4" />
-            Quick Match (Bot)
-          </button>
-          <button
-            onClick={() => setMatchMode("pvp")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              matchMode === "pvp"
-                ? "bg-green-500 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Globe className="w-4 h-4" />
-            Online (PvP)
-          </button>
-        </motion.div>
-
         <AnimatePresence mode="wait">
-          {matchState === "idle" && matchMode === "bot" && (
+          {matchState === "idle" && (
             <motion.div
               key="idle-bot"
               initial={{ opacity: 0, y: 20 }}
@@ -263,72 +223,7 @@ export default function PlayPage() {
             </motion.div>
           )}
 
-          {matchState === "idle" && matchMode === "pvp" && (
-            <motion.div
-              key="idle-pvp"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full space-y-8 text-center"
-            >
-              <div>
-                <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-linear-to-br from-blue-500/20 to-blue-600/5 border-2 border-blue-500/30 flex items-center justify-center">
-                  <Wifi className="w-12 h-12 text-blue-400" />
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Online Match</h1>
-                <p className="text-gray-400">Play against real opponents in real-time.</p>
-              </div>
-
-              <div className="bg-blue-500/5 rounded-xl p-4 border border-blue-500/20 space-y-3 text-left">
-                <h3 className="text-sm font-medium text-blue-400 uppercase tracking-wider">How it works</h3>
-                <div className="flex items-start gap-3 text-sm text-gray-300">
-                  <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-blue-400 text-xs font-bold">1</span>
-                  </div>
-                  <p>Enter the matchmaking queue</p>
-                </div>
-                <div className="flex items-start gap-3 text-sm text-gray-300">
-                  <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-blue-400 text-xs font-bold">2</span>
-                  </div>
-                  <p>Get matched with a similar-rated opponent</p>
-                </div>
-                <div className="flex items-start gap-3 text-sm text-gray-300">
-                  <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-blue-400 text-xs font-bold">3</span>
-                  </div>
-                  <p>Watch the match simulation live together</p>
-                </div>
-                <div className="flex items-start gap-3 text-sm text-gray-300">
-                  <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-blue-400 text-xs font-bold">4</span>
-                  </div>
-                  <p>Earn rewards based on the result</p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleStartSearch}
-                className="w-full py-5 bg-blue-500 text-white font-bold text-lg rounded-xl hover:bg-blue-500/90 transition flex items-center justify-center gap-3"
-              >
-                <Globe className="w-6 h-6" />
-                Find Online Match
-              </button>
-
-              {(!squad || !squad.players || squad.players.length !== 5) && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-                  <p className="text-amber-400 text-sm">
-                    You need a complete 5-player squad to play.{' '}
-                    <button onClick={() => router.push("/game/squad")} className="underline font-medium">
-                      Build your squad
-                    </button>
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {matchState === "searching" && matchMode === "bot" && (
+          {matchState === "searching" && (
             <motion.div
               key="searching"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -363,7 +258,7 @@ export default function PlayPage() {
             </motion.div>
           )}
 
-          {(matchState === "found" || matchState === "starting") && matchMode === "bot" && (
+          {(matchState === "found" || matchState === "starting") && (
             <motion.div
               key="found"
               initial={{ opacity: 0, scale: 0.9 }}

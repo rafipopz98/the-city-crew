@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, Trophy, Clock, Home, RefreshCw, Zap, Target, Shield, Award, Frown, Handshake } from "lucide-react";
+import { Swords, Trophy, Clock, Zap, Target, Shield, Award, Frown, Handshake } from "lucide-react";
 import { ErrorState, SkeletonMatchDetail } from "@/app/game/_components";
 
 interface MatchEvent {
@@ -50,6 +50,8 @@ export default function MatchSimulationPage() {
   const [gameUser, setGameUser] = useState<any>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
+  const cameFromMatch = useRef(false);
+  const [isHistoryView, setIsHistoryView] = useState(false);
 
   useEffect(() => {
     if (loadedRef.current) return;
@@ -62,6 +64,7 @@ export default function MatchSimulationPage() {
       // First try sessionStorage (from match start redirect)
       const stored = sessionStorage.getItem("lastMatchResult");
       if (stored) {
+        cameFromMatch.current = true;
         const data = JSON.parse(stored);
         setMatchData(data);
         sessionStorage.removeItem("lastMatchResult");
@@ -70,7 +73,10 @@ export default function MatchSimulationPage() {
         return;
       }
 
-      // Fallback: load from API
+      // Not from match — viewing from history
+      setIsHistoryView(true);
+
+      // Load from API
       const res = await fetch(`/api/game/match/${matchId}`, {
         credentials: "include",
       });
@@ -142,30 +148,6 @@ export default function MatchSimulationPage() {
     }, 1500);
   };
 
-  const getEventIcon = (type: string) => {
-    switch (type) {
-      case "goal": return <Target className="w-5 h-5 text-green-400 shrink-0" />;
-      case "save": return <Shield className="w-5 h-5 text-blue-400 shrink-0" />;
-      case "chance": return <Zap className="w-5 h-5 text-amber-400 shrink-0" />;
-      case "half_time": case "full_time": return <Clock className="w-5 h-5 text-gray-500 shrink-0" />;
-      default: return <Zap className="w-5 h-5 text-gray-500 shrink-0" />;
-    }
-  };
-
-  const TeamBadge = ({ actorName }: { actorName: string }) => {
-    if (!actorName) return null;
-    const isMyTeam = actorName === "user";
-    return (
-      <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-        isMyTeam
-          ? "bg-green-500/15 text-green-400 border border-green-500/25"
-          : "bg-red-500/15 text-red-400 border border-red-500/25"
-      }`}>
-        {isMyTeam ? "YOU" : "OPP"}
-      </span>
-    );
-  };
-
   const getResultColor = (result: string) => {
     switch (result) {
       case "win": return "text-green-400";
@@ -175,9 +157,9 @@ export default function MatchSimulationPage() {
     }
   };
 
-  // Auto-redirect to home after result is shown
+  // Auto-redirect to home ONLY after a freshly played match, not when viewing history
   useEffect(() => {
-    if (!showResult) return;
+    if (!showResult || !cameFromMatch.current) return;
     const timer = setTimeout(() => {
       router.push("/game/home");
     }, 4000);
@@ -229,100 +211,181 @@ export default function MatchSimulationPage() {
   const events = matchData.events || [];
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full flex flex-col">
       <AnimatePresence mode="wait">          {!showResult ? (
           <motion.div
             key="simulation"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="max-w-2xl mx-auto p-4 md:p-6 space-y-4"
+            className="flex flex-col h-full"
           >
-            {/* Scoreboard */}
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              className="bg-white/5 rounded-2xl p-6 border border-white/10 mb-6"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-center flex-1">
-                  <p className="text-sm text-gray-400 mb-1">{gameUser?.username || "You"}</p>
-                  <motion.p
-                    key={liveUserScore}
-                    initial={{ scale: 1.5 }}
-                    animate={{ scale: 1 }}
-                    className="text-5xl font-bold text-white"
-                  >
-                    {liveUserScore}
-                  </motion.p>
-                </div>
-                <div className="px-4">
-                  <div className="w-1 h-16 bg-white/10 rounded-full" />
-                </div>
-                <div className="text-center flex-1">
-                  <p className="text-sm text-gray-400 mb-1">Opponent</p>
-                  <motion.p
-                    key={liveOpponentScore}
-                    initial={{ scale: 1.5 }}
-                    animate={{ scale: 1 }}
-                    className="text-5xl font-bold text-white"
-                  >
-                    {liveOpponentScore}
-                  </motion.p>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <Clock className="w-3 h-3 text-gray-500" />
-                <span className="text-xs text-gray-500">
-                  Simulating match events...
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Match Events */}
-            <div className="space-y-2">
-              {events.slice(0, visibleEvents).map((event, i) => {
-                const actorName = event.actorName || (event.isUserEvent ? "user" : "opponent");
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`flex items-start gap-3 p-3 rounded-xl ${
-                      event.type === "goal"
-                        ? actorName === "user"
-                          ? "bg-green-500/5 border border-green-500/15"
-                          : "bg-red-500/5 border border-red-500/15"
-                        : ""
-                    }`}
-                  >
-                    <span className="text-xs font-bold text-gray-500 w-10 shrink-0">{event.minute}'</span>
-                    <span className="shrink-0">{getEventIcon(event.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-300 leading-snug">{event.description}</p>
+            {/* ── Fixed Scoreboard ── */}
+            <div className="shrink-0 bg-[#0a1628] border-b border-white/5 px-4 md:px-6 py-4">
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] rounded-2xl border border-white/10 p-4 md:p-5">
+                  <div className="flex items-center justify-between">
+                    {/* Home team */}
+                    <div className="text-center flex-1 min-w-0">
+                      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider truncate">
+                        {gameUser?.username || "You"}
+                      </p>
+                      <p className="text-4xl md:text-5xl font-extrabold text-white mt-1 leading-none">
+                        {liveUserScore}
+                      </p>
                     </div>
-                    <TeamBadge actorName={actorName} />
-                  </motion.div>
-                );
-              })}
-              <div ref={eventsEndRef} />
+
+                    {/* Center divider + time */}
+                    <div className="flex flex-col items-center px-3 md:px-6">
+                      <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mb-2">
+                        <Clock className="w-3 h-3" />
+                        <span>LIVE</span>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                        <span className="text-xs font-bold text-gray-400">vs</span>
+                      </div>
+                    </div>
+
+                    {/* Away team */}
+                    <div className="text-center flex-1 min-w-0">
+                      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider truncate">
+                        Opponent
+                      </p>
+                      <p className="text-4xl md:text-5xl font-extrabold text-white mt-1 leading-none">
+                        {liveOpponentScore}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {visibleEvents < events.length && (
-              <div className="flex items-center justify-center gap-2 py-4 text-gray-500">
-                <div className="w-2 h-2 rounded-full bg-[#e09225] animate-pulse" />
-                <span className="text-xs">Match in progress...</span>
+            {/* ── Scrollable Events ── */}
+            <div className="flex-1 overflow-y-auto px-4 md:px-6">
+              <div className="max-w-2xl mx-auto py-4 space-y-1.5">
+                {/* Timeline line */}
+                <div className="relative">
+                  {/* Vertical timeline line */}
+                  <div className="absolute left-[25px] top-0 bottom-0 w-px bg-gradient-to-b from-green-500/30 via-white/5 to-white/5" />
+
+                  {[...events]
+                    .sort((a, b) => a.minute - b.minute)
+                    .slice(0, visibleEvents)
+                    .map((event, i) => {
+                    const actorName = event.actorName || (event.isUserEvent ? "user" : "opponent");
+                    const isGoal = event.type === "goal";
+                    const isUserEvent_bool = actorName === "user";
+                    
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                        className={`relative flex items-start gap-3 pl-[50px] py-2.5 ${
+                          isGoal
+                            ? isUserEvent_bool
+                              ? "bg-green-500/[0.04] rounded-xl"
+                              : "bg-red-500/[0.04] rounded-xl"
+                            : ""
+                        }`}
+                      >
+                        {/* Timeline dot */}
+                        <div className={`absolute left-[19px] top-3.5 w-3 h-3 rounded-full border-2 ${
+                          isGoal
+                            ? isUserEvent_bool
+                              ? "bg-green-400 border-green-400/30"
+                              : "bg-red-400 border-red-400/30"
+                            : "bg-white/10 border-white/5"
+                        }`}>
+                          {isGoal && (
+                            <div className="absolute inset-0 rounded-full animate-ping opacity-30" 
+                              style={{ backgroundColor: isUserEvent_bool ? "#22c55e" : "#ef4444" }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Minute */}
+                        <div className="shrink-0 w-10 text-right">
+                          <span className={`text-xs font-bold tabular-nums ${
+                            isGoal ? "text-white" : "text-gray-600"
+                          }`}>
+                            {event.minute}'
+                          </span>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className={`flex items-start gap-2 ${
+                            isGoal ? "bg-green-500/[0.06] p-2 rounded-lg border border-green-500/10" : ""
+                          }`}>
+                            {/* Icon */}
+                            <span className="shrink-0 mt-0.5">
+                              {event.type === "goal" ? (
+                                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                                  <Target className="w-3 h-3 text-green-400" />
+                                </div>
+                              ) : event.type === "save" ? (
+                                <Shield className="w-4 h-4 text-blue-400" />
+                              ) : event.type === "half_time" || event.type === "full_time" ? (
+                                <Clock className="w-4 h-4 text-gray-500" />
+                              ) : (
+                                <Zap className="w-4 h-4 text-amber-400/60" />
+                              )}
+                            </span>
+
+                            {/* Description */}
+                            <p className={`text-sm leading-snug ${
+                              isGoal ? "text-white font-medium" : "text-gray-400"
+                            }`}>
+                              {event.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Team badge */}
+                        {actorName && (
+                          <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-0.5 ${
+                            actorName === "user"
+                              ? "bg-green-500/15 text-green-400"
+                              : "bg-red-500/15 text-red-400"
+                          }`}>
+                            {actorName === "user" ? "YOU" : "OPP"}
+                          </span>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                <div ref={eventsEndRef} />
+
+                {/* Loading indicator */}
+                {visibleEvents < events.length && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center justify-center gap-2.5 py-6"
+                  >
+                    <div className="flex gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#e09225] animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#e09225] animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#e09225] animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">Match in progress...</span>
+                  </motion.div>
+                )}
               </div>
-            )}
+            </div>
           </motion.div>
         ) : (
           <motion.div
             key="result"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl mx-auto p-4 md:p-6 space-y-6"
+            className="overflow-y-auto"
           >
+          <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
             {/* Result Header */}
             <div className="text-center">
               <div className="mb-4 flex justify-center">{getResultIcon(matchData.matchResult)}</div>
@@ -378,10 +441,20 @@ export default function MatchSimulationPage() {
               </div>
             </div>
 
-            {/* Auto-redirecting to home */}
+            {/* Auto-redirecting to home or back to history */}
             <div className="text-center">
-              <p className="text-gray-500 text-sm">Returning to home...</p>
+              {isHistoryView ? (
+                <button
+                  onClick={() => router.push("/game/history")}
+                  className="text-[#e09225] text-sm font-medium hover:underline inline-flex items-center gap-1"
+                >
+                  ← Back to History
+                </button>
+              ) : (
+                <p className="text-gray-500 text-sm">Returning to home...</p>
+              )}
             </div>
+          </div>
           </motion.div>
         )}
       </AnimatePresence>

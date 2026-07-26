@@ -9,8 +9,7 @@ import { UtmCapture } from "@/components/common/UtmCapture";
 import { VisitorTracker } from "@/components/common/VisitorTracker";
 import { PageTracker } from "@/components/common/PageTracker";
 import { ServiceWorkerRegister } from "@/components/common/ServiceWorkerRegister";
-import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
-import { DailyChallengeBanner } from "@/components/common/DailyChallengeBanner";
+
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -92,8 +91,6 @@ export default function RootLayout({
           <VisitorTracker />
           <PageTracker />
           <ServiceWorkerRegister />
-          <PwaInstallPrompt />
-          <DailyChallengeBanner />
           <Toaster />
           {/* <SmoothScrollWrapper> */}
           <QueryProvider>{children}</QueryProvider>

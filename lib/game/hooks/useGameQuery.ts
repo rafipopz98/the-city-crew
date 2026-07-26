@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
 
 async function fetchJSON(url: string) {
   const res = await fetch(url, { credentials: "include" });
@@ -31,6 +31,19 @@ export function useShop() {
   });
 }
 
+export function useInfiniteShop(limit: number = 12) {
+  return useInfiniteQuery({
+    queryKey: ["game", "shop", "infinite", limit],
+    queryFn: ({ pageParam }) =>
+      fetchJSON(`/api/game/shop?page=${pageParam}&limit=${limit}`),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasMore ? lastPage.pagination.page + 1 : undefined,
+    staleTime: 15_000,
+    retry: 1,
+  });
+}
+
 export function useBuyPlayer() {
   const qc = useQueryClient();
   return useMutation({
@@ -47,6 +60,7 @@ export function useBuyPlayer() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["game", "shop"] });
+      qc.invalidateQueries({ queryKey: ["game", "shop", "infinite"] });
       qc.invalidateQueries({ queryKey: ["game", "collection"] });
       qc.invalidateQueries({ queryKey: ["game", "squad"] });
       qc.invalidateQueries({ queryKey: ["game", "user"] });
@@ -68,6 +82,36 @@ export function useCollection(params?: { rarity?: string; position?: string; sea
     queryFn: () => fetchJSON(`/api/game/collection${query ? `?${query}` : ""}`),
     staleTime: 20_000,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useInfiniteCollection(params?: {
+  rarity?: string;
+  position?: string;
+  search?: string;
+  owned?: string;
+  limit?: number;
+}) {
+  const limit = params?.limit || 24;
+
+  // Build a consistent query key that excludes page
+  const qs = new URLSearchParams();
+  if (params?.rarity && params.rarity !== "all") qs.set("rarity", params.rarity);
+  if (params?.position && params.position !== "all") qs.set("position", params.position);
+  if (params?.search) qs.set("search", params.search);
+  if (params?.owned) qs.set("owned", params.owned);
+  qs.set("limit", String(limit));
+  const query = qs.toString();
+
+  return useInfiniteQuery({
+    queryKey: ["game", "collection", "infinite", query],
+    queryFn: ({ pageParam }) =>
+      fetchJSON(`/api/game/collection?${query}&page=${pageParam}`),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.page + 1 : undefined,
+    staleTime: 20_000,
+    retry: 1,
   });
 }
 

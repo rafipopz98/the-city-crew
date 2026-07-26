@@ -6,6 +6,8 @@ import Projects from "../components/Landing-Page/Projects";
 import StandingsSection from "../components/Landing-Page/StandingSection";
 import { createMetadata } from "@/lib/seo";
 import Footer from "@/components/common/Footer";
+import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
+import { DailyChallengeBanner } from "@/components/common/DailyChallengeBanner";
 
 const LandingPage = () => {
   return (
@@ -17,6 +19,8 @@ const LandingPage = () => {
       <OurWork />
       <Projects />
       <Footer />
+      <PwaInstallPrompt />
+      <DailyChallengeBanner />
     </>
   );
 };

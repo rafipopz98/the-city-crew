@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,9 +22,10 @@ const NAV_ITEMS = [
   { label: "Home", icon: Home, href: "/game/home", shortcut: "1" },
   { label: "Play", icon: Swords, href: "/game/play", shortcut: "2" },
   { label: "Shop", icon: Store, href: "/game/shop", shortcut: "3" },
-  { label: "Collection", icon: Library, href: "/game/collection", shortcut: "4" },
-  { label: "Leaderboard", icon: BarChart3, href: "/game/leaderboard", shortcut: "5" },
-  { label: "Profile", icon: User, href: "/game/profile", shortcut: "6" },
+  { label: "Upgrade", icon: TrendingUp, href: "/game/upgrade", shortcut: "4" },
+  { label: "Collection", icon: Library, href: "/game/collection", shortcut: "5" },
+  { label: "Leaderboard", icon: BarChart3, href: "/game/leaderboard", shortcut: "6" },
+  { label: "Profile", icon: User, href: "/game/profile", shortcut: "7" },
 ];
 
 const HOW_TO_PLAY = { label: "How to Play", icon: Trophy, href: "/game/how-to-play" };
