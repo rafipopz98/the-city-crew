@@ -45,17 +45,23 @@ export async function POST(request: Request) {
     // Get username: from body or from User model
     let finalUsername = username?.trim();
 
-    if (!finalUsername) {
-      // Try to get from User model
-      const appUser = await UserModel.findById(auth.userId).select("username");
-      finalUsername = appUser?.username;
-    }
-
     if (!finalUsername || finalUsername.length < 3) {
-      return NextResponse.json(
-        { message: "Username is required (min 3 characters)" },
-        { status: 400 },
-      );
+      // Get from User model or auto-generate from first_name + last_name
+      const appUser = await UserModel.findById(auth.userId).select("username first_name last_name");
+      finalUsername = appUser?.username;
+
+      if ((!finalUsername || finalUsername.length < 3) && appUser?.first_name) {
+        const base = (appUser.first_name + (appUser.last_name ? `_${appUser.last_name}` : ''))
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, '')
+          .slice(0, 20);
+        finalUsername = base.length >= 3 ? base : base + Math.random().toString(36).slice(2, 6);
+      } else if (!finalUsername || finalUsername.length < 3) {
+        return NextResponse.json(
+          { message: "Username is required (min 3 characters)" },
+          { status: 400 },
+        );
+      }
     }
 
     const existingUsername = await GameUserModel.findOne({ username: finalUsername });

@@ -278,6 +278,25 @@ export default function GameHomePage() {
             </div>
           </motion.button>
         )}
+
+        {/* Go to TCC Website */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="pt-2 pb-8"
+        >
+          <button
+            onClick={() => router.push("/")}
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/5 hover:border-white/20 transition-all group"
+          >
+            <Globe className="w-5 h-5 text-gray-500 group-hover:text-[#e09225] transition" />
+            <span className="text-sm font-medium text-gray-500 group-hover:text-white transition">
+              Go to TCC Website
+            </span>
+            <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-[#e09225] transition" />
+          </button>
+        </motion.div>
       </div>
     </div>
   );

@@ -266,6 +266,17 @@ function getDefender(players: MatchPlayer[]): MatchPlayer {
   return pickOutfieldPlayer(players);
 }
 
+/**
+ * Pick the kick-off taker: FWD > MID > DEF (never GK).
+ */
+function pickKickoffTaker(players: MatchPlayer[]): MatchPlayer {
+  const forwards = players.filter((p) => p.position === "FWD");
+  if (forwards.length > 0) return forwards[Math.floor(Math.random() * forwards.length)];
+  const mids = players.filter((p) => p.position === "MID");
+  if (mids.length > 0) return mids[Math.floor(Math.random() * mids.length)];
+  return getDefender(players);
+}
+
 // Rich description templates (identical style to PvP socket engine)
 const userChanceDescs = [
   (p: string) => `${p} cuts inside and fires just wide of the post!`,
@@ -365,13 +376,14 @@ export function simulateMatch(
   const userPlayers = userSquad.players;
   const oppPlayers = opponent.players;
 
+  const kickoffTaker = pickKickoffTaker(userSquad.players);
   events.push({
     minute: 1,
     type: "possession",
-    description: `The match kicks off! ${homeName} vs ${awayName}! ⚡`,
-    playerName: "",
+    description: `The match kicks off! ${kickoffTaker.short_name} gets us underway! ⚡`,
+    playerName: kickoffTaker.short_name,
     isUserEvent: true,
-    actorName: "",
+    actorName: "user",
   });
 
   // ── FIRST HALF ─────────────────────────────────────────────────────────

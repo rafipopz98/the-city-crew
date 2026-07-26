@@ -6,50 +6,32 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, User, Sparkles, ArrowRight, Swords, Shield, Zap } from "lucide-react";
 import { ErrorState, Skeleton } from "@/app/game/_components";
 
-type Step = "welcome" | "username" | "reveal" | "done";
+type Step = "welcome" | "creating" | "reveal" | "done";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("welcome");
-  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [submissionError, setSubmissionError] = useState("");
   const [loading, setLoading] = useState(false);
   const [starterPlayers, setStarterPlayers] = useState<any[]>([]);
   const [revealIndex, setRevealIndex] = useState(-1);
-  const handleStart = () => {
-    setStep("username");
-  };
 
-  const handleSubmitUsername = async () => {
-    setError("");
-    setSubmissionError("");
-    if (username.length < 3) {
-      setError("Username must be at least 3 characters");
-      return;
-    }
-    if (username.length > 20) {
-      setError("Username must be 20 characters or less");
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      setError("Only letters, numbers, and underscores");
-      return;
-    }
-
+  const handleStart = async () => {
+    setStep("creating");
     setLoading(true);
     try {
       const res = await fetch("/api/game/user/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({}), // No username — API will auto-derive from User model
         credentials: "include",
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Something went wrong");
+        setSubmissionError(data.message || "Something went wrong");
         setLoading(false);
         return;
       }
@@ -103,17 +85,19 @@ export default function OnboardingPage() {
     );
   }
 
-  if (loading && step === "username") {
+  if (loading && step === "creating") {
     return (
       <div className="min-h-screen bg-[#0a1628] flex items-center justify-center p-4">
-        <div className="max-w-md w-full space-y-6" aria-label="Creating your starter squad">
+        <div className="max-w-md w-full space-y-6 text-center" aria-label="Creating your starter squad">
           <div className="flex flex-col items-center gap-3">
             <Skeleton className="w-16 h-16 rounded-full" />
             <Skeleton className="w-56 h-7" />
             <Skeleton className="w-72 h-4" />
           </div>
-          <Skeleton className="w-full h-14 rounded-xl" />
-          <Skeleton className="w-full h-14 rounded-xl" />
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <div className="w-5 h-5 border-2 border-[#e09225] border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400 text-sm">Setting up your manager profile...</p>
+          </div>
         </div>
       </div>
     );
@@ -203,70 +187,6 @@ export default function OnboardingPage() {
               Get Started
               <ArrowRight className="w-5 h-5" />
             </motion.button>
-          </motion.div>
-        )}
-
-        {step === "username" && (
-          <motion.div
-            key="username"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            className="max-w-md w-full"
-          >
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#e09225]/10 border-2 border-[#e09225]/30 flex items-center justify-center">
-                <User className="w-8 h-8 text-[#e09225]" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Choose Your Username</h2>
-              <p className="text-gray-400 text-sm">This will be displayed on leaderboards</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    setError("");
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmitUsername()}
-                  placeholder="Enter your username..."
-                  maxLength={20}
-                  className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#e09225]/50 text-lg"
-                  autoFocus
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-sm">
-                  {username.length}/20
-                </span>
-              </div>
-
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-red-400 text-sm"
-                >
-                  {error}
-                </motion.p>
-              )}
-
-              <button
-                onClick={handleSubmitUsername}
-                disabled={loading || username.length < 3}
-                className="w-full py-4 bg-[#e09225] text-[#0a1628] font-bold rounded-xl hover:bg-[#e09225]/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <div className="w-6 h-6 border-2 border-[#0a1628] border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    Claim Your Squad
-                    <Sparkles className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-            </div>
           </motion.div>
         )}
 

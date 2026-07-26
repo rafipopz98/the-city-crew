@@ -78,6 +78,27 @@ function getDefender(players: PlayerInfo[]): string {
   return pickOutfieldPlayer(players).name;
 }
 
+/**
+ * Pick the kick-off taker: a FWD > MID > DEF (never GK).
+ * This ensures the match starts with a realistic player taking the first kick.
+ */
+function pickKickoffTaker(players: PlayerInfo[]): PlayerInfo {
+  // FWD first — most realistic for kick-off
+  const forwards = players.filter((p) => p.position === "FWD");
+  if (forwards.length > 0) return forwards[Math.floor(Math.random() * forwards.length)];
+
+  // Fall back to MID
+  const mids = players.filter((p) => p.position === "MID");
+  if (mids.length > 0) return mids[Math.floor(Math.random() * mids.length)];
+
+  // Last resort: DEF (still better than GK taking the kick-off)
+  const defs = players.filter((p) => p.position === "DEF");
+  if (defs.length > 0) return defs[Math.floor(Math.random() * defs.length)];
+
+  // Should never reach here, but just in case:
+  return pickOutfieldPlayer(players);
+}
+
 /** Get a random midfielder name */
 function getMidfielder(players: PlayerInfo[]): string {
   const mids = players.filter((p) => p.position === "MID");
@@ -219,7 +240,7 @@ export function simulatePvPMatch(
   events.push({
     minute: 1,
     type: "possession",
-    description: `The match kicks off! ${homePlayers[0]?.name || "Home"} get us underway.`,
+    description: `The match kicks off! ${pickKickoffTaker(homePlayers).name} gets us underway!`,
     actorName: "",
   });
 

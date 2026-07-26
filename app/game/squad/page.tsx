@@ -78,13 +78,22 @@ export default function SquadPage() {
         })
         .sort((a: any, b: any) => (b.playerId?.overall || 0) - (a.playerId?.overall || 0));
 
-      let ri = 0;
-      for (let i = 0; i < slots.length && ri < remaining.length; i++) {
-        if (!slots[i]) {
-          slots[i] = remaining[ri].playerId;
-          ri++;
+      // Fill remaining empty slots — only assign players whose position matches
+      for (let i = 0; i < slots.length; i++) {
+        if (slots[i]) continue;
+        const pos = POSITIONS[i];
+        const match = remaining.findIndex(
+          (op: any) => op.playerId && playerMatchesCategory(op.playerId.positions, pos),
+        );
+        if (match !== -1) {
+          slots[i] = remaining[match].playerId;
+          usedPlayerIds.add(remaining[match].playerId._id.toString());
+          remaining.splice(match, 1);
         }
       }
+
+      // DON'T assign unmatched players to wrong positions (e.g. a FWD as GK).
+      // Empty positions will remain visible so the user can fill them manually.
 
       setSquadSlots(slots);
     }
