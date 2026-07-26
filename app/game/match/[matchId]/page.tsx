@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, Trophy, Clock, Home, RefreshCw, Zap } from "lucide-react";
+import { Swords, Trophy, Clock, Home, RefreshCw, Zap, Target, Shield, Award, Frown, Handshake } from "lucide-react";
+import { ErrorState, SkeletonMatchDetail } from "@/app/game/_components";
 
 interface MatchEvent {
   minute: number;
@@ -11,6 +12,7 @@ interface MatchEvent {
   description: string;
   playerName: string;
   isUserEvent: boolean;
+  actorName?: string;
 }
 
 interface MatchResult {
@@ -40,6 +42,7 @@ export default function MatchSimulationPage() {
 
   const [matchData, setMatchData] = useState<MatchResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [visibleEvents, setVisibleEvents] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
   const [liveUserScore, setLiveUserScore] = useState(0);
@@ -93,9 +96,11 @@ export default function MatchSimulationPage() {
         };
         setMatchData(matchResultData);
         setShowResult(true); // Skip animation for reloaded matches
-      } else {
+      } else if (res.ok) {
         // No match found
         setLoading(false);
+      } else {
+        setLoadError(data.message || "Could not load this match. Please try again.");
       }
 
       // Also fetch game user
@@ -104,6 +109,7 @@ export default function MatchSimulationPage() {
       if (userData.gameUser) setGameUser(userData.gameUser);
     } catch (err) {
       console.error(err);
+      setLoadError("Could not load this match. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -138,19 +144,26 @@ export default function MatchSimulationPage() {
 
   const getEventIcon = (type: string) => {
     switch (type) {
-      case "goal": return <span className="text-2xl">⚽</span>;
-      case "save": return <span className="text-xl">🧤</span>;
-      case "chance": return <span className="text-xl">💥</span>;
-      case "half_time": case "full_time": return <span className="text-xl">⏱️</span>;
-      default: return <span className="text-xl">⚡</span>;
+      case "goal": return <Target className="w-5 h-5 text-green-400 shrink-0" />;
+      case "save": return <Shield className="w-5 h-5 text-blue-400 shrink-0" />;
+      case "chance": return <Zap className="w-5 h-5 text-amber-400 shrink-0" />;
+      case "half_time": case "full_time": return <Clock className="w-5 h-5 text-gray-500 shrink-0" />;
+      default: return <Zap className="w-5 h-5 text-gray-500 shrink-0" />;
     }
   };
 
-  const getEventColor = (event: MatchEvent) => {
-    if (event.type === "full_time") return "text-amber-400";
-    if (event.type === "half_time") return "text-gray-400";
-    if (event.type === "goal") return event.isUserEvent ? "text-green-400" : "text-red-400";
-    return event.isUserEvent ? "text-blue-400" : "text-gray-400";
+  const TeamBadge = ({ actorName }: { actorName: string }) => {
+    if (!actorName) return null;
+    const isMyTeam = actorName === "user";
+    return (
+      <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+        isMyTeam
+          ? "bg-green-500/15 text-green-400 border border-green-500/25"
+          : "bg-red-500/15 text-red-400 border border-red-500/25"
+      }`}>
+        {isMyTeam ? "YOU" : "OPP"}
+      </span>
+    );
   };
 
   const getResultColor = (result: string) => {
@@ -171,20 +184,30 @@ export default function MatchSimulationPage() {
     return () => clearTimeout(timer);
   }, [showResult, router]);
 
-  const getResultEmoji = (result: string) => {
+  const getResultIcon = (result: string) => {
     switch (result) {
-      case "win": return "🎉";
-      case "loss": return "😔";
-      case "draw": return "🤝";
-      default: return "";
+      case "win": return <Award className="w-14 h-14 text-green-400" />;
+      case "loss": return <Frown className="w-14 h-14 text-red-400" />;
+      case "draw": return <Handshake className="w-14 h-14 text-amber-400" />;
+      default: return null;
     }
   };
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#e09225] border-t-transparent rounded-full animate-spin" />
+      <div className="h-full overflow-y-auto">
+        <SkeletonMatchDetail />
       </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <ErrorState
+        title="Failed to load match"
+        message={loadError}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
@@ -207,14 +230,13 @@ export default function MatchSimulationPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <AnimatePresence mode="wait">
-        {!showResult ? (
+      <AnimatePresence mode="wait">          {!showResult ? (
           <motion.div
             key="simulation"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="max-w-2xl mx-auto p-4 md:p-6"
+            className="max-w-2xl mx-auto p-4 md:p-6 space-y-4"
           >
             {/* Scoreboard */}
             <motion.div
@@ -259,23 +281,31 @@ export default function MatchSimulationPage() {
 
             {/* Match Events */}
             <div className="space-y-2">
-              {events.slice(0, visibleEvents).map((event, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: event.isUserEvent ? -20 : 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex items-start gap-3 p-3 rounded-xl ${
-                    event.type === "goal" ? "bg-white/5 border border-white/10" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 shrink-0 w-16">
-                    <span className="text-xs font-bold text-gray-500">{event.minute}'</span>
-                  </div>
-                  <div className="shrink-0">{getEventIcon(event.type)}</div>
-                  <p className={`text-sm ${getEventColor(event)}`}>{event.description}</p>
-                </motion.div>
-              ))}
+              {events.slice(0, visibleEvents).map((event, i) => {
+                const actorName = event.actorName || (event.isUserEvent ? "user" : "opponent");
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex items-start gap-3 p-3 rounded-xl ${
+                      event.type === "goal"
+                        ? actorName === "user"
+                          ? "bg-green-500/5 border border-green-500/15"
+                          : "bg-red-500/5 border border-red-500/15"
+                        : ""
+                    }`}
+                  >
+                    <span className="text-xs font-bold text-gray-500 w-10 shrink-0">{event.minute}'</span>
+                    <span className="shrink-0">{getEventIcon(event.type)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-300 leading-snug">{event.description}</p>
+                    </div>
+                    <TeamBadge actorName={actorName} />
+                  </motion.div>
+                );
+              })}
               <div ref={eventsEndRef} />
             </div>
 
@@ -295,7 +325,7 @@ export default function MatchSimulationPage() {
           >
             {/* Result Header */}
             <div className="text-center">
-              <div className="text-6xl mb-4">{getResultEmoji(matchData.matchResult)}</div>
+              <div className="mb-4 flex justify-center">{getResultIcon(matchData.matchResult)}</div>
               <h1 className={`text-4xl font-bold ${getResultColor(matchData.matchResult)} uppercase`}>
                 {matchData.matchResult === "win" ? "Victory!" : matchData.matchResult === "loss" ? "Defeat" : "Draw"}
               </h1>

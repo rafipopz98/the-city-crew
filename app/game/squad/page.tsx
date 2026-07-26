@@ -7,6 +7,7 @@ import { Shield, Zap, Swords, User, Trophy, Check, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useSquad, useSaveSquad } from "@/lib/game/hooks/useGameQuery";
 import { SkeletonSquadSlots } from "@/app/game/_components";
+import { playerMatchesCategory, getPositionCategory, getPrimaryCategory } from "@/lib/game/utils/positionMapping";
 import { ErrorState } from "@/app/game/_components";
 
 const POSITIONS = ["GK", "DEF", "MID", "MID", "FWD"] as const;
@@ -56,12 +57,12 @@ export default function SquadPage() {
       const slots: (any | null)[] = [null, null, null, null, null];
       const usedPlayerIds = new Set();
 
-      // For each position, find the best available player
+      // For each position, find the best available player using position category matching
       POSITIONS.forEach((pos, i) => {
         const candidates = ownedPlayers
           .filter((op: any) => {
             const p = op.playerId;
-            return p && p.positions?.includes(pos) && !usedPlayerIds.has(p._id?.toString());
+            return p && playerMatchesCategory(p.positions, pos) && !usedPlayerIds.has(p._id?.toString());
           })
           .sort((a: any, b: any) => (b.playerId?.overall || 0) - (a.playerId?.overall || 0));
 
@@ -314,7 +315,7 @@ export default function SquadPage() {
                           <div className="flex-1 text-left min-w-0">
                             <p className="text-white text-sm font-medium truncate">{p.short_name}</p>
                             <p className="text-gray-500 text-[10px]">
-                              <span className={primaryPos === POSITIONS[i] ? "text-green-400" : "text-amber-400"}>
+                              <span className={getPositionCategory(primaryPos) === POSITIONS[i] ? "text-green-400" : "text-amber-400"}>
                                 {primaryPos}
                               </span>
                               {' '}• {p.rarity} • {p.overall} OVR

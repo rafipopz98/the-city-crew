@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Shield, Zap, Swords, User, Lock, Check, ShoppingCart, Trophy } from "lucide-react";
+import { ArrowLeft, Shield, Zap, Swords, User, Lock, Check, ShoppingCart, Plus, Coins, TrendingUp } from "lucide-react";
+import { ErrorState, SkeletonDetail } from "@/app/game/_components";
 import { toast } from "sonner";
 
 export default function PlayerDetailPage() {
@@ -11,22 +12,32 @@ export default function PlayerDetailPage() {
   const router = useRouter();
   const [player, setPlayer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [gameUser, setGameUser] = useState<any>(null);
   const [buying, setBuying] = useState(false);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/game/collection", { credentials: "include" }).then((r) => r.json()),
-      fetch("/api/game/user", { credentials: "include" }).then((r) => r.json()),
+      fetch(`/api/game/collection/${playerId}`, { credentials: "include" }),
+      fetch("/api/game/user", { credentials: "include" }),
     ])
-      .then(([collData, userData]) => {
-        const found = collData.collection?.find(
-          (p: any) => p._id === playerId || p.player_id?.toString() === playerId,
-        );
-        setPlayer(found || null);
+      .then(async ([playerResponse, userResponse]) => {
+        if (!playerResponse.ok || !userResponse.ok) {
+          throw new Error("Failed to load player data");
+        }
+
+        const [playerData, userData] = await Promise.all([
+          playerResponse.json(),
+          userResponse.json(),
+        ]);
+        setPlayer(playerData.player || null);
         setGameUser(userData.gameUser || null);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setLoadError("Could not load this player. Please try again.");
+      })
       .finally(() => setLoading(false));
   }, [playerId]);
 
@@ -73,11 +84,160 @@ export default function PlayerDetailPage() {
     }
   };
 
+  // ─── Upgrade logic ──────────────────────────────────────────────────────
+
+  function getCoinCost(newValue: number): number {
+    if (newValue >= 95) return 1000;
+    if (newValue >= 90) return 500;
+    if (newValue >= 85) return 200;
+    if (newValue >= 80) return 100;
+    return 50;
+  }
+
+  function getRequiredXp(newValue: number): number {
+    if (newValue >= 95) return 20000;
+    if (newValue >= 90) return 10000;
+    if (newValue >= 85) return 5000;
+    if (newValue >= 80) return 2000;
+    return 500;
+  }
+
+  function getEffectiveStat(stat: string): number {
+    const base = (player as any)?.[stat] || 0;
+    const upg = (player?.upgrade_levels || {})[stat] || 0;
+    return base + upg;
+  }
+
+  function getMaxEffectiveStat(): number {
+    if (!player) return 99;
+    const stats = ["pace", "shooting", "passing", "dribbling", "defending", "physic"];
+    let max = 0;
+    for (const s of stats) {
+      const val = getEffectiveStat(s);
+      if (val > max) max = val;
+    }
+    return Math.max(99, max);
+  }
+
+  const handleUpgrade = async (stat: string) => {
+    if (!player || !player.is_owned) return;
+    setUpgrading(stat);
+    try {
+      const res = await fetch("/api/game/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownedPlayerId: player._id, stat }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setPlayer((prev: any) => {
+          if (!prev) return prev;
+          const newLevels = { ...(prev.upgrade_levels || {}), [stat]: data.upgradeLevel };
+          const stats = ["pace", "shooting", "passing", "dribbling", "defending", "physic"];
+          let total = 0;
+          const updates: Record<string, number> = {};
+          for (const s of stats) {
+            const base = prev[s] || 0;
+            const upg = newLevels[s] || 0;
+            const eff = base + upg;
+            updates[`effective_${s}`] = eff;
+            total += eff;
+          }
+          return {
+            ...prev,
+            upgrade_levels: newLevels,
+            effective_overall: Math.round(total / 6),
+            ...Object.fromEntries(Object.entries(updates).map(([k, v]) => [k, v])),
+          };
+        });
+        setGameUser((prev: any) => ({ ...prev, coins: data.coins, xp: data.xp }));
+      } else {
+        toast.error(data.message || "Upgrade failed");
+      }
+    } catch {
+      toast.error("Connection error");
+    } finally {
+      setUpgrading(null);
+    }
+  };
+
+  // ─── Stat bar with upgrade button ───────────────────────────────────────
+
+  function StatBar({ label, stat, maxStat }: { label: string; stat: string; maxStat: number }) {
+    if (!player) return null;
+    const effective = getEffectiveStat(stat);
+    const upg = (player?.upgrade_levels || {})[stat] || 0;
+    const newVal = effective + 1;
+    const coinCost = getCoinCost(newVal);
+    const requiredXp = getRequiredXp(newVal);
+    const hasEnoughXp = (gameUser?.xp || 0) >= requiredXp;
+    const hasEnoughCoins = (gameUser?.coins || 0) >= coinCost;
+    const canAfford = hasEnoughXp && hasEnoughCoins;
+    const isUpgrading = upgrading === stat;
+
+    return (
+      <div className="flex items-center gap-2 py-0.5">
+        <span className="text-xs text-gray-400 w-20 shrink-0">{label}</span>
+        <div className="flex-1 h-2.5 bg-white/5 rounded-full overflow-hidden relative">
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{
+              width: `${(effective / maxStat) * 100}%`,
+              backgroundColor: effective >= 80 ? "#22c55e" : effective >= 60 ? "#e09225" : "#ef4444",
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-1 w-24 shrink-0">
+          <span className="text-xs font-bold text-white tabular-nums">{effective}</span>
+          {upg > 0 && (
+            <span className="text-[10px] text-green-400">(+{upg})</span>
+          )}
+        </div>
+        {player.is_owned && (
+          <button
+            onClick={() => handleUpgrade(stat)}
+            disabled={!canAfford || isUpgrading}
+            className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+              canAfford
+                ? "bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 cursor-pointer"
+                : "bg-gray-500/10 text-gray-500 border border-gray-500/20 cursor-not-allowed opacity-50"
+            }`}
+            title={`${coinCost} coins • ${requiredXp} XP required`}
+          >
+            {isUpgrading ? (
+              <div className="w-3 h-3 border border-green-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <Plus className="w-3 h-3" />
+                <Coins className="w-3 h-3" />
+                {coinCost}
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ─── Render ─────────────────────────────────────────────────────────────
+
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#e09225] border-t-transparent rounded-full animate-spin" />
+      <div className="h-full overflow-y-auto">
+        <SkeletonDetail />
       </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <ErrorState
+        title="Failed to load player"
+        message={loadError}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
@@ -89,25 +249,41 @@ export default function PlayerDetailPage() {
     );
   }
 
-  const statBar = (label: string, value: number, max = 99) => (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-gray-400 w-24 shrink-0">{label}</span>
-      <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{
-            width: `${(value / max) * 100}%`,
-            backgroundColor: value >= 80 ? "#22c55e" : value >= 60 ? "#e09225" : "#ef4444",
-          }}
-        />
-      </div>
-      <span className="text-xs font-bold text-white w-8 text-right">{value}</span>
-    </div>
-  );
-
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
+        {/* Wallet */}
+        {gameUser && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/5 rounded-xl p-3 border border-white/10 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <Coins className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-bold text-yellow-400 tabular-nums">
+                  {gameUser.coins?.toLocaleString() || 0}
+                </span>
+                <span className="text-[10px] text-gray-600">coins</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                  <span className="text-[8px] font-bold text-white">XP</span>
+                </div>
+                <span className="text-sm font-bold text-purple-400 tabular-nums">
+                  {gameUser.xp?.toLocaleString() || 0}
+                </span>
+                <span className="text-[10px] text-gray-600">XP</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-gray-500">
+              <TrendingUp className="w-3 h-3" />
+              <span>Rating {gameUser.rating || "-"}</span>
+            </div>
+          </motion.div>
+        )}
+
         {/* Back */}
         <button
           onClick={() => router.back()}
@@ -123,17 +299,14 @@ export default function PlayerDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           className="relative rounded-2xl overflow-hidden"
         >
-          {/* Rarity gradient background */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
               background: `linear-gradient(135deg, ${getRarityColor(player.rarity)}, transparent)`,
             }}
           />
-
           <div className="relative bg-white/5 border border-white/10 rounded-2xl p-6">
             <div className="flex items-center gap-6">
-              {/* Image */}
               <div className="w-24 h-24 rounded-full bg-white/5 overflow-hidden shrink-0 border-2"
                 style={{ borderColor: getRarityColor(player.rarity) }}
               >
@@ -141,8 +314,6 @@ export default function PlayerDetailPage() {
                   <img src={player.image_url} alt={player.short_name} className="w-full h-full object-cover" />
                 )}
               </div>
-
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span
@@ -174,17 +345,23 @@ export default function PlayerDetailPage() {
                   </div>
                 </div>
               </div>
-
               {/* Overall */}
               <div className="text-center">
-                <div className="text-4xl font-bold text-white">{player.overall}</div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Overall</p>
+                <div className="text-4xl font-bold text-white">
+                  {player.is_owned && player.effective_overall ? player.effective_overall : player.overall}
+                </div>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                  {player.is_owned && player.effective_overall ? "Upgraded" : "Overall"}
+                </p>
+                {player.is_owned && player.effective_overall > player.overall && (
+                  <p className="text-[10px] text-green-400">+{player.effective_overall - player.overall}</p>
+                )}
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Attributes */}
+        {/* Attributes with upgrade buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -192,12 +369,34 @@ export default function PlayerDetailPage() {
           className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-2"
         >
           <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Attributes</h3>
-          {statBar("Pace", player.pace)}
-          {statBar("Shooting", player.shooting)}
-          {statBar("Passing", player.passing)}
-          {statBar("Dribbling", player.dribbling)}
-          {statBar("Defending", player.defending)}
-          {statBar("Physical", player.physic)}
+          <StatBar label="Pace" stat="pace" maxStat={getMaxEffectiveStat()} />
+          <StatBar label="Shooting" stat="shooting" maxStat={getMaxEffectiveStat()} />
+          <StatBar label="Passing" stat="passing" maxStat={getMaxEffectiveStat()} />
+          <StatBar label="Dribbling" stat="dribbling" maxStat={getMaxEffectiveStat()} />
+          <StatBar label="Defending" stat="defending" maxStat={getMaxEffectiveStat()} />
+          <StatBar label="Physical" stat="physic" maxStat={getMaxEffectiveStat()} />
+
+          {/* Upgrade info */}
+          {player.is_owned && (
+            <div className="mt-3 pt-3 border-t border-white/10 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <TrendingUp className="w-3 h-3" />
+                <span>Click <span className="text-green-400 inline-flex items-center"><Plus className="w-3 h-3" /><Coins className="w-3 h-3" /></span> to upgrade a stat (+1 per click)</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span>Cost: 50 → 100 → 200 → 500 → 1,000 coins per +1 (increases with stat value)</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span>Requires <span className="text-amber-400">XP</span> gate — more XP needed for higher stats</span>
+              </div>
+              {player.total_upgrade_cost > 0 && (
+                <div className="flex items-center gap-1.5 text-[11px] text-amber-400">
+                  <Coins className="w-3 h-3" />
+                  <span>Total invested: {player.total_upgrade_cost} coins</span>
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
 
         {/* Shop Info / Buy */}
@@ -219,7 +418,7 @@ export default function PlayerDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-gray-400 text-sm">Price</span>
                 <span className={`font-bold ${gameUser?.coins >= player.price ? "text-green-400" : "text-red-400"}`}>
-                  🪙 {player.price || 0} coins {gameUser ? `(You have ${gameUser.coins})` : ""}
+                  <Coins className="w-4 h-4 text-amber-400 inline" /> {player.price || 0} coins {gameUser ? `(You have ${gameUser.coins})` : ""}
                 </span>
               </div>
               <button

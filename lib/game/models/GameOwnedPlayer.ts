@@ -33,6 +33,26 @@ const GameOwnedPlayerSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+
+    // ── Player Upgrades ─────────────────────────────────────────────────
+    // Tracks how many times each stat has been upgraded beyond the base value.
+    // Effective stat = base stat + upgrade_level (capped at 99).
+    upgrades: {
+      type: {
+        pace: { type: Number, default: 0 },
+        shooting: { type: Number, default: 0 },
+        passing: { type: Number, default: 0 },
+        dribbling: { type: Number, default: 0 },
+        defending: { type: Number, default: 0 },
+        physic: { type: Number, default: 0 },
+      },
+      default: { pace: 0, shooting: 0, passing: 0, dribbling: 0, defending: 0, physic: 0 },
+    },
+    // Total coins spent on upgrades for this player
+    total_upgrade_cost: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

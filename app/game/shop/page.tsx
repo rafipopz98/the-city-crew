@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Store, Lock, ShoppingCart, Search, Shield, Zap, Swords, User, Trophy, Star } from "lucide-react";
+import { Store, Lock, ShoppingCart, Search, Shield, Zap, Swords, User, Trophy, Star, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { useShop, useBuyPlayer } from "@/lib/game/hooks/useGameQuery";
 import { SkeletonGrid } from "@/app/game/_components";
@@ -203,7 +203,7 @@ export default function ShopPage() {
                     ) : (
                       <div className="space-y-1">
                         <div className="text-center text-[10px] text-gray-400">
-                          🪙 {item.price} coins
+                          <Coins className="w-3 h-3 text-amber-400 inline" /> {item.price} coins
                         </div>
                         <button
                           onClick={() => handleBuy(item._id)}

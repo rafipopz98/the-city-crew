@@ -120,7 +120,7 @@ export async function POST(request: Request) {
       GameUserModel.findOneAndUpdate(
         { userId: auth.userId, coins: { $gte: price } },
         { $inc: { coins: -price } },
-        { new: true },
+        { returnDocument: "after" },
       ),
       GameOwnedPlayerModel.create({ userId: auth.userId, playerId }),
     ]);

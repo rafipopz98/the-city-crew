@@ -14,7 +14,7 @@ import {
   Crown,
 } from "lucide-react";
 import { useLeaderboard } from "@/lib/game/hooks/useGameQuery";
-import { ErrorState } from "@/app/game/_components";
+import { SkeletonLeaderboard, ErrorState } from "@/app/game/_components";
 
 interface Tab {
   id: string;
@@ -80,11 +80,7 @@ export default function LeaderboardPage() {
 
         {/* Table */}
         {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
-            ))}
-          </div>
+          <SkeletonLeaderboard />
         ) : isError ? (
           <ErrorState
             title="Failed to load leaderboard"

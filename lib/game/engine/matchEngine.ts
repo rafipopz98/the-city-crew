@@ -37,6 +37,8 @@ export interface MatchEvent {
   description: string;
   playerName: string;
   isUserEvent: boolean;
+  /** PvP-compatible side indicator: "user", "opponent", or "" for neutral events */
+  actorName: string;
 }
 
 export interface MatchResult {
@@ -216,6 +218,125 @@ function generateTeamName(): string {
   return TEAM_NAMES[Math.floor(Math.random() * TEAM_NAMES.length)];
 }
 
+// ─── PvP-style rich description helpers ───────────────────────────────────
+
+/** Pick a random outfield player (not GK) */
+function pickOutfieldPlayer(players: MatchPlayer[]): MatchPlayer {
+  const outfield = players.filter((p) => p.position !== "GK");
+  if (outfield.length === 0) return players[0];
+  return outfield[Math.floor(Math.random() * outfield.length)];
+}
+
+/**
+ * Pick a goal scorer with weighted probabilities:
+ * FWD 60% > MID 30% > DEF 10% > GK 0%
+ */
+function pickGoalScorer(players: MatchPlayer[]): MatchPlayer {
+  const outfield = players.filter((p) => p.position !== "GK");
+  if (outfield.length === 0) return players[0];
+
+  const roll = Math.random() * 100;
+  let cumulative = 0;
+
+  cumulative += 60;
+  if (roll < cumulative) {
+    const forwards = outfield.filter((p) => p.position === "FWD");
+    if (forwards.length > 0) return forwards[Math.floor(Math.random() * forwards.length)];
+  }
+
+  cumulative += 30;
+  if (roll < cumulative) {
+    const mids = outfield.filter((p) => p.position === "MID");
+    if (mids.length > 0) return mids[Math.floor(Math.random() * mids.length)];
+  }
+
+  const defs = outfield.filter((p) => p.position === "DEF");
+  if (defs.length > 0) return defs[Math.floor(Math.random() * defs.length)];
+
+  return outfield[Math.floor(Math.random() * outfield.length)];
+}
+
+function getGK(players: MatchPlayer[]): MatchPlayer {
+  return players.find((p) => p.position === "GK") || players[0];
+}
+
+function getDefender(players: MatchPlayer[]): MatchPlayer {
+  const defs = players.filter((p) => p.position === "DEF");
+  if (defs.length > 0) return defs[Math.floor(Math.random() * defs.length)];
+  return pickOutfieldPlayer(players);
+}
+
+// Rich description templates (identical style to PvP socket engine)
+const userChanceDescs = [
+  (p: string) => `${p} cuts inside and fires just wide of the post!`,
+  (p: string) => `${p} bursts into the box but blazes over the bar!`,
+  (p: string) => `${p} tries a long-range effort — just past the post!`,
+  (p: string) => `${p} heads toward goal from the corner — off target!`,
+  (p: string) => `${p} with a powerful strike — high and wide!`,
+  (p: string) => `${p} creates space and lets fly — no goal!`,
+  (p: string) => `Great build-up play! ${p} shoots but it's off balance — wide.`,
+  (p: string) => `${p} volleys from close range — straight at the keeper!`,
+];
+
+const oppChanceDescs = [
+  (p: string) => `${p} breaks through but shoots straight at the keeper!`,
+  (p: string) => `${p} with a snapshot — just wide of the far post!`,
+  (p: string) => `${p} has a go from distance — it's rising over the bar!`,
+  (p: string) => `${p} tries to chip the keeper — too high!`,
+  (p: string) => `${p} races onto a through ball but scuffs the shot!`,
+  (p: string) => `${p} cuts back onto their strong foot — dragged wide!`,
+  (p: string) => `${p} spins and shoots — easy pickings for the keeper.`,
+  (p: string) => `${p} has a pop from the edge — whistles just past the post!`,
+];
+
+const userSaveDescs = [
+  (gk: string, p: string) => `What a save! ${gk} denies ${p} with a strong hand!`,
+  (gk: string, p: string) => `${gk} is down quickly to smother ${p}'s shot!`,
+  (gk: string, p: string) => `${gk} makes a sharp save to keep out ${p}!`,
+  (gk: string, p: string) => `Brilliant reflexes from ${gk}! ${p} is denied!`,
+  (gk: string, p: string) => `${gk} tips ${p}'s curling shot around the post!`,
+];
+
+const oppSaveDescs = [
+  (gk: string, p: string) => `Superb stop! ${gk} denies ${p} from close range!`,
+  (gk: string, p: string) => `${gk} spreads wide and blocks ${p}'s effort!`,
+  (gk: string, p: string) => `${gk} stands tall and beats away ${p}'s powerful strike!`,
+  (gk: string, p: string) => `Great anticipation from ${gk} to save ${p}'s attempt!`,
+  (gk: string, p: string) => `${gk} gets down well to parry ${p}'s drive!`,
+];
+
+const userBlockDescs = [
+  (d: string, p: string) => `Vital block! ${d} throws a body in front of ${p}'s shot!`,
+  (d: string, p: string) => `${d} slides across to block ${p}'s goal-bound effort!`,
+  (d: string, p: string) => `Last-ditch tackling from ${d} to deny ${p}!`,
+  (d: string, p: string) => `${d} gets across brilliantly to block the shot!`,
+];
+
+const oppBlockDescs = [
+  (d: string, p: string) => `${d} makes a crucial block to deny ${p}!`,
+  (d: string, p: string) => `Superb defending! ${d} hurls themself in front of ${p}'s strike!`,
+  (d: string, p: string) => `${d} reads the play perfectly and blocks ${p}'s attempt!`,
+  (d: string, p: string) => `${d} puts their body on the line to block!`,
+];
+
+const userGoalDescs = [
+  (p: string) => `GOAL! ${p} finds the bottom corner with a clinical finish! 🎯`,
+  (p: string) => `GOAL! ${p} heads home from a pinpoint cross! 👑`,
+  (p: string) => `GOAL! ${p} smashes it into the roof of the net! 💥`,
+  (p: string) => `GOAL! ${p} slots it past the keeper with composure! 🥶`,
+  (p: string) => `GOAL! ${p} rifles a shot into the top bins! 🚀`,
+  (p: string) => `GOAL! ${p} turns and fires — unstoppable! 🔥`,
+];
+
+const oppGoalDescs = [
+  (p: string) => `GOAL! ${p} strikes on the counter and scores! ⚡`,
+  (p: string) => `GOAL! ${p} with a cool finish — 1-on-1 with the keeper! 🥶`,
+  (p: string) => `GOAL! ${p} volleys home from a corner kick! 👑`,
+  (p: string) => `GOAL! ${p} rifles a low shot into the corner! 🎯`,
+  (p: string) => `GOAL! ${p} takes aim from range and picks out the top corner! 🚀`,
+  (p: string) => `GOAL! ${p} drills it home from a set-piece routine! ⚡`,
+];
+
 // ─── Match Simulation ───────────────────────────────────────────────────────
 export function simulateMatch(
   userSquad: SquadWithPlayers,
@@ -233,115 +354,113 @@ export function simulateMatch(
   let userShotsOnTarget = 0,
     opponentShotsOnTarget = 0;
 
-  // Calculate team strengths
-  const userStrength = 
-    userRating.attack * 0.25 +
-    userRating.midfield * 0.25 +
-    userRating.defense * 0.25 +
-    userRating.goalkeeping * 0.25;
-
-  const opponentStrength =
-    opponentRating.attack * 0.25 +
-    opponentRating.midfield * 0.25 +
-    opponentRating.defense * 0.25 +
-    opponentRating.goalkeeping * 0.25;
-
   // Possession based on midfield battle
   const userMidBonus = userRating.midfield / (userRating.midfield + opponentRating.midfield);
-  const userPossession = Math.round(30 + userMidBonus * 40); // 30-70 range
+  const userPossession = Math.round(30 + userMidBonus * 40);
 
-  // ─── Simulation Loop (90 minutes of action) ──────────────────────────
-  const totalMinutes = 90;
-  const userAttacker = userSquad.players.find((p) => p.position === "FWD");
-  const opponentAttacker = opponent.players.find((p) => p.position === "FWD");
-  const userGK = userSquad.players.find((p) => p.position === "GK");
-  const opponentGK = opponent.players.find((p) => p.position === "GK");
+  const homeName = userSquad.name || "Your Team";
+  const awayName = opponent.name || "Opponent";
+
+  // Build player info arrays for weighted selection
+  const userPlayers = userSquad.players;
+  const oppPlayers = opponent.players;
 
   events.push({
     minute: 1,
     type: "possession",
-    description: `The match begins! ${userSquad.name || "Your Team"} vs ${opponent.name || "Opponent"}`,
+    description: `The match kicks off! ${homeName} vs ${awayName}! ⚡`,
     playerName: "",
     isUserEvent: true,
+    actorName: "",
   });
 
-  const randMinute = () => Math.floor(Math.random() * (totalMinutes - 2)) + 2;
+  // ── FIRST HALF ─────────────────────────────────────────────────────────
+  const firstHalfMinutes = [3, 8, 12, 18, 24, 30, 35, 42];
+  const firstHalfEvents = Math.floor(Math.random() * 4) + 6; // 6-9
 
-  for (let m = 0; m < 6; m++) {
-    const minute = randMinute();
+  for (let i = 0; i < firstHalfEvents; i++) {
+    const minute = firstHalfMinutes[i] || Math.floor(Math.random() * 40) + 2;
     const isUserAttack = Math.random() * 100 < userPossession;
 
     if (isUserAttack) {
       userShots++;
-      const shotOnTarget = Math.random() * 100 < 60 + userRating.attack * 0.1;
-      if (shotOnTarget) {
+      const onTarget = Math.random() < 0.55;
+      if (onTarget) {
         userShotsOnTarget++;
-        const saveChance = opponentRating.goalkeeping * 0.4 + (opponentGK?.goalkeeping_reflexes ?? 50) * 0.6;
-        const goalChance = userRating.attack * 0.6 + (userAttacker?.attacking_finishing ?? 75) * 0.4;
-        const isGoal = Math.random() * 100 < (goalChance / (goalChance + saveChance)) * 60;
-
-        if (isGoal) {
+        const scorer = pickGoalScorer(userPlayers);
+        const scores = Math.random() < 0.35 + (userRating.attack / (userRating.attack + opponentRating.goalkeeping)) * 0.15;
+        if (scores) {
           userScore++;
           events.push({
-            minute,
-            type: "goal",
-            description: `GOAL! ${userAttacker?.short_name || "Your player"} fires home!`,
-            playerName: userAttacker?.short_name || "Player",
-            isUserEvent: true,
+            minute, type: "goal",
+            description: userGoalDescs[Math.floor(Math.random() * userGoalDescs.length)](scorer.short_name),
+            playerName: scorer.short_name, isUserEvent: true, actorName: "user",
           });
         } else {
+          const shooter = pickOutfieldPlayer(userPlayers);
+          const gk = getGK(oppPlayers);
           events.push({
-            minute,
-            type: "save",
-            description: `Great save by the opponent's keeper!`,
-            playerName: opponentGK?.short_name || "Keeper",
-            isUserEvent: false,
+            minute, type: "save",
+            description: oppSaveDescs[Math.floor(Math.random() * oppSaveDescs.length)](gk.short_name, shooter.short_name),
+            playerName: gk.short_name, isUserEvent: false, actorName: "opponent",
           });
         }
       } else {
-        events.push({
-          minute,
-          type: "chance",
-          description: `${userAttacker?.short_name || "Your player"} shoots wide.`,
-          playerName: userAttacker?.short_name || "Player",
-          isUserEvent: true,
-        });
+        const shooter = pickOutfieldPlayer(userPlayers);
+        if (Math.random() < 0.3) {
+          const def = getDefender(oppPlayers);
+          events.push({
+            minute, type: "chance",
+            description: oppBlockDescs[Math.floor(Math.random() * oppBlockDescs.length)](def.short_name, shooter.short_name),
+            playerName: def.short_name, isUserEvent: false, actorName: "opponent",
+          });
+        } else {
+          events.push({
+            minute, type: "chance",
+            description: userChanceDescs[Math.floor(Math.random() * userChanceDescs.length)](shooter.short_name),
+            playerName: shooter.short_name, isUserEvent: true, actorName: "user",
+          });
+        }
       }
     } else {
       opponentShots++;
-      const shotOnTarget = Math.random() * 100 < 60 + opponentRating.attack * 0.1;
-      if (shotOnTarget) {
+      const onTarget = Math.random() < 0.45;
+      if (onTarget) {
         opponentShotsOnTarget++;
-        const saveChance = userRating.goalkeeping * 0.4 + (userGK?.goalkeeping_reflexes ?? 50) * 0.6;
-        const goalChance = opponentRating.attack * 0.6 + (opponentAttacker?.attacking_finishing ?? 75) * 0.4;
-        const isGoal = Math.random() * 100 < (goalChance / (goalChance + saveChance)) * 60;
-
-        if (isGoal) {
+        const scorer = pickGoalScorer(oppPlayers);
+        const scores = Math.random() < 0.3 + (opponentRating.attack / (opponentRating.attack + userRating.goalkeeping)) * 0.15;
+        if (scores) {
           opponentScore++;
           events.push({
-            minute,
-            type: "goal",
-            description: `GOAL! ${opponentAttacker?.short_name || "Opponent"} equalises!`,
-            playerName: opponentAttacker?.short_name || "Opponent",
-            isUserEvent: false,
+            minute, type: "goal",
+            description: oppGoalDescs[Math.floor(Math.random() * oppGoalDescs.length)](scorer.short_name),
+            playerName: scorer.short_name, isUserEvent: false, actorName: "opponent",
           });
         } else {
+          const shooter = pickOutfieldPlayer(oppPlayers);
+          const gk = getGK(userPlayers);
           events.push({
-            minute,
-            type: "save",
-            description: `Your keeper makes a crucial save!`,
-            playerName: userGK?.short_name || "Your Keeper",
-            isUserEvent: true,
+            minute, type: "save",
+            description: userSaveDescs[Math.floor(Math.random() * userSaveDescs.length)](gk.short_name, shooter.short_name),
+            playerName: gk.short_name, isUserEvent: true, actorName: "user",
           });
         }
       } else {
-        events.push({
-          minute,
-          type: "chance",
-          description: `${opponentAttacker?.short_name || "Opponent"} misses the target.`,
-          playerName: opponentAttacker?.short_name || "Opponent",
-          isUserEvent: false,
-        });
+        const shooter = pickOutfieldPlayer(oppPlayers);
+        if (Math.random() < 0.3) {
+          const def = getDefender(userPlayers);
+          events.push({
+            minute, type: "chance",
+            description: userBlockDescs[Math.floor(Math.random() * userBlockDescs.length)](def.short_name, shooter.short_name),
+            playerName: def.short_name, isUserEvent: true, actorName: "user",
+          });
+        } else {
+          events.push({
+            minute, type: "chance",
+            description: oppChanceDescs[Math.floor(Math.random() * oppChanceDescs.length)](shooter.short_name),
+            playerName: shooter.short_name, isUserEvent: false, actorName: "opponent",
+          });
+        }
       }
     }
   }
@@ -350,101 +469,111 @@ export function simulateMatch(
   events.push({
     minute: 45,
     type: "half_time",
-    description: `HALF TIME: ${userScore} - ${opponentScore}`,
+    description: `HALF TIME: ${userScore} - ${opponentScore}. ${homeName} ${userScore >= opponentScore ? "lead" : "trail"} at the break.`,
     playerName: "",
     isUserEvent: true,
+    actorName: "",
   });
 
-  // Second half attacks
-  for (let m = 0; m < 5; m++) {
-    const minute = randMinute() + 45;
+  // ── SECOND HALF ────────────────────────────────────────────────────────
+  const secondHalfMinutes = [50, 55, 62, 68, 74, 78, 82, 88];
+  const secondHalfEvents = Math.floor(Math.random() * 3) + 4; // 4-6
+
+  for (let i = 0; i < secondHalfEvents; i++) {
+    const minute = secondHalfMinutes[i] || Math.floor(Math.random() * 35) + 50;
     const isUserAttack = Math.random() * 100 < userPossession;
 
     if (isUserAttack) {
       userShots++;
-      const shotOnTarget = Math.random() * 100 < 60 + userRating.attack * 0.1;
-      if (shotOnTarget) {
+      const onTarget = Math.random() < 0.55;
+      if (onTarget) {
         userShotsOnTarget++;
-        const saveChance = opponentRating.goalkeeping * 0.4 + (opponentGK?.goalkeeping_reflexes ?? 50) * 0.6;
-        const goalChance = userRating.attack * 0.6 + (userAttacker?.attacking_finishing ?? 75) * 0.4;
-        const isGoal = Math.random() * 100 < (goalChance / (goalChance + saveChance)) * 60;
-
-        if (isGoal) {
+        const scorer = pickGoalScorer(userPlayers);
+        const scores = Math.random() < 0.3;
+        if (scores) {
           userScore++;
           events.push({
-            minute: Math.min(minute, totalMinutes - 1),
-            type: "goal",
-            description: `GOAL! ${userAttacker?.short_name || "Your player"} scores! What a strike!`,
-            playerName: userAttacker?.short_name || "Player",
-            isUserEvent: true,
+            minute, type: "goal",
+            description: userGoalDescs[Math.floor(Math.random() * userGoalDescs.length)](scorer.short_name),
+            playerName: scorer.short_name, isUserEvent: true, actorName: "user",
           });
         } else {
+          const shooter = pickOutfieldPlayer(userPlayers);
+          const gk = getGK(oppPlayers);
           events.push({
-            minute: Math.min(minute, totalMinutes - 1),
-            type: "save",
-            description: `The keeper denies ${userAttacker?.short_name || "your player"}!`,
-            playerName: opponentGK?.short_name || "Keeper",
-            isUserEvent: false,
+            minute, type: "save",
+            description: oppSaveDescs[Math.floor(Math.random() * oppSaveDescs.length)](gk.short_name, shooter.short_name),
+            playerName: gk.short_name, isUserEvent: false, actorName: "opponent",
           });
         }
       } else {
-        events.push({
-          minute: Math.min(minute, totalMinutes - 1),
-          type: "chance",
-          description: `${userAttacker?.short_name || "Your player"} fires just over the bar!`,
-          playerName: userAttacker?.short_name || "Player",
-          isUserEvent: true,
-        });
+        const shooter = pickOutfieldPlayer(userPlayers);
+        if (Math.random() < 0.3) {
+          const def = getDefender(oppPlayers);
+          events.push({
+            minute, type: "chance",
+            description: oppBlockDescs[Math.floor(Math.random() * oppBlockDescs.length)](def.short_name, shooter.short_name),
+            playerName: def.short_name, isUserEvent: false, actorName: "opponent",
+          });
+        } else {
+          events.push({
+            minute, type: "chance",
+            description: userChanceDescs[Math.floor(Math.random() * userChanceDescs.length)](shooter.short_name),
+            playerName: shooter.short_name, isUserEvent: true, actorName: "user",
+          });
+        }
       }
     } else {
       opponentShots++;
-      const shotOnTarget = Math.random() * 100 < 60 + opponentRating.attack * 0.1;
-      if (shotOnTarget) {
+      const onTarget = Math.random() < 0.45;
+      if (onTarget) {
         opponentShotsOnTarget++;
-        const saveChance = userRating.goalkeeping * 0.4 + (userGK?.goalkeeping_reflexes ?? 50) * 0.6;
-        const goalChance = opponentRating.attack * 0.6 + (opponentAttacker?.attacking_finishing ?? 75) * 0.4;
-        const isGoal = Math.random() * 100 < (goalChance / (goalChance + saveChance)) * 60;
-
-        if (isGoal) {
+        const scorer = pickGoalScorer(oppPlayers);
+        const scores = Math.random() < 0.25;
+        if (scores) {
           opponentScore++;
           events.push({
-            minute: Math.min(minute, totalMinutes - 1),
-            type: "goal",
-            description: `GOAL! The opponent scores!`,
-            playerName: opponentAttacker?.short_name || "Opponent",
-            isUserEvent: false,
+            minute, type: "goal",
+            description: oppGoalDescs[Math.floor(Math.random() * oppGoalDescs.length)](scorer.short_name),
+            playerName: scorer.short_name, isUserEvent: false, actorName: "opponent",
           });
         } else {
+          const shooter = pickOutfieldPlayer(oppPlayers);
+          const gk = getGK(userPlayers);
           events.push({
-            minute: Math.min(minute, totalMinutes - 1),
-            type: "save",
-            description: `Your GK pulls off a fantastic save!`,
-            playerName: userGK?.short_name || "Your Keeper",
-            isUserEvent: true,
+            minute, type: "save",
+            description: userSaveDescs[Math.floor(Math.random() * userSaveDescs.length)](gk.short_name, shooter.short_name),
+            playerName: gk.short_name, isUserEvent: true, actorName: "user",
           });
         }
       } else {
-        events.push({
-          minute: Math.min(minute, totalMinutes - 1),
-          type: "chance",
-          description: `The opponent wastes a good opportunity.`,
-          playerName: opponentAttacker?.short_name || "Opponent",
-          isUserEvent: false,
-        });
+        const shooter = pickOutfieldPlayer(oppPlayers);
+        if (Math.random() < 0.3) {
+          const def = getDefender(userPlayers);
+          events.push({
+            minute, type: "chance",
+            description: userBlockDescs[Math.floor(Math.random() * userBlockDescs.length)](def.short_name, shooter.short_name),
+            playerName: def.short_name, isUserEvent: true, actorName: "user",
+          });
+        } else {
+          events.push({
+            minute, type: "chance",
+            description: oppChanceDescs[Math.floor(Math.random() * oppChanceDescs.length)](shooter.short_name),
+            playerName: shooter.short_name, isUserEvent: false, actorName: "opponent",
+          });
+        }
       }
     }
   }
 
-  // Sort events by minute
-  events.sort((a, b) => a.minute - b.minute);
-
   // Full time
   events.push({
-    minute: totalMinutes,
+    minute: 90,
     type: "full_time",
-    description: `FULL TIME: ${userScore} - ${opponentScore}`,
+    description: `FULL TIME: ${userScore} - ${opponentScore}. ${homeName} ${userScore > opponentScore ? "win" : userScore < opponentScore ? "lose" : "draw"}!`,
     playerName: "",
     isUserEvent: true,
+    actorName: "",
   });
 
   // ─── Player of the Match ────────────────────────────────────────────────

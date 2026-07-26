@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, User, Sparkles, ArrowRight, Swords, Shield, Zap } from "lucide-react";
+import { ErrorState, Skeleton } from "@/app/game/_components";
 
 type Step = "welcome" | "username" | "reveal" | "done";
 
@@ -12,6 +13,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>("welcome");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
+  const [submissionError, setSubmissionError] = useState("");
   const [loading, setLoading] = useState(false);
   const [starterPlayers, setStarterPlayers] = useState<any[]>([]);
   const [revealIndex, setRevealIndex] = useState(-1);
@@ -21,6 +23,7 @@ export default function OnboardingPage() {
 
   const handleSubmitUsername = async () => {
     setError("");
+    setSubmissionError("");
     if (username.length < 3) {
       setError("Username must be at least 3 characters");
       return;
@@ -58,7 +61,8 @@ export default function OnboardingPage() {
         setTimeout(() => setRevealIndex(i), i * 600 + 500);
       }
     } catch (err) {
-      setError("Connection error. Please try again.");
+      console.error(err);
+      setSubmissionError("We couldn't create your manager profile. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -85,6 +89,35 @@ export default function OnboardingPage() {
     };
     return colors[rarity] || "#9ca3af";
   };
+
+  if (submissionError) {
+    return (
+      <div className="min-h-screen bg-[#0a1628]">
+        <ErrorState
+          title="Unable to complete onboarding"
+          message={submissionError}
+          onRetry={() => setSubmissionError("")}
+          showBack={false}
+        />
+      </div>
+    );
+  }
+
+  if (loading && step === "username") {
+    return (
+      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-6" aria-label="Creating your starter squad">
+          <div className="flex flex-col items-center gap-3">
+            <Skeleton className="w-16 h-16 rounded-full" />
+            <Skeleton className="w-56 h-7" />
+            <Skeleton className="w-72 h-4" />
+          </div>
+          <Skeleton className="w-full h-14 rounded-xl" />
+          <Skeleton className="w-full h-14 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a1628] flex items-center justify-center p-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Swords, Store, Library, User, Star, Trophy, Shield, Zap, Target, HelpCircle } from "lucide-react";
+import { Swords, Store, Library, User, Star, Trophy, Shield, Zap, Target, HelpCircle, Lightbulb } from "lucide-react";
 
 const STEPS = [
   {
@@ -130,7 +130,7 @@ export default function HowToPlayPage() {
 
         {/* Tips */}
         <div className="bg-linear-to-r from-[#e09225]/10 to-transparent rounded-xl p-5 border border-[#e09225]/20">
-          <h3 className="text-white font-bold mb-2">💡 Pro Tips</h3>
+          <h3 className="text-white font-bold mb-2 flex items-center gap-2"><Lightbulb className="w-5 h-5 text-amber-400" /> Pro Tips</h3>
           <ul className="space-y-2 text-sm text-gray-300">
             <li>• Check the Shop often for new players you can unlock</li>
             <li>• Play players in their natural positions for best performance</li>

@@ -14,13 +14,14 @@ import {
   Loader,
   Trophy,
   User,
-  Home,
-  RefreshCw,
-  AlertTriangle,
-  ArrowLeft,
+  Target,
+  Award,
+  Frown,
+  Handshake,
 } from "lucide-react";
 import { useSocket } from "@/lib/game/socket/client";
 import type { ServerMessage } from "@/lib/game/socket/protocol";
+import { ErrorState } from "@/app/game/_components";
 
 interface MatchSocketEvent {
   minute: number;
@@ -126,7 +127,7 @@ export default function PvPPage() {
     const playerNames = squad.players.map((p: any) => p.playerId?.short_name || "Player");
     const playerPositions = squad.players.map((p: any) => p.position || "MID");
 
-    console.log("[PvP] 🚀 Joining queue!", { username: gameUser.username, rating, playerNames, playerPositions });
+    console.log("[PvP] Joining queue...", { username: gameUser.username, rating, playerNames, playerPositions });
     hasJoinedRef.current = true;
     setPvpState("queue");
     setQueueTime(0);
@@ -195,7 +196,7 @@ export default function PvPPage() {
   useEffect(() => {
     console.log("[PvP] Registering socket listeners...");
     const cleanup = registerListeners((message: ServerMessage) => {
-      console.log("[PvP] 🔔 Listener received:", message.type, message.payload);
+      console.log("[PvP] Listener received:", message.type, message.payload);
       switch (message.type) {
         case "matchmaking:waiting":
           console.log("[PvP] Queue position:", message.payload.position);
@@ -203,7 +204,7 @@ export default function PvPPage() {
           break;
 
         case "matchmaking:found":
-          console.log("[PvP] 🎯 Match found!", message.payload);
+          console.log("[PvP] Match found!", message.payload);
           setMatchId(message.payload.matchId);
           setOpponent(message.payload.opponent);
           setPlayerSide(message.payload.playerSide);
@@ -239,7 +240,7 @@ export default function PvPPage() {
         }
 
         case "match:end":
-          console.log("[PvP] 🏁 Match ended!", message.payload);
+          console.log("[PvP] Match ended!", message.payload);
           setMatchResult(message.payload);
           setPvpState("result");
           savePvPRewards(message.payload);
@@ -324,11 +325,11 @@ export default function PvPPage() {
 
   const getEventIcon = (type: string) => {
     switch (type) {
-      case "goal": return <span className="text-2xl">⚽</span>;
-      case "save": return <span className="text-xl">🧤</span>;
-      case "chance": return <span className="text-xl">💥</span>;
-      case "half_time": case "full_time": return <span className="text-xl">⏱️</span>;
-      default: return <span className="text-xl">⚡</span>;
+      case "goal": return <Target className="w-5 h-5 text-green-400 shrink-0" />;
+      case "save": return <Shield className="w-5 h-5 text-blue-400 shrink-0" />;
+      case "chance": return <Zap className="w-5 h-5 text-amber-400 shrink-0" />;
+      case "half_time": case "full_time": return <Clock className="w-5 h-5 text-gray-500 shrink-0" />;
+      default: return <Zap className="w-5 h-5 text-gray-500 shrink-0" />;
     }
   };
 
@@ -347,12 +348,12 @@ export default function PvPPage() {
     );
   };
 
-  const getResultEmoji = (winner: string) => {
-    if (winner === "draw") return "🤝";
+  const getResultIcon = (winner: string) => {
+    if (winner === "draw") return <Handshake className="w-14 h-14 text-amber-400" />;
     const myResult = playerSide === "home"
       ? winner === "home" ? "win" : "loss"
       : winner === "away" ? "win" : "loss";
-    return myResult === "win" ? "🎉" : "😔";
+    return myResult === "win" ? <Award className="w-14 h-14 text-green-400" /> : <Frown className="w-14 h-14 text-red-400" />;
   };
 
   const getResultText = (winner: string) => {
@@ -405,25 +406,11 @@ export default function PvPPage() {
 
           {/* Error */}
           {pvpState === "error" && (
-            <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center"
-            >
-              <AlertTriangle className="w-16 h-16 text-red-400" />
-              <h2 className="text-xl font-bold text-white">Connection Error</h2>
-              <p className="text-gray-400 text-sm max-w-md whitespace-pre-line">{errorMsg}</p>
-              <div className="flex gap-3 mt-4">
-                <button onClick={() => window.location.reload()}
-                  className="px-6 py-3 bg-blue-500 text-white font-bold rounded-xl flex items-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" /> Retry
-                </button>
-                <button onClick={() => router.push("/game/play")}
-                  className="px-6 py-3 bg-white/5 text-gray-300 border border-white/10 rounded-xl flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Back
-                </button>
-              </div>
-            </motion.div>
+            <ErrorState
+              title="Connection Error"
+              message={errorMsg}
+              onRetry={() => window.location.reload()}
+            />
           )}
 
           {/* Connecting */}
@@ -586,7 +573,7 @@ export default function PvPPage() {
           {pvpState === "result" && matchResult && (
             <motion.div key="result" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div className="text-center">
-                <div className="text-6xl mb-4">{getResultEmoji(matchResult.winner)}</div>
+                <div className="mb-4 flex justify-center">{getResultIcon(matchResult.winner)}</div>
                 <h1 className={`text-4xl font-bold uppercase ${
                   matchResult.winner === "draw" ? "text-amber-400" :
                   (playerSide === "home" && matchResult.winner === "home") || (playerSide === "away" && matchResult.winner === "away")

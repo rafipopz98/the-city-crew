@@ -21,19 +21,38 @@ export async function GET() {
         .populate("players.playerId")
         .lean(),
       GameOwnedPlayerModel.find({ userId: auth.userId })
+        .select("playerId upgrades total_upgrade_cost in_squad squad_position squad_slot")
         .populate("playerId")
         .lean(),
     ]);
 
     return NextResponse.json({
       squad: squad || null,
-      ownedPlayers: ownedPlayers.map((op: any) => ({
-        _id: op._id.toString(),
-        playerId: op.playerId,
-        in_squad: op.in_squad,
-        squad_position: op.squad_position,
-        squad_slot: op.squad_slot,
-      })),
+      ownedPlayers: ownedPlayers.map((op: any) => {
+        const base = op.playerId || {};
+        const upg = op.upgrades || {};
+        // Calculate effective overall for each owned player
+        const stats = ["pace", "shooting", "passing", "dribbling", "defending", "physic"] as const;
+        let total = 0;
+        const effectiveStats: Record<string, number> = {};
+        for (const s of stats) {
+          const eff = (base[s] || 0) + (upg[s] || 0);
+          effectiveStats[`effective_${s}`] = eff;
+          total += eff;
+        }
+        effectiveStats.effective_overall = Math.round(total / stats.length);
+
+        return {
+          _id: op._id.toString(),
+          playerId: op.playerId,
+          in_squad: op.in_squad,
+          squad_position: op.squad_position,
+          squad_slot: op.squad_slot,
+          upgrades: upg,
+          total_upgrade_cost: op.total_upgrade_cost || 0,
+          ...effectiveStats,
+        };
+      }),
     });
   } catch (error) {
     await logError("/api/game/squad", "GET", error);

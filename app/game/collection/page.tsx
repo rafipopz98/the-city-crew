@@ -17,6 +17,7 @@ import {
 import { useCollection } from "@/lib/game/hooks/useGameQuery";
 import { SkeletonGrid } from "@/app/game/_components";
 import { ErrorState } from "@/app/game/_components";
+import { playerMatchesCategory } from "@/lib/game/utils/positionMapping";
 
 const RARITIES = [
   "all",
@@ -66,7 +67,7 @@ export default function CollectionPage() {
     }
 
     if (positionFilter !== "all") {
-      result = result.filter((p: any) => p.positions?.includes(positionFilter));
+      result = result.filter((p: any) => playerMatchesCategory(p.positions, positionFilter));
     }
 
     if (ownsFilter === "owned") {
