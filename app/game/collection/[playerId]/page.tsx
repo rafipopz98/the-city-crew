@@ -15,6 +15,7 @@ import {
 import { isGK, GK_STATS_CONFIG, FIELD_STATS_CONFIG } from "@/lib/game/utils/positionMapping";
 import { toast } from "sonner";
 import api from "@/lib/api/axios";
+import confetti from "canvas-confetti";
 
 // ─── Cost helpers ──────────────────────────────────────────────────────────
 function getCoinCost(newValue: number): number {
@@ -166,6 +167,39 @@ export default function PlayerDetailPage() {
     try {
       const { data } = await api.post("/game/upgrade", { ownedPlayerId: player._id, stat });
       toast.success(data.message);
+
+      // ── Confetti burst on upgrade ──
+      const accent = getRarityTheme(player.rarity).accent;
+      confetti({
+        particleCount: 30,
+        spread: 80,
+        origin: { x: 0.5, y: 0.6 },
+        colors: [accent, "#22c55e", "#ffd700", "#48dbfb"],
+        startVelocity: 35,
+        ticks: 150,
+        zIndex: 200,
+      });
+      setTimeout(() => {
+        confetti({
+          particleCount: 15,
+          spread: 50,
+          origin: { x: 0.3, y: 0.7 },
+          colors: [accent, "#ffd700"],
+          startVelocity: 25,
+          ticks: 100,
+          zIndex: 200,
+        });
+        confetti({
+          particleCount: 15,
+          spread: 50,
+          origin: { x: 0.7, y: 0.7 },
+          colors: [accent, "#22c55e"],
+          startVelocity: 25,
+          ticks: 100,
+          zIndex: 200,
+        });
+      }, 150);
+
       setPlayer((prev: any) => {
         if (!prev) return prev;
         const newLevels = { ...(prev.upgrade_levels || {}), [stat]: data.upgradeLevel };
