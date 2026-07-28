@@ -7,15 +7,17 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useInfiniteShop, useBuyPlayer } from "@/lib/game/hooks/useGameQuery";
-import { ErrorState, PlayerCard, PlayerCardSkeleton } from "@/app/game/_components";
+import { ErrorState } from "@/app/game/_components";
+import { CardPulse, CardPulseSkeleton } from "@/components/game/CardVariants";
+import PurchaseCelebration from "@/components/game/PurchaseCelebration";
 
 const RARITIES = ["all", "Basic", "Common", "Uncommon", "Rare", "Epic", "Legendary"];
 
 function ShopSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       {Array.from({ length: 6 }).map((_, i) => (
-        <PlayerCardSkeleton key={i} />
+        <CardPulseSkeleton key={i} />
       ))}
     </div>
   );
@@ -24,6 +26,7 @@ function ShopSkeleton() {
 export default function ShopPage() {
   const [search, setSearch] = useState("");
   const [rarityFilter, setRarityFilter] = useState("all");
+  const [celebration, setCelebration] = useState<{ player: any; coins: number } | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -70,13 +73,16 @@ export default function ShopPage() {
   const handleBuy = useCallback(
     async (playerId: string) => {
       try {
-        await buyMutation.mutateAsync(playerId);
-        toast.success("Player purchased!");
+        const result = await buyMutation.mutateAsync(playerId);
+        const purchasedPlayer = allItems.find((item: any) => item._id === playerId);
+        if (purchasedPlayer) {
+          setCelebration({ player: purchasedPlayer, coins: result.coins || 0 });
+        }
       } catch (err: any) {
         toast.error(err.message || "Failed to purchase");
       }
     },
-    [buyMutation],
+    [buyMutation, allItems],
   );
 
   if (isLoading) {
@@ -181,11 +187,12 @@ export default function ShopPage() {
             <p className="text-gray-600 text-xs">Try a different search or rarity</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {filtered.map((item: any) => (
-              <PlayerCard
+              <CardPulse
                 key={item._id}
                 player={item}
+                mode="shop"
                 onBuy={() => handleBuy(item._id)}
                 isBuying={buyMutation.isPending && buyMutation.variables === item._id}
               />
@@ -212,6 +219,18 @@ export default function ShopPage() {
           </div>
         )}
       </div>
+
+      {/* ── Purchase Celebration Modal ── */}
+      {celebration && (
+        <PurchaseCelebration
+          player={celebration.player}
+          coins={celebration.coins}
+          onClose={() => {
+            setCelebration(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

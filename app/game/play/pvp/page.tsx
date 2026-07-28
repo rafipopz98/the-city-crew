@@ -24,6 +24,7 @@ import {
 import { useSocket } from "@/lib/game/socket/client";
 import type { ServerMessage } from "@/lib/game/socket/protocol";
 import { ErrorState } from "@/app/game/_components";
+import api from "@/lib/api/axios";
 
 interface MatchSocketEvent {
   minute: number;
@@ -75,10 +76,12 @@ export default function PvPPage() {
   useEffect(() => {
     console.log("[PvP] Loading user data and squad...");
     Promise.all([
-      fetch("/api/game/user", { credentials: "include" }).then((r) => r.json()),
-      fetch("/api/game/squad", { credentials: "include" }).then((r) => r.json()),
+      api.get("/game/user"),
+      api.get("/game/squad"),
     ])
-      .then(([userData, squadData]) => {
+      .then(([userResp, squadResp]) => {
+        const userData = userResp.data;
+        const squadData = squadResp.data;
         console.log("[PvP] Data loaded:", { user: !!userData.gameUser, squad: !!squadData.squad });
         if (!userData.gameUser) {
           console.log("[PvP] No game user — redirecting to onboarding");
@@ -289,28 +292,23 @@ export default function PvPPage() {
       const isHome = playerSide === "home";
       const rewards = isHome ? result.homeRewards : result.awayRewards;
 
-      await fetch("/api/game/match/pvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          matchId: result.matchId,
-          opponentName: opponent?.username || "Opponent",
-          userScore: isHome ? result.homeScore : result.awayScore,
-          opponentScore: isHome ? result.awayScore : result.homeScore,
-          userPossession: isHome ? result.homePossession : result.awayPossession,
-          opponentPossession: isHome ? result.awayPossession : result.homePossession,
-          userShots: isHome ? result.homeShots : result.awayShots,
-          opponentShots: isHome ? result.awayShots : result.homeShots,
-          userShotsOnTarget: isHome ? result.homeShotsOnTarget : result.awayShotsOnTarget,
-          opponentShotsOnTarget: isHome ? result.awayShotsOnTarget : result.homeShotsOnTarget,
-          xpEarned: rewards.xp,
-          coinsEarned: rewards.coins,
-          result: isHome ? result.winner === "home" ? "win" : result.winner === "away" ? "loss" : "draw"
-                  : result.winner === "away" ? "win" : result.winner === "home" ? "loss" : "draw",
-          events: result.events,
-          playerOfTheMatch: result.playerOfTheMatch,
-        }),
+      await api.post("/game/match/pvp", {
+        matchId: result.matchId,
+        opponentName: opponent?.username || "Opponent",
+        userScore: isHome ? result.homeScore : result.awayScore,
+        opponentScore: isHome ? result.awayScore : result.homeScore,
+        userPossession: isHome ? result.homePossession : result.awayPossession,
+        opponentPossession: isHome ? result.awayPossession : result.homePossession,
+        userShots: isHome ? result.homeShots : result.awayShots,
+        opponentShots: isHome ? result.awayShots : result.homeShots,
+        userShotsOnTarget: isHome ? result.homeShotsOnTarget : result.awayShotsOnTarget,
+        opponentShotsOnTarget: isHome ? result.awayShotsOnTarget : result.homeShotsOnTarget,
+        xpEarned: rewards.xp,
+        coinsEarned: rewards.coins,
+        result: isHome ? result.winner === "home" ? "win" : result.winner === "away" ? "loss" : "draw"
+                : result.winner === "away" ? "win" : result.winner === "home" ? "loss" : "draw",
+        events: result.events,
+        playerOfTheMatch: result.playerOfTheMatch,
       });
     } catch (err) {
       console.error("Failed to save PvP rewards:", err);

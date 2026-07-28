@@ -45,12 +45,9 @@ export async function GET(request: Request) {
       {
         $addFields: {
           locked: { $not: "$xp_met" },
-          sort_order: {
-            $cond: [{ $not: "$xp_met" }, 0, { $cond: ["$is_owned", 2, 1] }],
-          },
         },
       },
-      { $sort: { sort_order: 1, overall: -1 } },
+      { $sort: { overall: -1 } },
       {
         $facet: {
           metadata: [{ $count: "total" }],
@@ -62,7 +59,11 @@ export async function GET(request: Request) {
                 _id: 1, player_id: 1, short_name: 1, long_name: 1,
                 nationality: 1, positions: 1, overall: 1,
                 pace: 1, shooting: 1, passing: 1, dribbling: 1,
-                defending: 1, physic: 1, image_url: 1, rarity: 1,
+                defending: 1, physic: 1,
+                goalkeeping_diving: 1, goalkeeping_handling: 1,
+                goalkeeping_kicking: 1, goalkeeping_positioning: 1,
+                goalkeeping_reflexes: 1, goalkeeping_speed: 1,
+                image_url: 1, rarity: 1,
                 required_xp: 1, price: 1,
                 is_owned: 1, can_afford: 1, xp_met: 1, locked: 1,
               },

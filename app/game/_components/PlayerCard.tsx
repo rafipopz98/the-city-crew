@@ -136,13 +136,22 @@ export function getRarityTheme(rarity: string): RarityTheme {
 }
 
 // ─── Stat labels ───────────────────────────────────────────────────────────
-const STATS = [
+const FIELD_STATS = [
   { key: "pace", label: "PAC" },
   { key: "shooting", label: "SHO" },
   { key: "passing", label: "PAS" },
   { key: "dribbling", label: "DRI" },
   { key: "defending", label: "DEF" },
   { key: "physic", label: "PHY" },
+] as const;
+
+const GK_STATS = [
+  { key: "goalkeeping_diving", label: "DIV" },
+  { key: "goalkeeping_handling", label: "HND" },
+  { key: "goalkeeping_kicking", label: "KIC" },
+  { key: "goalkeeping_positioning", label: "POS" },
+  { key: "goalkeeping_reflexes", label: "REF" },
+  { key: "goalkeeping_speed", label: "SPD" },
 ] as const;
 
 // ─── PlayerCardBackground ──────────────────────────────────────────────────
@@ -173,6 +182,7 @@ export function PlayerCardStats({
   physic,
   upgradeLevels,
   accentColor,
+  gkMode = false,
 }: {
   pace: number;
   shooting: number;
@@ -182,16 +192,23 @@ export function PlayerCardStats({
   physic: number;
   upgradeLevels?: Record<string, number>;
   accentColor: string;
+  gkMode?: boolean;
 }) {
-  const valueMap: Record<string, number> = {
-    pace, shooting, passing, dribbling, defending, physic,
-  };
+  const statConfig = gkMode ? GK_STATS : FIELD_STATS;
+
+  // Map the positional props to the actual stat keys
+  const statKeys = gkMode
+    ? ["goalkeeping_diving", "goalkeeping_handling", "goalkeeping_kicking", "goalkeeping_positioning", "goalkeeping_reflexes", "goalkeeping_speed"]
+    : ["pace", "shooting", "passing", "dribbling", "defending", "physic"];
+
+  const rawValues = [pace, shooting, passing, dribbling, defending, physic];
 
   return (
     <div className="grid grid-cols-2 gap-x-1 gap-y-1">
-      {STATS.map(({ key, label }) => {
-        const base = valueMap[key] ?? 0;
-        const upg = upgradeLevels?.[key] || 0;
+      {statConfig.map(({ key, label }, i) => {
+        const base = rawValues[i] ?? 0;
+        // Upgrade levels stored with the actual DB key (goalkeeping_diving or pace)
+        const upg = upgradeLevels?.[statKeys[i]] || 0;
         const value = base + upg;
         const upgraded = upg > 0;
 
@@ -439,17 +456,24 @@ export function PlayerCard({ player, variant = "shop", onBuy, isBuying, onClick 
           </span>
         </div>
 
-        {/* ── Stats ── */}
-        <PlayerCardStats
-          pace={player.pace}
-          shooting={player.shooting}
-          passing={player.passing}
-          dribbling={player.dribbling}
-          defending={player.defending}
-          physic={player.physic}
-          upgradeLevels={upgradeLevels}
-          accentColor={theme.accent}
-        />
+        {/* ── Stats (field or GK) ── */}
+        {(() => {
+          const posList = player.positions || [];
+          const gk = posList.includes("GK");
+          return (
+            <PlayerCardStats
+              pace={gk ? (player.goalkeeping_diving || 0) : player.pace}
+              shooting={gk ? (player.goalkeeping_handling || 0) : player.shooting}
+              passing={gk ? (player.goalkeeping_kicking || 0) : player.passing}
+              dribbling={gk ? (player.goalkeeping_positioning || 0) : player.dribbling}
+              defending={gk ? (player.goalkeeping_reflexes || 0) : player.defending}
+              physic={gk ? (player.goalkeeping_speed || 0) : player.physic}
+              upgradeLevels={upgradeLevels}
+              accentColor={theme.accent}
+              gkMode={gk}
+            />
+          );
+        })()}
 
         {/* ── Divider ── */}
         <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />

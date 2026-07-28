@@ -2,13 +2,18 @@
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
 
+import api from "@/lib/api/axios";
+
 async function fetchJSON(url: string) {
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.message || `Request failed: ${res.status}`);
+  try {
+    // Strip /api prefix if present since the axios instance already has baseURL="/api"
+    const path = url.startsWith("/api/") ? url.slice(4) : url;
+    const { data } = await api.get(path);
+    return data;
+  } catch (err: any) {
+    const message = err?.response?.data?.message || err?.message || `Request failed`;
+    throw new Error(message);
   }
-  return res.json();
 }
 
 // ─── Game User ──────────────────────────────────────────────────────────────
@@ -47,17 +52,10 @@ export function useInfiniteShop(limit: number = 12) {
 export function useBuyPlayer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (playerId: string) =>
-      fetch("/api/game/shop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId }),
-        credentials: "include",
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Purchase failed");
-        return data;
-      }),
+    mutationFn: async (playerId: string) => {
+      const { data } = await api.post("/game/shop", { playerId });
+      return data;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["game", "shop"] });
       qc.invalidateQueries({ queryKey: ["game", "shop", "infinite"] });
@@ -128,17 +126,10 @@ export function useSquad() {
 export function useSaveSquad() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (players: any[]) =>
-      fetch("/api/game/squad", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ players }),
-        credentials: "include",
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to save squad");
-        return data;
-      }),
+    mutationFn: async (players: any[]) => {
+      const { data } = await api.put("/game/squad", { players });
+      return data;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["game", "squad"] });
       qc.invalidateQueries({ queryKey: ["game", "user"] });
@@ -150,15 +141,10 @@ export function useSaveSquad() {
 export function useStartMatch() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () =>
-      fetch("/api/game/match/start", {
-        method: "POST",
-        credentials: "include",
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Match start failed");
-        return data;
-      }),
+    mutationFn: async () => {
+      const { data } = await api.post("/game/match/start");
+      return data;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["game", "user"] });
     },

@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { GamePlayerModel } from "@/lib/game/models/GamePlayer";
 import { logError } from "@/lib/errorLogger";
 import { verifyToken } from "@/lib/auth/jwt";
+import { POSITION_GROUPS } from "@/lib/game/utils/positionMapping";
 import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
@@ -34,7 +35,10 @@ export async function GET(request: Request) {
     }
 
     if (position) {
-      filter.positions = position;
+      const specificPositions = POSITION_GROUPS[position];
+      if (specificPositions) {
+        filter.positions = { $in: specificPositions };
+      }
     }
 
     if (search) {
