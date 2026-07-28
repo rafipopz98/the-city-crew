@@ -4,6 +4,7 @@ import { GamePlayerModel } from "@/lib/game/models/GamePlayer";
 import { GameOwnedPlayerModel } from "@/lib/game/models/GameOwnedPlayer";
 import { logError } from "@/lib/errorLogger";
 import { getUserIdFromAuth } from "@/lib/game/utils/auth";
+import { POSITION_GROUPS } from "@/lib/game/utils/positionMapping";
 
 export async function GET(request: Request) {
   try {
@@ -44,7 +45,12 @@ export async function GET(request: Request) {
     }
 
     if (rarity && rarity !== "all") matchFilter.rarity = rarity;
-    if (position) matchFilter.positions = position;
+    if (position) {
+      const specificPositions = POSITION_GROUPS[position];
+      if (specificPositions) {
+        matchFilter.positions = { $in: specificPositions };
+      }
+    }
     if (search) {
       matchFilter.$or = [
         { short_name: { $regex: search, $options: "i" } },
@@ -64,14 +70,35 @@ export async function GET(request: Request) {
       const ownedDoc = ownedMap.get(ownedId) as any;
       const upgrades = ownedDoc?.upgrades || {};
 
-      // Calculate effective stats with upgrades (no cap — stats can go beyond 99)
+      const isPlayerGK = player.positions?.includes("GK");
+
+      // ── Field player stats (always returned, 0 for GK) ──
       const effPace = player.pace + (upgrades.pace || 0);
       const effShooting = player.shooting + (upgrades.shooting || 0);
       const effPassing = player.passing + (upgrades.passing || 0);
       const effDribbling = player.dribbling + (upgrades.dribbling || 0);
       const effDefending = player.defending + (upgrades.defending || 0);
       const effPhysic = player.physic + (upgrades.physic || 0);
-      const effOverall = Math.round((effPace + effShooting + effPassing + effDribbling + effDefending + effPhysic) / 6);
+
+      // ── GK stats ──
+      const gkDiving = player.goalkeeping_diving || 0;
+      const gkHandling = player.goalkeeping_handling || 0;
+      const gkKicking = player.goalkeeping_kicking || 0;
+      const gkPositioning = player.goalkeeping_positioning || 0;
+      const gkReflexes = player.goalkeeping_reflexes || 0;
+      const gkSpeed = player.goalkeeping_speed || 0;
+
+      const effGkDiving = gkDiving + (upgrades.goalkeeping_diving || 0);
+      const effGkHandling = gkHandling + (upgrades.goalkeeping_handling || 0);
+      const effGkKicking = gkKicking + (upgrades.goalkeeping_kicking || 0);
+      const effGkPositioning = gkPositioning + (upgrades.goalkeeping_positioning || 0);
+      const effGkReflexes = gkReflexes + (upgrades.goalkeeping_reflexes || 0);
+      const effGkSpeed = gkSpeed + (upgrades.goalkeeping_speed || 0);
+
+      // ── Effective overall uses the right stat set per position ──
+      const effOverall = isPlayerGK
+        ? Math.round((effGkDiving + effGkHandling + effGkKicking + effGkPositioning + effGkReflexes + effGkSpeed) / 6)
+        : Math.round((effPace + effShooting + effPassing + effDribbling + effDefending + effPhysic) / 6);
 
       return {
         _id: ownedId,
@@ -88,6 +115,13 @@ export async function GET(request: Request) {
         dribbling: player.dribbling,
         defending: player.defending,
         physic: player.physic,
+        // GK base stats
+        goalkeeping_diving: gkDiving,
+        goalkeeping_handling: gkHandling,
+        goalkeeping_kicking: gkKicking,
+        goalkeeping_positioning: gkPositioning,
+        goalkeeping_reflexes: gkReflexes,
+        goalkeeping_speed: gkSpeed,
         // Effective (upgraded) stats
         effective_overall: effOverall,
         effective_pace: effPace,
@@ -96,6 +130,13 @@ export async function GET(request: Request) {
         effective_dribbling: effDribbling,
         effective_defending: effDefending,
         effective_physic: effPhysic,
+        // GK effective (upgraded) stats
+        effective_goalkeeping_diving: effGkDiving,
+        effective_goalkeeping_handling: effGkHandling,
+        effective_goalkeeping_kicking: effGkKicking,
+        effective_goalkeeping_positioning: effGkPositioning,
+        effective_goalkeeping_reflexes: effGkReflexes,
+        effective_goalkeeping_speed: effGkSpeed,
         upgrade_levels: upgrades,
         total_upgrade_cost: ownedDoc?.total_upgrade_cost || 0,
         image_url: player.image_url,

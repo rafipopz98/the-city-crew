@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, Trophy, Clock, Zap, Target, Shield, Award, Frown, Handshake } from "lucide-react";
 import { ErrorState, SkeletonMatchDetail } from "@/app/game/_components";
+import api from "@/lib/api/axios";
 
 interface MatchEvent {
   minute: number;
@@ -85,42 +86,40 @@ export default function MatchSimulationPage() {
       setIsHistoryView(true);
 
       // Load from API
-      const res = await fetch(`/api/game/match/${matchId}`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-
-      if (res.ok && data.match) {
-        const m = data.match;
-        const matchResultData: MatchResult = {
-          userScore: m.userScore,
-          opponentScore: m.opponentScore,
-          userPossession: m.userPossession,
-          opponentPossession: m.opponentPossession,
-          userShots: m.userShots,
-          opponentShots: m.opponentShots,
-          userShotsOnTarget: m.userShotsOnTarget,
-          opponentShotsOnTarget: m.opponentShotsOnTarget,
-          events: m.events || [],
-          playerOfTheMatch: m.playerOfTheMatch || { playerId: "", shortName: "Unknown", team: "user" },
-          matchResult: m.matchResult,
-          rewards: m.rewards || { xp: 0, coins: 0 },
-          userRating: 0,
-          duration_seconds: m.duration_seconds || 30,
-        };
-        setMatchData(matchResultData);
-        setShowResult(true); // Skip animation for reloaded matches
-      } else if (res.ok) {
-        // No match found
+      try {
+        const { data } = await api.get(`/game/match/${matchId}`);
+        if (data.match) {
+          const m = data.match;
+          const matchResultData: MatchResult = {
+            userScore: m.userScore,
+            opponentScore: m.opponentScore,
+            userPossession: m.userPossession,
+            opponentPossession: m.opponentPossession,
+            userShots: m.userShots,
+            opponentShots: m.opponentShots,
+            userShotsOnTarget: m.userShotsOnTarget,
+            opponentShotsOnTarget: m.opponentShotsOnTarget,
+            events: m.events || [],
+            playerOfTheMatch: m.playerOfTheMatch || { playerId: "", shortName: "Unknown", team: "user" },
+            matchResult: m.matchResult,
+            rewards: m.rewards || { xp: 0, coins: 0 },
+            userRating: 0,
+            duration_seconds: m.duration_seconds || 30,
+          };
+          setMatchData(matchResultData);
+          setShowResult(true); // Skip animation for reloaded matches
+        }
+      } catch {
+        setLoadError("Could not load this match. Please try again.");
         setLoading(false);
-      } else {
-        setLoadError(data.message || "Could not load this match. Please try again.");
+        return;
       }
 
       // Also fetch game user
-      const userRes = await fetch("/api/game/user", { credentials: "include" });
-      const userData = await userRes.json();
-      if (userData.gameUser) setGameUser(userData.gameUser);
+      try {
+        const { data: userData } = await api.get("/game/user");
+        if (userData.gameUser) setGameUser(userData.gameUser);
+      } catch {}
     } catch (err) {
       console.error(err);
       setLoadError("Could not load this match. Please try again.");

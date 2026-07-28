@@ -1,25 +1,434 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Shield, Zap, Swords, User, Check, Save, X, ArrowUpDown, Star } from "lucide-react";
+import {
+  Swords, User, Check, Save, Star, Zap, Shield, Plus, Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useSquad, useSaveSquad } from "@/lib/game/hooks/useGameQuery";
-import { SkeletonSquadSlots } from "@/app/game/_components";
-import { playerMatchesCategory, getPositionCategory, getPrimaryCategory } from "@/lib/game/utils/positionMapping";
+import { SkeletonSquadSlots, getRarityTheme } from "@/app/game/_components";
+import { playerMatchesCategory, getPrimaryCategory } from "@/lib/game/utils/positionMapping";
 import { ErrorState } from "@/app/game/_components";
 
+// ─── Constants ─────────────────────────────────────────────────────────────
 const POSITIONS = ["GK", "DEF", "MID", "MID", "FWD"] as const;
-const FORMATION_NAME = "1-1-2-1";
-const FORMATION_LABEL = "Classic";
 
-const POSITION_LABELS: Record<string, string> = {
-  GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward",
+const POSITION_META: Record<string, { label: string; color: string; icon: typeof Shield }> = {
+  GK: { label: "Goalkeeper", color: "#f59e0b", icon: Shield },
+  DEF: { label: "Defender", color: "#3b82f6", icon: Shield },
+  MID: { label: "Midfielder", color: "#10b981", icon: Zap },
+  FWD: { label: "Forward", color: "#ef4444", icon: Swords },
 };
-const POSITION_COLORS: Record<string, string> = {
-  GK: "#f59e0b", DEF: "#3b82f6", MID: "#10b981", FWD: "#ef4444",
-};
+
+const PITCH_LAYOUT = [
+  { pos: "GK", x: 50, y: 16 },
+  { pos: "DEF", x: 50, y: 36 },
+  { pos: "MID", x: 28, y: 58 },
+  { pos: "MID", x: 72, y: 58 },
+  { pos: "FWD", x: 50, y: 80 },
+];
+
+const PITCH_LINES: [number, number][] = [
+  [0, 1], [1, 2], [1, 3], [2, 4], [3, 4],
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── PITCH VIEW ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+function PitchView({
+  slots,
+  selectedSlot,
+  onSlotClick,
+  onRemove,
+}: {
+  slots: (any | null)[];
+  selectedSlot: number | null;
+  onSlotClick: (i: number) => void;
+  onRemove: (i: number) => void;
+}) {
+  return (
+    <div className="relative w-full aspect-[2/3] sm:aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 select-none">
+      {/* Grass gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a2a0a] via-[#0d3310] to-[#091f09]" />
+      <div className="absolute inset-0 opacity-[0.06]" style={{
+        backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 80px)`,
+      }} />
+
+      {/* Pitch markings */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+        <rect x="3.5" y="3.5" width="93" height="93" rx="1.5" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+        <line x1="3.5" y1="50" x2="96.5" y2="50" stroke="rgba(255,255,255,0.07)" strokeWidth="0.4" />
+        <circle cx="50" cy="50" r="10" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
+        <circle cx="50" cy="50" r="0.8" fill="rgba(255,255,255,0.08)" />
+        <rect x="22" y="3.5" width="56" height="18" rx="1" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.3" />
+        <rect x="22" y="78.5" width="56" height="18" rx="1" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.3" />
+        <rect x="34" y="3.5" width="32" height="7" rx="0.8" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.3" />
+        <rect x="34" y="89.5" width="32" height="7" rx="0.8" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.3" />
+        <rect x="40" y="1" width="20" height="2.5" rx="0.5" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.4" />
+        <rect x="40" y="96.5" width="20" height="2.5" rx="0.5" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.4" />
+      </svg>
+
+      {/* Connection lines */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+        {PITCH_LINES.map(([from, to], li) => {
+          const fromP = PITCH_LAYOUT[from];
+          const toP = PITCH_LAYOUT[to];
+          const show = !!slots[from] && !!slots[to];
+          return (
+            <line
+              key={li}
+              x1={fromP.x} y1={fromP.y} x2={toP.x} y2={toP.y}
+              stroke={show ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.04)"}
+              strokeWidth={show ? 0.6 : 0.3}
+              strokeDasharray={show ? "none" : "2,3"}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Player positions */}
+      {PITCH_LAYOUT.map((pp, i) => {
+        const player = slots[i];
+        const meta = POSITION_META[pp.pos];
+        const isSelected = selectedSlot === i;
+        const occupied = !!player;
+
+        return (
+          <button
+            key={i}
+            onClick={() => onSlotClick(i)}
+            className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2 transition-all duration-200 group"
+            style={{ left: `${pp.x}%`, top: `${pp.y}%` }}
+          >
+            {occupied ? (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="flex flex-col items-center relative"
+              >
+                {/* Remove button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRemove(i); }}
+                  className={`absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-red-500/80 border border-black/40 flex items-center justify-center transition-all duration-200 z-10 hover:bg-red-500 ${
+                    isSelected ? "opacity-100 scale-100" : "opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100"
+                  }`}
+                  title="Remove"
+                >
+                  <Trash2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />
+                </button>
+
+                {/* Player circle */}
+                <div
+                  className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-[2.5px] transition-all duration-300 ${
+                    isSelected ? "scale-110" : "group-hover:scale-105"
+                  }`}
+                  style={{
+                    borderColor: isSelected ? "#e09225" : meta.color,
+                    boxShadow: isSelected
+                      ? `0 0 20px ${meta.color}60, 0 0 40px ${meta.color}30`
+                      : `0 0 12px ${meta.color}30`,
+                  }}
+                >
+                  {player.image_url ? (
+                    <img src={player.image_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-black/50">
+                      <User className="w-5 h-5 text-white/60" />
+                    </div>
+                  )}
+                  <div
+                    className="absolute -bottom-0.5 -right-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[8px] sm:text-[9px] font-black border-[1.5px] border-black"
+                    style={{ backgroundColor: meta.color, color: "#000" }}
+                  >
+                    {player.overall}
+                  </div>
+                </div>
+
+                <span className="mt-1 text-[9px] sm:text-[10px] font-bold text-white leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate max-w-[68px] sm:max-w-[80px] text-center">
+                  {player.short_name}
+                </span>
+              </motion.div>
+            ) : (
+              <div className={`flex flex-col items-center gap-1 transition-all duration-200 ${
+                isSelected ? "scale-110" : "opacity-50 group-hover:opacity-80"
+              }`}>
+                <div
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 flex items-center justify-center ${
+                    isSelected ? "border-[#e09225] bg-[#e09225]/10" : "border-dashed border-white/20 bg-black/40"
+                  }`}
+                >
+                  <span className="text-xs sm:text-sm font-black" style={{ color: isSelected ? "#e09225" : meta.color }}>
+                    {pp.pos}
+                  </span>
+                </div>
+                <span className="text-[7px] sm:text-[8px] text-white/30 font-medium">{meta.label}</span>
+              </div>
+            )}
+          </button>
+        );
+      })}
+
+      {/* Formation label */}
+      <div className="absolute top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/50 border border-white/5 text-[8px] text-white/30 font-bold tracking-widest backdrop-blur-sm">
+        1-1-2-1
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── BENCH PLAYER CARD ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+function BenchPlayerCard({
+  player,
+  onClick,
+  disabled,
+}: {
+  player: any;
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  const p = player.playerId || player;
+  if (!p) return null;
+  const primaryPos = p.positions?.[0] || "";
+  const posMeta = POSITION_META[getPrimaryCategory(p.positions)];
+  const theme = getRarityTheme(p.rarity);
+
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      className={`flex items-center gap-2 p-2 rounded-xl border transition-all shrink-0 ${
+        disabled
+          ? "bg-[#0a1628]/50 border-white/5 opacity-40 cursor-default"
+          : "bg-[#0a1628] border-white/10 hover:border-white/20 hover:bg-[#0d1d30] cursor-pointer active:scale-[0.98]"
+      }`}
+    >
+      <div className="relative shrink-0">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10">
+          {p.image_url ? (
+            <img src={p.image_url} alt={p.short_name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-black/40">
+              <User className="w-4 h-4 text-gray-500" />
+            </div>
+          )}
+        </div>
+        <div
+          className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[6px] font-black border border-black"
+          style={{ backgroundColor: posMeta?.color || "#9ca3af", color: "#000" }}
+        >
+          {primaryPos.slice(0, 2)}
+        </div>
+      </div>
+      <div className="text-left min-w-0 max-w-[80px] sm:max-w-[100px]">
+        <p className="text-[11px] font-semibold text-white truncate">{p.short_name}</p>
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] font-extrabold" style={{ color: posMeta?.color || "#9ca3af" }}>
+            {p.overall}
+          </span>
+          <span className="text-[7px] text-gray-500 uppercase">· {p.rarity}</span>
+        </div>
+        <div className="flex gap-1.5 mt-0.5">
+          {["PAC", "SHO", "PAS"].map((stat) => (
+            <span key={stat} className="text-[6px] text-gray-600 bg-white/[0.04] px-1 py-0.5 rounded font-bold">
+              {stat}
+            </span>
+          ))}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── BENCH SECTION ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+function BenchSection({
+  players,
+  assignedIds,
+  selectedSlot,
+  onAssign,
+}: {
+  players: any[];
+  assignedIds: Set<string>;
+  selectedSlot: number | null;
+  onAssign: (player: any) => void;
+}) {
+  const router = useRouter();
+  const targetPos = selectedSlot !== null ? POSITIONS[selectedSlot] : null;
+  const hasSelection = selectedSlot !== null;
+
+  const sorted = useMemo(() => {
+    return [...players]
+      .filter((op) => {
+        const p = op.playerId;
+        return p && !assignedIds.has(p._id?.toString());
+      })
+      .sort((a, b) => {
+        const aP = a.playerId;
+        const bP = b.playerId;
+        if (!aP || !bP) return 0;
+        if (!targetPos) return (bP.overall || 0) - (aP.overall || 0);
+        const aMatch = playerMatchesCategory(aP.positions, targetPos);
+        const bMatch = playerMatchesCategory(bP.positions, targetPos);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return (bP.overall || 0) - (aP.overall || 0);
+      });
+  }, [players, assignedIds, targetPos]);
+
+  if (players.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <User className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+        <p className="text-gray-500 text-xs mb-2">No players available</p>
+        <button
+          onClick={() => router.push("/game/shop")}
+          className="text-xs text-[#e09225] font-medium hover:underline"
+        >
+          Buy from shop →
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs text-gray-500 uppercase tracking-wider font-medium flex items-center gap-2">
+          <User className="w-3.5 h-3.5" />
+          Bench
+          <span className="text-[9px] text-gray-600 normal-case font-normal">({sorted.length} available)</span>
+        </h3>
+        {hasSelection && targetPos && (
+          <span className="text-[10px] text-[#e09225] font-medium">
+            Selecting for {POSITION_META[targetPos].label}
+          </span>
+        )}
+      </div>
+
+      {sorted.length === 0 ? (
+        <div className="flex items-center gap-2 text-gray-600 text-sm py-4">
+          <Check className="w-4 h-4 text-green-500" />
+          All players are assigned
+        </div>
+      ) : (
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
+          {sorted.map((op: any) => {
+            const p = op.playerId;
+            if (!p) return null;
+            return (
+              <BenchPlayerCard
+                key={op._id}
+                player={p}
+                onClick={() => onAssign(p)}
+                disabled={!hasSelection}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Hint: select a position first */}
+      {!hasSelection && (
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#e09225] animate-pulse" />
+          Tap a position on the pitch above, then tap a player here
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── SQUAD STATS BAR ───────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+function SquadStatsBar({
+  slots,
+  filledCount,
+  squadRating,
+  onSave,
+  isPending,
+  isOnboarding,
+}: {
+  slots: (any | null)[];
+  filledCount: number;
+  squadRating: number;
+  onSave: () => void;
+  isPending: boolean;
+  isOnboarding: boolean;
+}) {
+  const allFilled = filledCount === 5;
+
+  return (
+    <div className="bg-[#0a1628] rounded-2xl border border-white/10 overflow-hidden">
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-4">
+          {/* Rating */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#e09225]/20 to-[#e09225]/5 border border-[#e09225]/20 flex flex-col items-center justify-center">
+              <Star className="w-3.5 h-3.5 text-[#e09225]" />
+              <span className="text-base font-extrabold text-[#e09225] leading-none -mt-0.5">
+                {squadRating || "—"}
+              </span>
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Avg. Rating</p>
+              <p className="text-xs text-gray-600">{filledCount}/5 filled</p>
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div className="flex-1 min-w-0">
+            <div className="flex gap-1">
+              {slots.map((p, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                  <div
+                    className={`w-full h-1.5 rounded-full transition-all duration-500 ${
+                      p ? "bg-gradient-to-r from-[#e09225] to-[#e09225]/70" : "bg-white/5"
+                    }`}
+                  />
+                  <span
+                    className="text-[7px] font-bold"
+                    style={{ color: p ? POSITION_META[POSITIONS[i]].color : "rgba(255,255,255,0.1)" }}
+                  >
+                    {POSITIONS[i]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Save */}
+          <button
+            onClick={onSave}
+            disabled={isPending || !allFilled}
+            className="shrink-0 px-5 py-2.5 bg-gradient-to-r from-[#e09225] to-[#d4821a] text-[#0a1628] font-bold rounded-xl hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+          >
+            {isPending ? (
+              <div className="w-4 h-4 border-2 border-[#0a1628] border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>{isOnboarding ? "Confirm" : "Save"}</>
+            )}
+          </button>
+        </div>
+
+        {!allFilled && (
+          <div className="flex items-center gap-2 text-[10px] text-gray-600">
+            <Plus className="w-3 h-3" />
+            Fill all 5 positions to save your squad
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── MAIN PAGE ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
 export default function SquadPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,9 +441,9 @@ export default function SquadPage() {
   const existingSquad = data?.squad;
 
   const [squadSlots, setSquadSlots] = useState<(any | null)[]>([null, null, null, null, null]);
-  const [showPicker, setShowPicker] = useState<number | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
-  // Load squad from existing data
+  // Load existing squad
   useEffect(() => {
     if (existingSquad?.players) {
       const slots: (any | null)[] = [null, null, null, null, null];
@@ -50,85 +459,81 @@ export default function SquadPage() {
     }
   }, [existingSquad]);
 
-  // On first load with no squad, auto-assign best-fit players
+  // Auto-assign on first load
   useEffect(() => {
     if (!isLoading && !existingSquad?.players?.length && ownedPlayers.length > 0) {
       const slots: (any | null)[] = [null, null, null, null, null];
-      const usedPlayerIds = new Set();
+      const used = new Set<string>();
 
       POSITIONS.forEach((pos, i) => {
         const candidates = ownedPlayers
           .filter((op: any) => {
             const p = op.playerId;
-            return p && playerMatchesCategory(p.positions, pos) && !usedPlayerIds.has(p._id?.toString());
+            return p && playerMatchesCategory(p.positions, pos) && !used.has(p._id?.toString());
           })
           .sort((a: any, b: any) => (b.playerId?.overall || 0) - (a.playerId?.overall || 0));
-
         if (candidates.length > 0) {
           const best = candidates[0];
           slots[i] = best.playerId;
-          usedPlayerIds.add(best.playerId._id.toString());
+          used.add(best.playerId._id.toString());
         }
       });
 
       const remaining = ownedPlayers
         .filter((op: any) => {
           const p = op.playerId;
-          return p && !usedPlayerIds.has(p._id?.toString());
+          return p && !used.has(p._id?.toString());
         })
         .sort((a: any, b: any) => (b.playerId?.overall || 0) - (a.playerId?.overall || 0));
 
-      // Fill remaining empty slots — only assign players whose position matches
       for (let i = 0; i < slots.length; i++) {
         if (slots[i]) continue;
         const pos = POSITIONS[i];
-        const match = remaining.findIndex(
-          (op: any) => op.playerId && playerMatchesCategory(op.playerId.positions, pos),
-        );
+        const match = remaining.findIndex((op: any) => op.playerId && playerMatchesCategory(op.playerId.positions, pos));
         if (match !== -1) {
           slots[i] = remaining[match].playerId;
-          usedPlayerIds.add(remaining[match].playerId._id.toString());
+          used.add(remaining[match].playerId._id.toString());
           remaining.splice(match, 1);
         }
       }
-
-      // DON'T assign unmatched players to wrong positions (e.g. a FWD as GK).
-      // Empty positions will remain visible so the user can fill them manually.
-
       setSquadSlots(slots);
     }
   }, [isLoading, existingSquad, ownedPlayers]);
 
-  const handleAssignPlayer = (slotIndex: number, playerData: any) => {
-    const player = playerData.playerId || playerData;
+  const handleSlotClick = useCallback((i: number) => {
+    setSelectedSlot((prev) => (prev === i ? null : i));
+  }, []);
+
+  const handleRemoveFromSlot = useCallback((i: number) => {
+    setSquadSlots((prev) => {
+      const newSlots = [...prev];
+      newSlots[i] = null;
+      return newSlots;
+    });
+    setSelectedSlot(null);
+  }, []);
+
+  const handleAssignFromBench = useCallback((playerData: any) => {
+    if (selectedSlot === null) return;
     setSquadSlots((prev) => {
       const newSlots = [...prev];
       for (let i = 0; i < newSlots.length; i++) {
-        if (newSlots[i]?._id?.toString() === player._id?.toString()) {
+        if (newSlots[i]?._id?.toString() === playerData._id?.toString()) {
           newSlots[i] = null;
         }
       }
-      newSlots[slotIndex] = player;
+      newSlots[selectedSlot] = playerData;
       return newSlots;
     });
-    setShowPicker(null);
-  };
+    setSelectedSlot(null);
+  }, [selectedSlot]);
 
-  const handleRemovePlayer = (slotIndex: number) => {
-    setSquadSlots((prev) => {
-      const newSlots = [...prev];
-      newSlots[slotIndex] = null;
-      return newSlots;
-    });
-  };
-
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const emptySlots = squadSlots.filter((s) => !s).length;
     if (emptySlots > 0) {
       toast.error(`Please fill all ${emptySlots} empty position(s)`);
       return;
     }
-
     try {
       const players = squadSlots.map((player, i) => {
         const owned = ownedPlayers.find(
@@ -141,36 +546,28 @@ export default function SquadPage() {
           slot: i,
         };
       });
-
       await saveSquad.mutateAsync(players);
       toast.success("Squad saved!");
-      if (isOnboarding) {
-        router.push("/game/home");
-      }
+      if (isOnboarding) router.push("/game/home");
     } catch (err: any) {
       toast.error(err.message || "Failed to save squad");
     }
-  };
+  }, [squadSlots, ownedPlayers, saveSquad, isOnboarding, router]);
 
-  const getAvailablePlayers = (slotIndex: number) => {
-    return ownedPlayers.filter((op: any) => {
-      const p = op.playerId;
-      if (!p) return false;
-      const inOtherSlot = squadSlots.some(
-        (s, i) => i !== slotIndex && s?._id?.toString() === p._id?.toString(),
-      );
-      return !inOtherSlot;
+  const assignedIds = useMemo(() => {
+    const ids = new Set<string>();
+    squadSlots.forEach((p) => {
+      if (p?._id) ids.add(p._id.toString());
     });
-  };
+    return ids;
+  }, [squadSlots]);
 
-  const squadRating =
-    squadSlots.filter(Boolean).length > 0
-      ? Math.round(
-          squadSlots.filter(Boolean).reduce((sum, p) => sum + (p?.overall || 0), 0) /
-            squadSlots.filter(Boolean).length,
-        )
-      : 0;
+  const filledCount = squadSlots.filter(Boolean).length;
+  const squadRating = filledCount > 0
+    ? Math.round(squadSlots.filter(Boolean).reduce((sum, p) => sum + (p?.overall || 0), 0) / filledCount)
+    : 0;
 
+  // ── Loading ──
   if (isLoading) {
     return (
       <div className="h-full overflow-y-auto">
@@ -185,40 +582,26 @@ export default function SquadPage() {
     );
   }
 
+  // ── Error ──
   if (isError) {
     return (
-      <ErrorState
-        title="Failed to load squad"
-        message={error?.message || "Could not fetch your squad data"}
-        onRetry={() => refetch()}
-      />
+      <ErrorState title="Failed to load squad" message={error?.message || "Could not fetch your squad data"} onRetry={() => refetch()} />
     );
   }
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6 pb-20">
-        {/* Header */}
+      <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-5 pb-20">
+        {/* ── Header ── */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-white">
+            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              <Swords className="w-5 h-5 text-[#e09225]" />
               {isOnboarding ? "Build Your Squad" : "Squad"}
             </h1>
-            <p className="text-gray-500 text-sm">Assign 5 players to their positions</p>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="px-2 py-0.5 rounded-full bg-[#e09225]/10 border border-[#e09225]/20 text-[10px] text-[#e09225] font-bold tracking-wider">
-                {FORMATION_NAME}
-              </span>
-              <span className="text-[10px] text-gray-600">{FORMATION_LABEL}</span>
-              <span className="text-[10px] text-gray-600">•</span>
-              <div className="flex items-center gap-1">
-                {POSITIONS.map((pos, i) => (
-                  <span key={i} className="text-[10px] font-bold" style={{ color: POSITION_COLORS[pos] }}>
-                    {pos}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <p className="text-gray-500 text-sm mt-0.5">
+              {filledCount}/5 players assigned
+            </p>
           </div>
           {!isOnboarding && (
             <button
@@ -230,214 +613,33 @@ export default function SquadPage() {
           )}
         </div>
 
-        {/* Squad Slots - Detailed List */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs text-gray-500 uppercase tracking-wider font-medium">Player Selection</h2>
-            <span className="text-xs text-gray-600">
-              {squadSlots.filter(Boolean).length}/5 assigned
-            </span>
-          </div>
-          {squadSlots.map((player, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              {/* Slot card */}
-              <div className={`rounded-xl border overflow-hidden transition-all
-                ${showPicker === i ? "border-[#e09225]/40 ring-1 ring-[#e09225]/20" : player ? "border-white/10 bg-white/[0.03]" : "border-dashed border-white/15 bg-white/[0.01]"}
-              `}>
-                {/* Main row */}
-                <div className="flex items-center gap-3 p-3">
-                  {/* Position badge */}
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `${POSITION_COLORS[POSITIONS[i]]}15` }}
-                  >
-                    <div className="text-center">
-                      <div className="text-base font-extrabold leading-none" style={{ color: POSITION_COLORS[POSITIONS[i]] }}>
-                        {POSITIONS[i]}
-                      </div>
-                      <div className="text-[7px] text-gray-500 uppercase leading-tight">
-                        {POSITION_LABELS[POSITIONS[i]].slice(0, 4)}
-                      </div>
-                    </div>
-                  </div>
+        {/* ── Pitch ── */}
+        <PitchView
+          slots={squadSlots}
+          selectedSlot={selectedSlot}
+          onSlotClick={handleSlotClick}
+          onRemove={handleRemoveFromSlot}
+        />
 
-                  {/* Player info or empty state */}
-                  {player ? (
-                    <div
-                      className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer"
-                      onClick={() => setShowPicker(showPicker === i ? null : i)}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-white/5 overflow-hidden shrink-0 border border-white/10">
-                        {player.image_url ? (
-                          <img src={player.image_url} alt={player.short_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <User className="w-4 h-4 text-gray-600" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-white font-semibold text-sm truncate">{player.short_name}</p>
-                          {player.rarity && (
-                            <span className="text-[8px] px-1 py-0.5 rounded font-bold uppercase tracking-wider shrink-0"
-                              style={{
-                                backgroundColor: player.rarity === "Legendary" ? "rgba(251,191,36,0.15)" :
-                                  player.rarity === "Epic" ? "rgba(168,85,247,0.15)" :
-                                  player.rarity === "Rare" ? "rgba(59,130,246,0.15)" :
-                                  player.rarity === "Mythic" ? "rgba(234,179,8,0.15)" :
-                                  "rgba(107,114,128,0.15)",
-                                color: player.rarity === "Legendary" ? "#fbbf24" :
-                                  player.rarity === "Epic" ? "#a855f7" :
-                                  player.rarity === "Rare" ? "#3b82f6" :
-                                  player.rarity === "Mythic" ? "#eab308" :
-                                  "#9ca3af",
-                              }}
-                            >
-                              {player.rarity}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-500 text-[11px] truncate">{player.long_name || player.short_name}</p>
-                      </div>
-                      <div className="text-lg font-extrabold" style={{ color: POSITION_COLORS[POSITIONS[i]] }}>
-                        {player.overall}
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => setShowPicker(showPicker === i ? null : i)}
-                      className="flex-1 flex items-center gap-2 cursor-pointer py-1"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-dashed border-white/10">
-                        <User className="w-4 h-4 text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="text-gray-500 text-sm">Assign a player</p>
-                        <p className="text-gray-600 text-[10px]">Tap to select from your collection</p>
-                      </div>
-                    </div>
-                  )}
+        {/* ── Bench ── */}
+        <BenchSection
+          players={ownedPlayers}
+          assignedIds={assignedIds}
+          selectedSlot={selectedSlot}
+          onAssign={handleAssignFromBench}
+        />
 
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {player && (
-                      <button
-                        onClick={() => handleRemovePlayer(i)}
-                        className="w-7 h-7 rounded-lg bg-red-500/5 text-red-400/60 hover:bg-red-500/15 hover:text-red-400 flex items-center justify-center transition"
-                        title="Remove"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setShowPicker(showPicker === i ? null : i)}
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition
-                        ${showPicker === i
-                          ? "bg-[#e09225]/15 text-[#e09225]"
-                          : "bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300"
-                        }`}
-                      title="Change"
-                    >
-                      <ArrowUpDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+        {/* ── Squad Stats + Save ── */}
+        <SquadStatsBar
+          slots={squadSlots}
+          filledCount={filledCount}
+          squadRating={squadRating}
+          onSave={handleSave}
+          isPending={saveSquad.isPending}
+          isOnboarding={isOnboarding}
+        />
 
-                {/* Player Picker */}
-                {showPicker === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    className="border-t border-white/5"
-                  >
-                    <div className="p-3 max-h-52 overflow-y-auto space-y-1">
-                      {getAvailablePlayers(i).length === 0 ? (
-                        <div className="text-center py-6">
-                          <User className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                          <p className="text-gray-500 text-xs mb-2">
-                            No available players
-                          </p>
-                          <button
-                            onClick={() => router.push("/game/shop")}
-                            className="text-xs text-[#e09225] font-medium hover:underline"
-                          >
-                            Buy from shop →
-                          </button>
-                        </div>
-                      ) : (
-                        getAvailablePlayers(i).map((op: any) => {
-                          const p = op.playerId;
-                          if (!p) return null;
-                          const primaryPos = p.positions?.[0] || "";
-                          const posMatch = getPositionCategory(primaryPos) === POSITIONS[i];
-                          const isSelected = squadSlots[i]?._id?.toString() === p._id?.toString();
-                          return (
-                            <button
-                              key={op._id}
-                              onClick={() => handleAssignPlayer(i, op)}
-                              className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition border
-                                ${isSelected
-                                  ? "bg-[#e09225]/10 border-[#e09225]/20"
-                                  : "hover:bg-white/5 border-transparent"
-                                }
-                              `}
-                            >
-                              <div className="w-9 h-9 rounded-full bg-white/5 overflow-hidden shrink-0 border border-white/10">
-                                {p.image_url ? (
-                                  <img src={p.image_url} alt={p.short_name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-gray-600" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 text-left min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-white text-sm font-medium truncate">{p.short_name}</p>
-                                  {posMatch && (
-                                    <span className="text-[8px] text-green-400 bg-green-500/10 px-1 py-0.5 rounded font-bold uppercase">Best</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[10px]">
-                                  <span
-                                    className="font-bold"
-                                    style={{ color: posMatch ? POSITION_COLORS[POSITIONS[i]] : "#f59e0b" }}
-                                  >
-                                    {primaryPos}
-                                  </span>
-                                  <span className="text-gray-600">•</span>
-                                  <span className="text-gray-500 capitalize">{p.rarity}</span>
-                                  <span className="text-gray-600">•</span>
-                                  <span className="text-white font-bold">{p.overall}</span>
-                                </div>
-                              </div>
-                              {isSelected && (
-                                <Check className="w-4 h-4 text-[#e09225] shrink-0" />
-                              )}
-                              {!posMatch && !isSelected && (
-                                <div className="text-[9px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded font-medium shrink-0">
-                                  {getPrimaryCategory(primaryPos)}
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Empty state */}
+        {/* ── Empty state ── */}
         {ownedPlayers.length === 0 && !isLoading && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -448,71 +650,13 @@ export default function SquadPage() {
               <User className="w-8 h-8 text-gray-600" />
             </div>
             <p className="text-gray-400 font-medium mb-1">You don&apos;t own any players yet</p>
-            <p className="text-gray-600 text-xs mb-4">Buy player packs from the shop to build your squad</p>
+            <p className="text-gray-600 text-xs mb-4">Buy players from the shop to build your squad</p>
             <button
               onClick={() => router.push("/game/shop")}
               className="px-6 py-2.5 bg-[#e09225] text-[#0a1628] font-bold rounded-xl text-sm hover:bg-[#e09225]/90 transition"
             >
               Go to Shop
             </button>
-          </motion.div>
-        )}
-
-        {/* Squad Summary */}
-        {squadSlots.filter(Boolean).length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] rounded-2xl border border-white/10 p-4 md:p-5"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Rating */}
-              <div className="flex items-center gap-4 flex-1">
-                <div className="w-14 h-14 rounded-xl bg-[#e09225]/10 border border-[#e09225]/20 flex flex-col items-center justify-center shrink-0">
-                  <Star className="w-4 h-4 text-[#e09225]" />
-                  <p className="text-lg font-extrabold text-[#e09225] leading-none mt-0.5">
-                    {squadRating || "-"}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Squad Rating</p>
-                  <p className="text-sm text-gray-500 truncate">
-                    {squadSlots.filter(Boolean).length}/5 players
-                    {squadSlots.filter(Boolean).length === 5 && (
-                      <span className="text-green-400 ml-2">✓ Ready</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Progress dots */}
-              <div className="flex gap-1.5 sm:order-last">
-                {squadSlots.map((p, i) => (
-                  <div
-                    key={i}
-                    className={`w-8 sm:w-10 h-1.5 rounded-full transition-all ${
-                      p ? "bg-[#e09225]" : "bg-white/10"
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {/* Save button */}
-              <button
-                onClick={handleSave}
-                disabled={saveSquad.isPending || squadSlots.filter(Boolean).length < 5}
-                className="w-full sm:w-auto px-6 py-3 bg-[#e09225] text-[#0a1628] font-bold rounded-xl hover:bg-[#e09225]/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0"
-              >
-                {saveSquad.isPending ? (
-                  <div className="w-5 h-5 border-2 border-[#0a1628] border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    {isOnboarding ? "Confirm Squad" : "Save Squad"}
-                  </>
-                )}
-              </button>
-            </div>
           </motion.div>
         )}
       </div>

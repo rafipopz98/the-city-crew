@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import api from "@/lib/api/axios";
 
 export default function GameRootPage() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    fetch("/api/game/user", { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => {
+    api
+      .get("/game/user")
+      .then(({ data }) => {
         if (data.gameUser?.has_completed_onboarding) {
           router.replace("/game/home");
         } else {

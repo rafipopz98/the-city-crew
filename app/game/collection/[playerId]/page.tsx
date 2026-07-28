@@ -10,9 +10,11 @@ import {
 } from "lucide-react";
 import {
   ErrorState, SkeletonDetail,
-  PlayerCardBackground, getRarityTheme,
+  getRarityTheme,
 } from "@/app/game/_components";
+import { isGK, GK_STATS_CONFIG, FIELD_STATS_CONFIG } from "@/lib/game/utils/positionMapping";
 import { toast } from "sonner";
+import api from "@/lib/api/axios";
 
 // ─── Cost helpers ──────────────────────────────────────────────────────────
 function getCoinCost(newValue: number): number {
@@ -30,15 +32,6 @@ function getRequiredXp(newValue: number): number {
   if (newValue >= 80) return 2000;
   return 500;
 }
-
-const STATS_CONFIG = [
-  { key: "pace", label: "Pace", short: "PAC" },
-  { key: "shooting", label: "Shooting", short: "SHO" },
-  { key: "passing", label: "Passing", short: "PAS" },
-  { key: "dribbling", label: "Dribbling", short: "DRI" },
-  { key: "defending", label: "Defending", short: "DEF" },
-  { key: "physic", label: "Physical", short: "PHY" },
-];
 
 // ─── Individual stat upgrade row ───────────────────────────────────────────
 function StatUpgradeRow({
@@ -68,84 +61,57 @@ function StatUpgradeRow({
   const meetsCoins = gameUserCoins >= coinCost;
   const canUpgrade = meetsXp && meetsCoins;
 
-  // Color the bar based on current stat value
-  const barColor =
-    effective >= 85 ? "#22c55e" : effective >= 70 ? "#e09225" : "#ef4444";
+  const barColor = effective >= 85 ? "#22c55e" : effective >= 70 ? "#e09225" : "#ef4444";
   const barPct = Math.min((effective / 99) * 100, 100);
 
   return (
     <div className="group">
-      <div className="flex items-center gap-3 py-2.5">
-        {/* Stat label */}
+      <div className="flex items-center gap-3 py-2">
         <span className="text-xs font-bold text-gray-400 w-16 shrink-0 uppercase tracking-wider">
           {label}
         </span>
-
-        {/* Bar */}
-        <div className="flex-1 h-3 bg-black/40 rounded-full overflow-hidden">
+        <div className="flex-1 h-2.5 bg-black/40 rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-500 ease-out"
-            style={{
-              width: `${barPct}%`,
-              backgroundColor: barColor,
-              boxShadow: `0 0 6px ${barColor}60`,
-            }}
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${barPct}%`, backgroundColor: barColor }}
           />
         </div>
-
-        {/* Value */}
-        <div className="flex items-center gap-1 w-16 shrink-0">
-          <span className="text-sm font-extrabold text-white tabular-nums">
-            {effective}
-          </span>
+        <div className="flex items-center gap-1 w-14 shrink-0">
+          <span className="text-sm font-extrabold text-white tabular-nums">{effective}</span>
           {upgradeLevel > 0 && (
             <span className="text-[9px] text-green-400 font-bold">+{upgradeLevel}</span>
           )}
         </div>
-
-        {/* Upgrade button */}
         <button
           onClick={onUpgrade}
           disabled={!canUpgrade || isUpgrading}
-          className={`shrink-0 flex flex-col items-center justify-center w-14 h-12 rounded-xl text-[9px] font-bold transition-all ${
+          className={`shrink-0 flex items-center justify-center w-12 h-9 rounded-lg text-[9px] font-bold transition-all ${
             canUpgrade && !isUpgrading
-              ? "bg-green-500/15 border border-green-500/30 text-green-400 hover:bg-green-500/25 hover:border-green-500/50 cursor-pointer active:scale-95"
+              ? "bg-green-500/15 border border-green-500/30 text-green-400 hover:bg-green-500/25 active:scale-95"
               : "bg-white/[0.03] border border-white/5 text-gray-600 cursor-not-allowed"
           }`}
           title={`${coinCost} coins • ${requiredXp} XP required`}
         >
           {isUpgrading ? (
-            <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-3.5 h-3.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
           ) : canUpgrade ? (
-            <>
-              <Plus className="w-3 h-3" />
-              <span className="mt-0.5">{coinCost}</span>
-            </>
+            <Plus className="w-3.5 h-3.5" />
           ) : (
-            <>
-              <Lock className="w-3 h-3" />
-              <span className="mt-0.5">{!meetsXp ? "XP" : "Coin"}</span>
-            </>
+            <Lock className="w-3 h-3" />
           )}
         </button>
       </div>
-
-      {/* Cost/reason helper — always visible when blocked, hover for cost preview */}
-      <div className={`flex items-center gap-3 pl-16 text-[10px] transition-all duration-200 ${
-        canUpgrade ? 'h-0 overflow-hidden group-hover:h-5' : 'h-5'
+      <div className={`flex items-center gap-3 pl-[72px] text-[10px] transition-all duration-200 ${
+        canUpgrade ? 'h-0 overflow-hidden group-hover:h-4' : 'h-4'
       }`}>
         {canUpgrade ? (
-          <span>
-            Next: <span className="text-amber-400/80">✦{coinCost}</span> coins · <span className="text-purple-400/80">{requiredXp} XP</span>
+          <span className="text-gray-600">
+            ✦{coinCost} · {requiredXp} XP
           </span>
         ) : !meetsXp ? (
-          <span className="text-red-400/60 flex items-center gap-1">
-            <span>⚠</span> Need <strong>{requiredXp}</strong> XP (you have {gameUserXp})
-          </span>
+          <span className="text-red-400/60">Need {requiredXp} XP (have {gameUserXp})</span>
         ) : (
-          <span className="text-red-400/60 flex items-center gap-1">
-            <span>⚠</span> Need <strong>{coinCost}</strong> coins (you have {gameUserCoins})
-          </span>
+          <span className="text-red-400/60">Need {coinCost} coins (have {gameUserCoins})</span>
         )}
       </div>
     </div>
@@ -165,19 +131,12 @@ export default function PlayerDetailPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/game/collection/${playerId}`, { credentials: "include" }),
-      fetch("/api/game/user", { credentials: "include" }),
+      api.get(`/game/collection/${playerId}`),
+      api.get("/game/user"),
     ])
-      .then(async ([playerResponse, userResponse]) => {
-        if (!playerResponse.ok || !userResponse.ok) {
-          throw new Error("Failed to load player data");
-        }
-        const [playerData, userData] = await Promise.all([
-          playerResponse.json(),
-          userResponse.json(),
-        ]);
-        setPlayer(playerData.player || null);
-        setGameUser(userData.gameUser || null);
+      .then(([playerResponse, userResponse]) => {
+        setPlayer(playerResponse.data.player || null);
+        setGameUser(userResponse.data.gameUser || null);
       })
       .catch((err) => {
         console.error(err);
@@ -190,20 +149,10 @@ export default function PlayerDetailPage() {
     if (!player) return;
     setBuying(true);
     try {
-      const res = await fetch("/api/game/shop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: player._id }),
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message || "Player purchased!");
-        setPlayer({ ...player, is_owned: true });
-        setGameUser((prev: any) => ({ ...prev, coins: data.coins }));
-      } else {
-        toast.error(data.message || "Failed to purchase");
-      }
+      const { data } = await api.post("/game/shop", { playerId: player._id });
+      toast.success(data.message || "Player purchased!");
+      setPlayer({ ...player, is_owned: true });
+      setGameUser((prev: any) => ({ ...prev, coins: data.coins }));
     } catch {
       toast.error("Connection error");
     } finally {
@@ -215,39 +164,33 @@ export default function PlayerDetailPage() {
     if (!player || !player.is_owned) return;
     setUpgrading(stat);
     try {
-      const res = await fetch("/api/game/upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ownedPlayerId: player._id, stat }),
-        credentials: "include",
+      const { data } = await api.post("/game/upgrade", { ownedPlayerId: player._id, stat });
+      toast.success(data.message);
+      setPlayer((prev: any) => {
+        if (!prev) return prev;
+        const newLevels = { ...(prev.upgrade_levels || {}), [stat]: data.upgradeLevel };
+        const playerPositions = prev.positions || [];
+        const playerIsGK = isGK(playerPositions);
+        const statKeys = playerIsGK
+          ? ["goalkeeping_diving", "goalkeeping_handling", "goalkeeping_kicking", "goalkeeping_positioning", "goalkeeping_reflexes", "goalkeeping_speed"]
+          : ["pace", "shooting", "passing", "dribbling", "defending", "physic"];
+        let total = 0;
+        const updates: Record<string, number> = {};
+        for (const s of statKeys) {
+          const base = prev[s] || 0;
+          const upg = newLevels[s] || 0;
+          const eff = base + upg;
+          updates[`effective_${s}`] = eff;
+          total += eff;
+        }
+        return {
+          ...prev,
+          upgrade_levels: newLevels,
+          effective_overall: Math.round(total / statKeys.length),
+          ...Object.fromEntries(Object.entries(updates).map(([k, v]) => [k, v])),
+        };
       });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        setPlayer((prev: any) => {
-          if (!prev) return prev;
-          const newLevels = { ...(prev.upgrade_levels || {}), [stat]: data.upgradeLevel };
-          const stats = ["pace", "shooting", "passing", "dribbling", "defending", "physic"];
-          let total = 0;
-          const updates: Record<string, number> = {};
-          for (const s of stats) {
-            const base = prev[s] || 0;
-            const upg = newLevels[s] || 0;
-            const eff = base + upg;
-            updates[`effective_${s}`] = eff;
-            total += eff;
-          }
-          return {
-            ...prev,
-            upgrade_levels: newLevels,
-            effective_overall: Math.round(total / 6),
-            ...Object.fromEntries(Object.entries(updates).map(([k, v]) => [k, v])),
-          };
-        });
-        setGameUser((prev: any) => ({ ...prev, coins: data.coins, xp: data.xp }));
-      } else {
-        toast.error(data.message || "Upgrade failed");
-      }
+      setGameUser((prev: any) => ({ ...prev, coins: data.coins, xp: data.xp }));
     } catch {
       toast.error("Connection error");
     } finally {
@@ -257,6 +200,9 @@ export default function PlayerDetailPage() {
 
   const theme = player ? getRarityTheme(player.rarity) : null;
   const isOwned = player?.is_owned;
+  const playerPositions = player?.positions || [];
+  const playerIsGK = isGK(playerPositions);
+  const statsConfig = playerIsGK ? GK_STATS_CONFIG : FIELD_STATS_CONFIG;
 
   // ─── Loading ──
   if (loading) {
@@ -283,9 +229,11 @@ export default function PlayerDetailPage() {
     );
   }
 
+  const accentColor = theme?.accent || "#9ca3af";
+
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-5">
+      <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-5 pb-24">
         {/* ── Back + Wallet ── */}
         <div className="flex items-center justify-between">
           <button
@@ -295,7 +243,6 @@ export default function PlayerDetailPage() {
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
-
           {gameUser && (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
@@ -314,21 +261,19 @@ export default function PlayerDetailPage() {
           )}
         </div>
 
-        {/* ── Player Hero Card ── */}
+        {/* ── Hero Card ── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative rounded-2xl overflow-hidden border"
-          style={{ borderColor: theme?.border || "white/10" }}
+          className="bg-[#0a1628] rounded-2xl border border-white/10 overflow-hidden"
         >
-          <PlayerCardBackground rarity={player.rarity} locked={!isOwned} />
-          {isOwned && <div className="absolute inset-0 bg-green-500/[0.03] pointer-events-none" />}
+          {/* Accent top line */}
+          <div className="h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />
 
-          <div className="relative p-5 flex items-center gap-5">
-            {/* Image */}
+          <div className="p-5 flex items-center gap-5">
             <div
               className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shrink-0 ring-2 flex items-center justify-center"
-              style={{ '--tw-ring-color': theme?.accent || "white/10", backgroundColor: `${theme?.accent}15` } as React.CSSProperties}
+              style={{ '--tw-ring-color': `${accentColor}60` } as React.CSSProperties}
             >
               {player.image_url ? (
                 <img src={player.image_url} alt={player.short_name} className="w-full h-full object-cover" />
@@ -336,13 +281,11 @@ export default function PlayerDetailPage() {
                 <User className="w-8 h-8 text-white/30" />
               )}
             </div>
-
-            {/* Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span
                   className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
-                  style={{ backgroundColor: `${theme?.accent}25`, color: theme?.accent }}
+                  style={{ backgroundColor: `${accentColor}25`, color: accentColor }}
                 >
                   {player.rarity}
                 </span>
@@ -363,29 +306,17 @@ export default function PlayerDetailPage() {
                 <span className="text-gray-600">·</span>
                 <div className="flex gap-1">
                   {player.positions?.map((pos: string) => (
-                    <span
-                      key={pos}
-                      className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 text-[9px] font-bold"
-                    >
-                      {pos}
-                    </span>
+                    <span key={pos} className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 text-[9px] font-bold">{pos}</span>
                   ))}
                 </div>
               </div>
             </div>
-
-            {/* Overall rating */}
             <div className="text-center shrink-0">
-              <div
-                className="text-3xl md:text-4xl font-bold leading-none"
-                style={{ color: theme?.accent }}
-              >
+              <div className="text-3xl md:text-4xl font-bold leading-none" style={{ color: accentColor }}>
                 {isOwned && player.effective_overall ? player.effective_overall : player.overall}
               </div>
               <p className="text-[9px] text-gray-500 uppercase tracking-wider mt-1">
-                {isOwned && player.effective_overall && player.effective_overall > player.overall
-                  ? "Upgraded"
-                  : "Overall"}
+                {isOwned && player.effective_overall && player.effective_overall > player.overall ? "Upgraded" : "Overall"}
               </p>
               {isOwned && player.effective_overall > player.overall && (
                 <p className="text-[10px] text-green-400 font-bold">
@@ -394,161 +325,133 @@ export default function PlayerDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Stats inline — just bars, no extra card */}
+          <div className="px-5 pb-5 pt-1 border-t border-white/5">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-3.5 h-3.5 text-[#e09225]" />
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                {playerIsGK ? "Goalkeeping" : "Stats"}
+              </span>
+              {playerIsGK && (
+                <span className="px-1 py-0.5 rounded bg-[#e09225]/15 text-[#e09225] text-[7px] font-bold">GK</span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              {statsConfig.map(({ key, short }) => {
+                const value = isOwned
+                  ? (player[`effective_${key}`] ?? player[key] ?? 0)
+                  : (player[key] ?? 0);
+                const barColor = value >= 85 ? "#22c55e" : value >= 70 ? "#e09225" : "#ef4444";
+                const barPct = Math.min((value / 99) * 100, 100);
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-gray-500 w-8 shrink-0 uppercase">{short}</span>
+                    <div className="flex-1 h-1.5 bg-black/40 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${barPct}%`, backgroundColor: barColor }} />
+                    </div>
+                    <span className="text-[10px] font-extrabold text-white w-5 text-right tabular-nums">{value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </motion.div>
 
-        {/* ── Upgrade Section (only for owned players) ── */}
-        {isOwned ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-4"
-          >
-            {/* Upgrade header */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#e09225]" />
-                Training & Upgrades
-              </h2>
-              {player.total_upgrade_cost > 0 && (
-                <span className="text-[10px] text-amber-400/80 flex items-center gap-1">
-                  <Coins className="w-3 h-3" />
-                  {player.total_upgrade_cost.toLocaleString()} invested
-                </span>
-              )}
-            </div>
-
-            {/* Stats grid */}
-            <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4">
-              {STATS_CONFIG.map(({ key, label }) => (
-                <StatUpgradeRow
-                  key={key}
-                  label={label}
-                  statKey={key}
-                  baseValue={player[key] || 0}
-                  upgradeLevel={player.upgrade_levels?.[key] || 0}
-                  gameUserXp={gameUser?.xp || 0}
-                  gameUserCoins={gameUser?.coins || 0}
-                  onUpgrade={() => handleUpgrade(key)}
-                  isUpgrading={upgrading === key}
-                />
-              ))}
-            </div>
-
-            {/* Instructions */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-2">
-              <div className="flex items-start gap-3">
-                <Info className="w-4 h-4 text-[#e09225] shrink-0 mt-0.5" />
-                <div className="text-[11px] text-gray-500 space-y-1">
-                  <p>
-                    <strong className="text-gray-400">How it works:</strong> Click the
-                    green <Plus className="w-3 h-3 inline" /> button next to any stat
-                    to train it. Each click adds +1 to that stat.
-                  </p>
-                  <p>
-                    <span className="text-amber-400/80">Costs</span> increase as the
-                    stat gets higher: 50 → 100 → 200 → 500 → 1,000 coins per +1.
-                  </p>
-                  <p>
-                    <span className="text-purple-400/80">XP gate</span> — you need
-                    enough total XP to unlock higher stat thresholds. XP is{' '}
-                    <strong>not</strong> consumed.
-                  </p>
-                  <p>
-                    Hover over each stat row to see the exact cost and XP requirement
-                    for the next upgrade.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Add to Squad */}
-            <button
-              onClick={() => router.push("/game/squad")}
-              className="w-full py-3 rounded-xl bg-[#e09225]/10 border border-[#e09225]/30 text-[#e09225] font-bold text-sm hover:bg-[#e09225]/20 transition flex items-center justify-center gap-2"
-            >
-              <Swords className="w-4 h-4" />
-              Add to Squad
-            </button>
-          </motion.div>
-        ) : (
-          /* ── Unlock section (for non-owned players) ── */
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white/[0.04] border border-white/10 rounded-xl p-5 space-y-4"
-          >
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Lock className="w-4 h-4 text-[#e09225]" />
-              Unlock Player
-            </h2>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-sm text-gray-400">Required XP</span>
-                <span className={`font-bold text-sm ${(gameUser?.xp || 0) >= (player.required_xp || 0) ? "text-green-400" : "text-red-400"}`}>
-                  {player.required_xp || 0}
-                  <span className="text-gray-600 text-xs ml-1">
-                    (You have {gameUser?.xp || 0})
+        {/* ── Actions — either Upgrade or Unlock ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+        >
+          {isOwned ? (
+            <div className="bg-[#0a1628] rounded-2xl border border-white/10 overflow-hidden p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-white">Upgrades</h2>
+                {player.total_upgrade_cost > 0 && (
+                  <span className="text-[10px] text-amber-400/80">
+                    <Coins className="w-3 h-3 inline -mt-0.5" /> {player.total_upgrade_cost.toLocaleString()} invested
                   </span>
-                </span>
+                )}
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-sm text-gray-400">Price</span>
-                <span className={`font-bold text-sm ${(gameUser?.coins || 0) >= (player.price || 0) ? "text-green-400" : "text-red-400"}`}>
-                  <Coins className="w-4 h-4 text-amber-400 inline -mt-0.5" /> {player.price || 0}
-                  <span className="text-gray-600 text-xs ml-1">
-                    (You have {gameUser?.coins || 0})
-                  </span>
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-400">Positions</span>
-                <span className="text-sm text-white font-medium">
-                  {player.positions?.join(" · ") || "-"}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleBuy}
-              disabled={
-                buying ||
-                !gameUser ||
-                (gameUser?.xp || 0) < (player.required_xp || 0) ||
-                (gameUser?.coins || 0) < (player.price || 0)
-              }
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#e09225] to-[#d4821a] text-[#0a1628] font-bold text-sm hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {buying ? (
-                <div className="w-5 h-5 border-2 border-[#0a1628] border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <ShoppingCart className="w-4 h-4" />
-                  {!gameUser || (gameUser?.xp || 0) < (player.required_xp || 0)
-                    ? "XP too low"
-                    : (gameUser?.coins || 0) < (player.price || 0)
-                      ? "Not enough coins"
-                      : "Buy Player"}
-                </>
-              )}
-            </button>
-
-            {/* Stats preview for locked players */}
-            <div className="pt-2">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-medium">Base Stats</p>
-              <div className="grid grid-cols-3 gap-2">
-                {STATS_CONFIG.map(({ key, short }) => (
-                  <div key={key} className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
-                    <span className="text-[8px] text-gray-500 uppercase block">{short}</span>
-                    <span className="text-sm font-bold text-white">{player[key] || 0}</span>
-                  </div>
+              <div className="divide-y divide-white/[0.04]">
+                {statsConfig.map(({ key, label }) => (
+                  <StatUpgradeRow
+                    key={key}
+                    label={label}
+                    statKey={key}
+                    baseValue={player[key] || 0}
+                    upgradeLevel={player.upgrade_levels?.[key] || 0}
+                    gameUserXp={gameUser?.xp || 0}
+                    gameUserCoins={gameUser?.coins || 0}
+                    onUpgrade={() => handleUpgrade(key)}
+                    isUpgrading={upgrading === key}
+                  />
                 ))}
               </div>
+              <details className="group">
+                <summary className="text-[10px] text-gray-600 cursor-pointer hover:text-gray-400 transition select-none">
+                  <Info className="w-3 h-3 inline -mt-0.5 mr-1" />
+                  How upgrades work
+                </summary>
+                <div className="text-[10px] text-gray-500 leading-relaxed mt-2 space-y-1 pl-4">
+                  <p>Click <Plus className="w-2.5 h-2.5 inline" /> on any stat to train it. Each click adds +1.</p>
+                  <p>Cost scales: 50 → 100 → 200 → 500 → 1,000 coins as stat rises.</p>
+                  <p>XP is a gate requirement and is <strong className="text-gray-400">not consumed</strong>.</p>
+                </div>
+              </details>
+              <button
+                onClick={() => router.push("/game/squad")}
+                className="w-full py-2.5 rounded-xl border border-[#e09225]/30 text-[#e09225] font-bold text-sm hover:bg-[#e09225]/10 transition flex items-center justify-center gap-2"
+              >
+                <Swords className="w-4 h-4" />
+                Add to Squad
+              </button>
             </div>
-          </motion.div>
-        )}
+          ) : (
+            <div className="bg-[#0a1628] rounded-2xl border border-white/10 overflow-hidden p-5 space-y-4">
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#e09225]" />
+                Unlock Player
+              </h2>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-white/5">
+                  <span className="text-sm text-gray-400">Required XP</span>
+                  <span className={`font-bold text-sm ${(gameUser?.xp || 0) >= (player.required_xp || 0) ? "text-green-400" : "text-red-400"}`}>
+                    {player.required_xp || 0}
+                    <span className="text-gray-600 text-xs ml-1">(You have {gameUser?.xp || 0})</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-white/5">
+                  <span className="text-sm text-gray-400">Price</span>
+                  <span className={`font-bold text-sm ${(gameUser?.coins || 0) >= (player.price || 0) ? "text-green-400" : "text-red-400"}`}>
+                    <Coins className="w-4 h-4 text-amber-400 inline -mt-0.5" /> {player.price || 0}
+                    <span className="text-gray-600 text-xs ml-1">(You have {gameUser?.coins || 0})</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-gray-400">Positions</span>
+                  <span className="text-sm text-white font-medium">{player.positions?.join(" · ") || "-"}</span>
+                </div>
+              </div>
+              <button
+                onClick={handleBuy}
+                disabled={buying || !gameUser || (gameUser?.xp || 0) < (player.required_xp || 0) || (gameUser?.coins || 0) < (player.price || 0)}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#e09225] to-[#d4821a] text-[#0a1628] font-bold text-sm hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {buying ? (
+                  <div className="w-5 h-5 border-2 border-[#0a1628] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4" />
+                    {!gameUser || (gameUser?.xp || 0) < (player.required_xp || 0) ? "XP too low" :
+                     (gameUser?.coins || 0) < (player.price || 0) ? "Not enough coins" : "Buy Player"}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </motion.div>
       </div>
     </div>
   );

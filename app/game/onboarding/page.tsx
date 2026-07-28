@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, User, Sparkles, ArrowRight, Swords, Shield, Zap } from "lucide-react";
 import { ErrorState, Skeleton } from "@/app/game/_components";
+import api from "@/lib/api/axios";
 
 type Step = "welcome" | "creating" | "reveal" | "done";
 
@@ -21,20 +22,7 @@ export default function OnboardingPage() {
     setStep("creating");
     setLoading(true);
     try {
-      const res = await fetch("/api/game/user/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // No username — API will auto-derive from User model
-        credentials: "include",
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setSubmissionError(data.message || "Something went wrong");
-        setLoading(false);
-        return;
-      }
+      const { data } = await api.post("/game/user/onboarding", {});
 
       setStarterPlayers(data.starterPlayers || []);
       setStep("reveal");
