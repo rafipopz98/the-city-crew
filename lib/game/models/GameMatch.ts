@@ -5,12 +5,13 @@ const MatchEventSchema = new mongoose.Schema(
     minute: { type: Number, required: true },
     type: {
       type: String,
-      enum: ["attack", "chance", "goal", "save", "foul", "card", "substitution", "half_time", "full_time", "possession"],
+      enum: ["attack", "chance", "goal", "save", "foul", "card", "var_check", "offside", "controversial", "half_time", "full_time", "possession"],
       required: true,
     },
     description: { type: String, default: "" },
     playerName: { type: String, default: "" },
     isUserEvent: { type: Boolean, default: true },
+    actorName: { type: String, default: "" },
   },
   { _id: false },
 );
@@ -50,6 +51,17 @@ const GameMatchSchema = new mongoose.Schema(
     user_shots_on_target: { type: Number, default: 0 },
     opponent_shots_on_target: { type: Number, default: 0 },
     events: [MatchEventSchema],
+    // Stat tracking fields (added by engine v2+)
+    user_fouls: { type: Number, default: 0 },
+    opponent_fouls: { type: Number, default: 0 },
+    user_yellow_cards: { type: Number, default: 0 },
+    opponent_yellow_cards: { type: Number, default: 0 },
+    user_red_cards: { type: Number, default: 0 },
+    opponent_red_cards: { type: Number, default: 0 },
+    user_penalties: { type: Number, default: 0 },
+    opponent_penalties: { type: Number, default: 0 },
+    user_corners: { type: Number, default: 0 },
+    opponent_corners: { type: Number, default: 0 },
     player_of_match: {
       playerId: { type: String, default: "" },
       shortName: { type: String },

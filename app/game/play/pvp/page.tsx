@@ -28,7 +28,7 @@ import api from "@/lib/api/axios";
 
 interface MatchSocketEvent {
   minute: number;
-  type: "attack" | "chance" | "goal" | "save" | "half_time" | "full_time" | "possession";
+  type: string;
   description: string;
   actorName: string;
 }
@@ -372,9 +372,6 @@ export default function PvPPage() {
     return myResult === "win" ? "Victory!" : "Defeat";
   };
 
-  const myScore = playerSide === "home" ? matchScore.home : matchScore.away;
-  const opScore = playerSide === "home" ? matchScore.away : matchScore.home;
-
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto p-4 md:p-6">
@@ -593,10 +590,10 @@ export default function PvPPage() {
                     <p className="text-xs text-gray-400 mb-1">
                       {playerSide === "home" ? gameUser?.username || "You" : opponent?.username || "Opponent"}
                     </p>
-                    <motion.p key={myScore} initial={{ scale: 1.3 }} animate={{ scale: 1 }}
+                    <motion.p key={matchScore.home} initial={{ scale: 1.3 }} animate={{ scale: 1 }}
                       className="text-5xl font-bold text-white"
-                    >{myScore}</motion.p>
-                    <p className="text-[10px] text-gray-500 mt-1">{playerSide === "home" ? "(Home)" : "(Away)"}</p>
+                    >{matchScore.home}</motion.p>
+                    <p className="text-[10px] text-gray-500 mt-1">(Home)</p>
                   </div>
                   <div className="px-4">
                     <div className="flex items-center gap-2">
@@ -608,10 +605,10 @@ export default function PvPPage() {
                     <p className="text-xs text-gray-400 mb-1">
                       {playerSide === "away" ? gameUser?.username || "You" : opponent?.username || "Opponent"}
                     </p>
-                    <motion.p key={opScore} initial={{ scale: 1.3 }} animate={{ scale: 1 }}
+                    <motion.p key={matchScore.away} initial={{ scale: 1.3 }} animate={{ scale: 1 }}
                       className="text-5xl font-bold text-white"
-                    >{opScore}</motion.p>
-                    <p className="text-[10px] text-gray-500 mt-1">{playerSide === "away" ? "(Home)" : "(Away)"}</p>
+                    >{matchScore.away}</motion.p>
+                    <p className="text-[10px] text-gray-500 mt-1">(Away)</p>
                   </div>
                 </div>
               </div>
@@ -660,24 +657,24 @@ export default function PvPPage() {
               <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                 <div className="flex items-center justify-between">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-gray-400 mb-1">{gameUser?.username || "You"}</p>
-                    <p className="text-5xl font-bold text-white">{myScore}</p>
+                    <p className="text-xs text-gray-400 mb-1">{playerSide === "home" ? gameUser?.username || "You" : opponent?.username || "Opponent"}</p>
+                    <p className="text-5xl font-bold text-white">{matchScore.home}</p>
                   </div>
                   <div className="text-center px-4"><p className="text-sm font-bold text-gray-500">FINAL</p></div>
                   <div className="text-center flex-1">
-                    <p className="text-xs text-gray-400 mb-1">{opponent?.username || "Opponent"}</p>
-                    <p className="text-5xl font-bold text-white">{opScore}</p>
+                    <p className="text-xs text-gray-400 mb-1">{playerSide === "away" ? gameUser?.username || "You" : opponent?.username || "Opponent"}</p>
+                    <p className="text-5xl font-bold text-white">{matchScore.away}</p>
                   </div>
                 </div>
               </div>
               <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
                 <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Match Stats</h3>
-                <StatRow label="Possession" showPercent left={playerSide === "home" ? matchResult.homePossession : matchResult.awayPossession}
-                  right={playerSide === "home" ? matchResult.awayPossession : matchResult.homePossession} />
-                <StatRow label="Shots" left={playerSide === "home" ? matchResult.homeShots : matchResult.awayShots}
-                  right={playerSide === "home" ? matchResult.awayShots : matchResult.homeShots} />
-                <StatRow label="Shots on Target" left={playerSide === "home" ? matchResult.homeShotsOnTarget : matchResult.awayShotsOnTarget}
-                  right={playerSide === "home" ? matchResult.awayShotsOnTarget : matchResult.homeShotsOnTarget} />
+                <StatRow label="Possession" showPercent left={matchResult.homePossession}
+                  right={matchResult.awayPossession} />
+                <StatRow label="Shots" left={matchResult.homeShots}
+                  right={matchResult.awayShots} />
+                <StatRow label="Shots on Target" left={matchResult.homeShotsOnTarget}
+                  right={matchResult.awayShotsOnTarget} />
               </div>
 
               <div className="bg-linear-to-r from-[#e09225]/20 to-[#e09225]/5 rounded-xl p-6 border border-[#e09225]/20">

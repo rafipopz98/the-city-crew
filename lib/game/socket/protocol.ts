@@ -51,7 +51,7 @@ export interface MatchCountdownPayload {
 
 export interface MatchEventPayload {
   minute: number;
-  type: "attack" | "chance" | "goal" | "save" | "half_time" | "full_time" | "possession";
+  type: "attack" | "chance" | "goal" | "save" | "foul" | "card" | "var_check" | "offside" | "controversial" | "half_time" | "full_time" | "possession";
   description: string;
   actorName: string;
 }
@@ -66,6 +66,16 @@ export interface MatchEndPayload {
   awayShots: number;
   homeShotsOnTarget: number;
   awayShotsOnTarget: number;
+  userFouls?: number;
+  opponentFouls?: number;
+  userYellowCards?: number;
+  opponentYellowCards?: number;
+  userRedCards?: number;
+  opponentRedCards?: number;
+  userPenalties?: number;
+  opponentPenalties?: number;
+  userCorners?: number;
+  opponentCorners?: number;
   events: MatchEventPayload[];
   playerOfTheMatch: string;
   winner: "home" | "away" | "draw";

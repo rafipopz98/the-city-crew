@@ -33,7 +33,7 @@ export interface MatchPlayer {
 
 export interface MatchEvent {
   minute: number;
-  type: "attack" | "chance" | "goal" | "save" | "foul" | "card" | "half_time" | "full_time" | "possession";
+  type: "attack" | "chance" | "goal" | "save" | "foul" | "card" | "var_check" | "offside" | "controversial" | "half_time" | "full_time" | "possession";
   description: string;
   playerName: string;
   isUserEvent: boolean;
@@ -50,6 +50,16 @@ export interface MatchResult {
   opponentShots: number;
   userShotsOnTarget: number;
   opponentShotsOnTarget: number;
+  userFouls: number;
+  opponentFouls: number;
+  userYellowCards: number;
+  opponentYellowCards: number;
+  userRedCards: number;
+  opponentRedCards: number;
+  userPenalties: number;
+  opponentPenalties: number;
+  userCorners: number;
+  opponentCorners: number;
   events: MatchEvent[];
   playerOfTheMatch: { playerId: string; shortName: string; team: "user" | "opponent" };
   duration_seconds: number;
@@ -287,6 +297,16 @@ const userChanceDescs = [
   (p: string) => `${p} creates space and lets fly — no goal!`,
   (p: string) => `Great build-up play! ${p} shoots but it's off balance — wide.`,
   (p: string) => `${p} volleys from close range — straight at the keeper!`,
+  (p: string) => `${p} nutmegs a defender but drags the shot wide! 🥴`,
+  (p: string) => `${p} skips past two defenders — the shot lacks power, easy stop.`,
+  (p: string) => `${p} goes for the spectacular overhead kick — way off target!`,
+  (p: string) => `${p} cuts onto the left foot and curls it just over the bar!`,
+  (p: string) => `${p} charges into the box but the angle is too tight — wide.`,
+  (p: string) => `${p} takes a touch too many and the chance evaporates!`,
+  (p: string) => `Corner comes in — ${p} rises highest but nods it wide!`,
+  (p: string) => `${p} with a clever backheel flick — not enough power!`,
+  (p: string) => `Quick free kick! ${p}'s effort crashes into the wall!`,
+  (p: string) => `${p} lets fly from 25 yards — screaming just wide!`,
 ];
 
 const oppChanceDescs = [
@@ -298,6 +318,16 @@ const oppChanceDescs = [
   (p: string) => `${p} cuts back onto their strong foot — dragged wide!`,
   (p: string) => `${p} spins and shoots — easy pickings for the keeper.`,
   (p: string) => `${p} has a pop from the edge — whistles just past the post!`,
+  (p: string) => `${p} receives a cut-back and blazes over from six yards!`,
+  (p: string) => `${p} is through on goal but hesitates — the chance is gone!`,
+  (p: string) => `${p} chests it down and volleys — straight into the stands!`,
+  (p: string) => `${p} goes for power over placement — it's row Z!`,
+  (p: string) => `${p} tries to curl one into the far corner — just misses!`,
+  (p: string) => `Corner swung in — ${p}'s glancing header goes wide!`,
+  (p: string) => `${p} is fed through on goal but the keeper reads it all the way.`,
+  (p: string) => `${p} hits a dipping volley — clears the bar by inches!`,
+  (p: string) => `${p} shifts onto the right foot and hammers it over!`,
+  (p: string) => `The cross finds ${p} unmarked — but the header is off target!`,
 ];
 
 const userSaveDescs = [
@@ -306,6 +336,16 @@ const userSaveDescs = [
   (gk: string, p: string) => `${gk} makes a sharp save to keep out ${p}!`,
   (gk: string, p: string) => `Brilliant reflexes from ${gk}! ${p} is denied!`,
   (gk: string, p: string) => `${gk} tips ${p}'s curling shot around the post!`,
+  (gk: string, p: string) => `MAGNIFICENT! ${gk} claw's ${p}'s header off the line!`,
+  (gk: string, p: string) => `${gk} spreads himself big and blocks ${p}'s effort!`,
+  (gk: string, p: string) => `${gk} dives full stretch to push it wide — world class! 🧤`,
+  (gk: string, p: string) => `${gk} rushes off his line and smothers at ${p}'s feet!`,
+  (gk: string, p: string) => `${gk} gets a strong wrist to it — behind for a corner!`,
+  (gk: string, p: string) => `${gk} parries ${p}'s thunderous drive — that stings the palms!`,
+  (gk: string, p: string) => `${gk} stands tall and punches the cross clear!`,
+  (gk: string, p: string) => `${gk} reads the situation perfectly and claims the ball!`,
+  (gk: string, p: string) => `Incredible double save from ${gk}! First from ${p}, then the follow-up!`,
+  (gk: string, p: string) => `${gk} is off his line in a flash to deny ${p} one-on-one!`,
 ];
 
 const oppSaveDescs = [
@@ -314,6 +354,16 @@ const oppSaveDescs = [
   (gk: string, p: string) => `${gk} stands tall and beats away ${p}'s powerful strike!`,
   (gk: string, p: string) => `Great anticipation from ${gk} to save ${p}'s attempt!`,
   (gk: string, p: string) => `${gk} gets down well to parry ${p}'s drive!`,
+  (gk: string, p: string) => `${gk} shows incredible reflexes to tip it wide! 🙌`,
+  (gk: string, p: string) => `${gk} flings himself to the left and pushes it away!`,
+  (gk: string, p: string) => `${gk} is equal to ${p}'s fierce strike — beaten away!`,
+  (gk: string, p: string) => `${gk} claims the cross under pressure from ${p}!`,
+  (gk: string, p: string) => `${gk} dives at ${p}'s feet to smother the chance!`,
+  (gk: string, p: string) => `${gk} gets a crucial touch to divert it onto the bar!`,
+  (gk: string, p: string) => `${gk} reacts superbly to turn it around the post!`,
+  (gk: string, p: string) => `${gk} comes flying off his line and punches clear!`,
+  (gk: string, p: string) => `${gk} gets two strong hands to it and holds on!`,
+  (gk: string, p: string) => `A stunning fingertip save from ${gk} denies ${p}!`,
 ];
 
 const userBlockDescs = [
@@ -321,6 +371,14 @@ const userBlockDescs = [
   (d: string, p: string) => `${d} slides across to block ${p}'s goal-bound effort!`,
   (d: string, p: string) => `Last-ditch tackling from ${d} to deny ${p}!`,
   (d: string, p: string) => `${d} gets across brilliantly to block the shot!`,
+  (d: string, p: string) => `${d} hurls himself at the ball — heroic defending! 🛡️`,
+  (d: string, p: string) => `${d} makes a goal-line clearance — inches away!`,
+  (d: string, p: string) => `${d} reads ${p}'s run perfectly and steps in to intercept!`,
+  (d: string, p: string) => `${d} tracks back superbly and nicks the ball away!`,
+  (d: string, p: string) => `${d} flies in with a perfectly timed tackle!`,
+  (d: string, p: string) => `${d} puts his body on the line to deflect it wide!`,
+  (d: string, p: string) => `${d} shepherds ${p} away from goal — brilliant defending!`,
+  (d: string, p: string) => `${d} comes across to cover and makes the clearance!`,
 ];
 
 const oppBlockDescs = [
@@ -328,6 +386,14 @@ const oppBlockDescs = [
   (d: string, p: string) => `Superb defending! ${d} hurls themself in front of ${p}'s strike!`,
   (d: string, p: string) => `${d} reads the play perfectly and blocks ${p}'s attempt!`,
   (d: string, p: string) => `${d} puts their body on the line to block!`,
+  (d: string, p: string) => `${d} slides in with a perfectly timed challenge!`,
+  (d: string, p: string) => `${d} gets a foot in to deflect it behind for a corner!`,
+  (d: string, p: string) => `${d} uses strength to muscle ${p} off the ball!`,
+  (d: string, p: string) => `${d} intercepts the through ball — reads it perfectly!`,
+  (d: string, p: string) => `${d} recovers with a brilliant last-man tackle!`,
+  (d: string, p: string) => `${d} heads the goal-bound effort off the line!`,
+  (d: string, p: string) => `${d} tracks ${p} all the way and makes a clean tackle!`,
+  (d: string, p: string) => `${d} steps out of the defensive line to catch ${p} offside!`,
 ];
 
 const userGoalDescs = [
@@ -337,6 +403,20 @@ const userGoalDescs = [
   (p: string) => `GOAL! ${p} slots it past the keeper with composure! 🥶`,
   (p: string) => `GOAL! ${p} rifles a shot into the top bins! 🚀`,
   (p: string) => `GOAL! ${p} turns and fires — unstoppable! 🔥`,
+  (p: string) => `GOAL! ${p} volleys home first time — absolute beauty! 🎨`,
+  (p: string) => `GOAL! ${p} curls it into the far corner — the keeper had no chance! 🌀`,
+  (p: string) => `GOAL! ${p} applies a delicate chip over the advancing keeper! 🥄`,
+  (p: string) => `GOAL! ${p} drills a low shot through a sea of legs! 🦵`,
+  (p: string) => `GOAL! ${p} bursts into the box and slots it coolly! 💪`,
+  (p: string) => `GOAL! ${p} with a towering header — unstoppable! 📐`,
+  (p: string) => `GOAL! ${p} pounces on the rebound and tucks it away! 🏃`,
+  (p: string) => `GOAL! ${p} bends it like a free-kick specialist — wall and keeper beaten! 🌟`,
+  (p: string) => `GOAL! ${p} controls on the chest and volleys home — what a finish! 🎪`,
+  (p: string) => `GOAL! ${p} meets the cross with a thumping header! 💫`,
+  (p: string) => `GOAL! ${p} weaves through the defence and slides it home! 🧙`,
+  (p: string) => `GOAL! ${p} smashes it on the half-volley — the net bulges! ⚡`,
+  (p: string) => `GOAL! ${p} rounds the keeper and taps it into the empty net! 🕺`,
+  (p: string) => `GOAL! ${p} with a backheel flick — audacious and brilliant! 🎭`,
 ];
 
 const oppGoalDescs = [
@@ -346,7 +426,398 @@ const oppGoalDescs = [
   (p: string) => `GOAL! ${p} rifles a low shot into the corner! 🎯`,
   (p: string) => `GOAL! ${p} takes aim from range and picks out the top corner! 🚀`,
   (p: string) => `GOAL! ${p} drills it home from a set-piece routine! ⚡`,
+  (p: string) => `GOAL! ${p} latches onto a through ball and finishes first time! 💨`,
+  (p: string) => `GOAL! ${p} beats the offside trap and slides it past the keeper! 🏃`,
+  (p: string) => `GOAL! ${p} powers a header down into the ground and in! 💫`,
+  (p: string) => `GOAL! ${p} picks his spot from 20 yards — unstoppable! 🎯`,
+  (p: string) => `GOAL! ${p} steals in at the back post to tap it home! 🥷`,
+  (p: string) => `GOAL! ${p} with a glancing header that nestles in the far corner! 📐`,
+  (p: string) => `GOAL! ${p} hammers it on the turn — the keeper rooted! 🔥`,
+  (p: string) => `GOAL! ${p} bundles it over the line from a goal-mouth scramble! 💥`,
+  (p: string) => `GOAL! ${p} cuts inside and curls one into the far corner! 🌀`,
+  (p: string) => `GOAL! ${p} collects a loose ball and lashes it home! 💪`,
+  (p: string) => `GOAL! ${p} lobs the keeper from an impossible angle! 🥄`,
+  (p: string) => `GOAL! ${p} nutmegs the defender and slots it home! 🥴`,
+  (p: string) => `GOAL! ${p} rises highest to meet the corner — power header! 👑`,
+  (p: string) => `GOAL! ${p} is in the right place at the right time — tap-in! 🚶`,
 ];
+
+// ─── Foul, Card & Set-Piece Description Arrays ──────────────────────────────
+
+const foulDescs = [
+  (f: string, v: string) => `${f} bundles over ${v} — free kick given.`,
+  (f: string, v: string) => `${f} catches ${v} with a late tackle!`,
+  (f: string, v: string) => `${f} pulls back ${v} by the shirt — the ref spots it!`,
+  (f: string, v: string) => `${f} slides in recklessly and takes out ${v}!`,
+  (f: string, v: string) => `${f} clips ${v}'s ankles from behind — clear foul.`,
+  (f: string, v: string) => `Crunching challenge! ${f} leaves ${v} in a heap.`,
+  (f: string, v: string) => `${f} body-checks ${v} off the ball — cynical!`,
+  (f: string, v: string) => `${f} trips ${v} as he bursts into the box!`,
+  (f: string, v: string) => `${f} hauls down ${v} on the counter-attack!`,
+  (f: string, v: string) => `${f} jumps in wildly and catches ${v}'s shin!`,
+  (f: string, v: string) => `${f} shoves ${v} in the back — unnecessary.`,
+  (f: string, v: string) => `${f} stretches his leg out and brings ${v} down!`,
+  (f: string, v: string) => `${f} manhandles ${v} at the corner flag — foul!`,
+  (f: string, v: string) => `${f} scythes through the back of ${v} — booked!`,
+];
+
+const yellowDescs = [
+  (p: string) => `🥟 Yellow card! ${p} goes into the book for that challenge.`,
+  (p: string) => `🟡 ${p} is cautioned — the ref shows a yellow!`,
+  (p: string) => `Yellow card waved at ${p} — that was reckless.`,
+  (p: string) => `${p} is the first name in the book — deservedly so.`,
+  (p: string) => `Into the book goes ${p} for persistent fouling.`,
+  (p: string) => `🟡 ${p} gets a yellow — one more and they're off!`,
+];
+
+const redDescs = [
+  (p: string) => `🟥 RED CARD! ${p} is sent off! That's a horror tackle!`,
+  (p: string) => `🔴 Straight red! ${p} has to go — no debate there!`,
+  (p: string) => `🟥 ${p} is shown the red — violent conduct! He's off!`,
+  (p: string) => `That's a red! ${p} denied a clear goal-scoring opportunity!`,
+];
+
+const freeKickDescs = [
+  (p: string) => `${p} swings the free kick into the box — cleared!`,
+  (p: string) => `${p} takes the free kick quickly and finds a teammate!`,
+  (p: string) => `${p}'s free kick curls over the wall — just over the bar!`,
+  (p: string) => `${p} lines it up and bends it around the wall — the keeper saves!`,
+  (p: string) => `${p} lays the free kick off short — the move breaks down.`,
+];
+
+const penaltyAwardedDescs = [
+  (p: string) => `PENALTY! ${p} was hauled down in the box! It's a spot kick! 🎯`,
+  (p: string) => `PENALTY! The ref points to the spot — ${p} fouled in the box!`,
+  (p: string) => `It's a penalty! ${p} is tripped as he shaped to shoot!`,
+];
+
+const penaltyScoredDescs = [
+  (p: string) => `GOAL! ${p} sends the keeper the wrong way from the spot! 🥅`,
+  (p: string) => `GOAL! ${p} drills the penalty low into the corner — unstoppable! 🎯`,
+  (p: string) => `GOAL! ${p} keeps his composure and slots home the penalty! 🥶`,
+  (p: string) => `GOAL! ${p} blasts the penalty down the middle — the keeper dived! 💥`,
+];
+
+const penaltyMissedDescs = [
+  (p: string) => `PENALTY MISSED! ${p} skies it over the bar — what a let off! 😱`,
+  (p: string) => `SAVED! The keeper guesses right and denies ${p} from the spot! 🧤`,
+  (p: string) => `${p}'s penalty is tipped onto the post — inches away from going in!`,
+  (p: string) => `PENALTY SAVED! The keeper stands tall and beats it away! 🙌`,
+  (p: string) => `${p} slips as he takes it — the penalty trickles wide! 😰`,
+];
+
+// ─── VAR, Offside & Controversial Decision Description Arrays ──────────────
+
+const varCheckStartDescs = [
+  () => `🔍 VAR CHECK — the referee is being called to the monitor!`,
+  () => `📺 The referee signals for a VAR review — this could be crucial!`,
+  () => `🖥️ VAR is checking the incident — everyone holds their breath...`,
+  () => `The ref puts his hand to his earpiece — VAR has something to say! 📞`,
+  () => `⏸️ Play is paused. VAR is reviewing the decision. The crowd waits...`,
+];
+
+const varConfirmDescs = [
+  (p: string) => `✅ VAR CHECK COMPLETE — the goal stands! Ref points to the centre circle!`,
+  (p: string) => `✅ After review, the goal is GOOD! No infringement.`,
+  (p: string) => `VAR confirms — ${p}'s finish was legitimate. Goal VALID! ✅`,
+  (p: string) => `Ref checks the screen and nods — GOAL STANDS! ${p} celebrates again! 🎉`,
+];
+
+const varOverturnGoalDescs = [
+  (p: string) => `❌ VAR OVERTURNS! ${p}'s goal is DISALLOWED! Unbelievable drama!`,
+  (p: string) => `VAR CALL! ${p} was offside in the buildup — goal disallowed! 🥅❌`,
+  (p: string) => `❌ Handball by ${p}! NO GOAL! The referee reverses his decision!`,
+  (p: string) => `STUNNING VAR DRAMA! Goal ruled out for a foul in the buildup! 😱`,
+  (p: string) => `VAR spots an offside — ${p} was MILLIMETRES off! Goal chalked off! 📏`,
+  (p: string) => `No goal! VAR shows ${p} handled the ball! Ref changes his mind! 🙈`,
+];
+
+const varOverturnPenaltyDescs = [
+  (p: string) => `❌ VAR OVERTURNS THE PENALTY! ${p} went down too easily — free kick out!`,
+  (p: string) => `VAR CALL! The foul was OUTSIDE the box — penalty reversed! 📐`,
+  (p: string) => `❌ Replay shows ${p} got the ball first! No penalty!`,
+  (p: string) => `VAR intervenes — no penalty! The challenge was a clean tackle! 🏃`,
+];
+
+const varOverturnRedDescs = [
+  (p: string) => `🟡 VAR DOWNGRADE! ${p}'s red card reduced to yellow — wasn't that bad!`,
+  (p: string) => `VAR review complete! ${p}'s red overturned — yellow card instead! 🟡`,
+  (p: string) => `Not a red card offense — ${p} stays on after VAR review! 😤`,
+];
+
+const offsideDescs = [
+  (p: string) => `🚩 Offside! ${p} caught offside — free kick to the defending team.`,
+  (p: string) => `The flag goes up! ${p} timed the run too early — offside! 🚩`,
+  (p: string) => `🚩 ${p} is flagged — tight call, but the linesman got it right. 📏`,
+  (p: string) => `The linesman raises the flag — ${p} was a step ahead of the defence!`,
+  (p: string) => `Controversial offside! ${p} looked LEVEL — the crowd is furious! 😤`,
+  (p: string) => `🚩 Offside against ${p} — but replays show he was ONSIDE! Terrible decision! 😡`,
+  (p: string) => `Waste of a chance — ${p} was clearly offside. 🚩`,
+];
+
+const controversialDescs = [
+  (p: string) => `🤔 ${p} goes down in the box — ref waves play on! No penalty!`,
+  (p: string) => `DIVE! ${p} hits the deck too easily — yellow for simulation! 🟡`,
+  (p: string) => `The ref misses a clear foul on ${p} — the crowd is LIVID! 😡`,
+  (p: string) => `${p} catches an opponent with a stray arm — the ref didn't see it! 👀`,
+  (p: string) => `${p} is screaming for a foul — replays show definite contact! Ref says no!`,
+  (p: string) => `Massive shout for handball! ${p}'s arm was up — ref waves it away! 🖐️`,
+  (p: string) => `The referee plays advantage but ${p} had a clear opening — controversial! 🤷`,
+  (p: string) => `The ref has a word with ${p} — could easily have been a yellow there! 😬`,
+  (p: string) => `${p} goes down clutching his face — ref isn't buying it! Get up! 🎭`,
+  (p: string) => `Should that have been a foul? ${p} cannot believe the ref didn't give it! 🗣️`,
+];
+
+/** Pick a player likely to commit a foul: DEF > MID > FWD > GK */
+function pickFouler(players: MatchPlayer[]): MatchPlayer {
+  const defs = players.filter(p => p.position === "DEF");
+  if (defs.length > 0 && Math.random() < 0.55) return defs[Math.floor(Math.random() * defs.length)];
+  const mids = players.filter(p => p.position === "MID");
+  if (mids.length > 0 && Math.random() < 0.6) return mids[Math.floor(Math.random() * mids.length)];
+  return pickOutfieldPlayer(players);
+}
+
+/**
+ * Wrap a goal event with a VAR review.
+ * Pushes the goal celebration, then rolls for a VAR check (~25%).
+ * If VAR overturns (~30% of reviews), the score is decremented back
+ * and a disallowed goal event is added — maximum drama.
+ */
+function handleGoalWithVAR(
+  minute: number,
+  isUserGoal: boolean,
+  scorerName: string,
+  goalDescs: ((p: string) => string)[],
+  events: MatchEvent[],
+  userScore: { current: number },
+  opponentScore: { current: number },
+): void {
+  // Score first — this makes the VAR reversal hurt more
+  if (isUserGoal) userScore.current++;
+  else opponentScore.current++;
+
+  events.push({
+    minute, type: "goal",
+    description: goalDescs[Math.floor(Math.random() * goalDescs.length)](scorerName),
+    playerName: scorerName, isUserEvent: isUserGoal, actorName: isUserGoal ? "user" : "opponent",
+  });
+
+  // ~25% chance of VAR review for goals
+  if (Math.random() < 0.25) {
+    events.push({
+      minute, type: "var_check",
+      description: varCheckStartDescs[Math.floor(Math.random() * varCheckStartDescs.length)](),
+      playerName: "", isUserEvent: false, actorName: "",
+    });
+
+    // VAR overturns ~30% of reviewed goals
+    if (Math.random() < 0.3) {
+      // Reverse the score
+      if (isUserGoal) userScore.current--;
+      else opponentScore.current--;
+
+      events.push({
+        minute, type: "var_check",
+        description: varOverturnGoalDescs[Math.floor(Math.random() * varOverturnGoalDescs.length)](scorerName),
+        playerName: scorerName, isUserEvent: isUserGoal, actorName: isUserGoal ? "user" : "opponent",
+      });
+    } else {
+      events.push({
+        minute, type: "var_check",
+        description: varConfirmDescs[Math.floor(Math.random() * varConfirmDescs.length)](scorerName),
+        playerName: scorerName, isUserEvent: isUserGoal, actorName: isUserGoal ? "user" : "opponent",
+      });
+    }
+  }
+}
+
+/** ~8% chance to inject an offside call, consuming the iteration. */
+function maybeInjectOffside(
+  minute: number,
+  events: MatchEvent[],
+  offsidePlayer: MatchPlayer,
+  isUserOffside: boolean,
+): boolean {
+  if (Math.random() > 0.08) return false;
+  events.push({
+    minute, type: "offside",
+    description: offsideDescs[Math.floor(Math.random() * offsideDescs.length)](offsidePlayer.short_name),
+    playerName: offsidePlayer.short_name, isUserEvent: isUserOffside, actorName: isUserOffside ? "user" : "opponent",
+  });
+  return true;
+}
+
+/** ~5% chance to inject a controversial referee decision, consuming the iteration. */
+function maybeInjectControversial(
+  minute: number,
+  events: MatchEvent[],
+  player: MatchPlayer,
+  isUserPlayer: boolean,
+): boolean {
+  if (Math.random() > 0.05) return false;
+  events.push({
+    minute, type: "controversial",
+    description: controversialDescs[Math.floor(Math.random() * controversialDescs.length)](player.short_name),
+    playerName: player.short_name, isUserEvent: isUserPlayer, actorName: isUserPlayer ? "user" : "opponent",
+  });
+  return true;
+}
+
+/** Inject a foul/card/penalty/free-kick event sequence. Returns true if the whole iteration should be consumed (no shot). */
+function maybeInjectFoul(
+  minute: number,
+  isUserAttack: boolean,
+  userPlayers: MatchPlayer[],
+  oppPlayers: MatchPlayer[],
+  events: MatchEvent[],
+  userScore: { current: number },
+  opponentScore: { current: number },
+  stats: {
+    userFouls: number; opponentFouls: number;
+    userYellowCards: number; opponentYellowCards: number;
+    userRedCards: number; opponentRedCards: number;
+    userPenalties: number; opponentPenalties: number;
+  },
+): boolean {
+  // ~14% chance per event iteration to become a foul
+  if (Math.random() > 0.14) return false;
+
+  const isUserFouler = !isUserAttack; // the DEFENDING team fouls the ATTACKING team
+  const fouler = isUserFouler ? pickFouler(userPlayers) : pickFouler(oppPlayers);
+  const victim = isUserFouler ? pickOutfieldPlayer(oppPlayers) : pickOutfieldPlayer(userPlayers);
+  const inBox = Math.random() < 0.3;
+  const isYellow = Math.random() < 0.22;
+  const isRed = !isYellow && Math.random() < 0.04;
+
+  // Push foul event
+  events.push({
+    minute, type: "foul",
+    description: foulDescs[Math.floor(Math.random() * foulDescs.length)](fouler.short_name, victim.short_name),
+    playerName: fouler.short_name, isUserEvent: isUserFouler, actorName: isUserFouler ? "user" : "opponent",
+  });
+  if (isUserFouler) stats.userFouls++; else stats.opponentFouls++;
+
+  // Yellow card
+  if (isYellow) {
+    events.push({
+      minute, type: "card",
+      description: yellowDescs[Math.floor(Math.random() * yellowDescs.length)](fouler.short_name),
+      playerName: fouler.short_name, isUserEvent: isUserFouler, actorName: isUserFouler ? "user" : "opponent",
+    });
+    if (isUserFouler) stats.userYellowCards++; else stats.opponentYellowCards++;
+  }
+
+  // Red card (very rare)
+  if (isRed) {
+    events.push({
+      minute, type: "card",
+      description: redDescs[Math.floor(Math.random() * redDescs.length)](fouler.short_name),
+      playerName: fouler.short_name, isUserEvent: isUserFouler, actorName: isUserFouler ? "user" : "opponent",
+    });
+    if (isUserFouler) stats.userRedCards++; else stats.opponentRedCards++;
+    // VAR review for red cards (~35% chance)
+    if (Math.random() < 0.35) {
+      events.push({
+        minute, type: "var_check",
+        description: varCheckStartDescs[Math.floor(Math.random() * varCheckStartDescs.length)](),
+        playerName: "", isUserEvent: false, actorName: "",
+      });
+      // VAR overturns ~40% of reviewed reds → downgrades to yellow
+      if (Math.random() < 0.4) {
+        // Remove the red by replacing the last card event's description to mark it overturned
+        // Instead, push a downgrade event
+        events.push({
+          minute, type: "var_check",
+          description: varOverturnRedDescs[Math.floor(Math.random() * varOverturnRedDescs.length)](fouler.short_name),
+          playerName: fouler.short_name, isUserEvent: isUserFouler, actorName: isUserFouler ? "user" : "opponent",
+        });
+      } else {
+        events.push({
+          minute, type: "var_check",
+          description: `✅ VAR confirms the red card — ${fouler.short_name} has to go! 🟥`,
+          playerName: fouler.short_name, isUserEvent: isUserFouler, actorName: isUserFouler ? "user" : "opponent",
+        });
+      }
+    }
+  }
+
+  if (inBox) {
+    // Penalty!
+    const penaltyMinute = Math.min(minute + 1, 90); // stagger by 1' for the spot kick
+    const penaltyTaker = isUserFouler ? pickGoalScorer(oppPlayers) : pickGoalScorer(userPlayers);
+    events.push({
+      minute, type: "foul",
+      description: penaltyAwardedDescs[Math.floor(Math.random() * penaltyAwardedDescs.length)](victim.short_name),
+      playerName: victim.short_name, isUserEvent: !isUserFouler, actorName: !isUserFouler ? "user" : "opponent",
+    });
+    if (!isUserFouler) stats.userPenalties++; else stats.opponentPenalties++;
+    // VAR review for penalties (~30% chance)
+    let penaltyOverturned = false;
+    if (Math.random() < 0.3) {
+      events.push({
+        minute: Math.min(minute + 1, 90), type: "var_check",
+        description: varCheckStartDescs[Math.floor(Math.random() * varCheckStartDescs.length)](),
+        playerName: "", isUserEvent: false, actorName: "",
+      });
+      // VAR overturns ~25% of reviewed penalties
+      if (Math.random() < 0.25) {
+        penaltyOverturned = true;
+        events.push({
+          minute: Math.min(minute + 1, 90), type: "var_check",
+          description: varOverturnPenaltyDescs[Math.floor(Math.random() * varOverturnPenaltyDescs.length)](victim.short_name),
+          playerName: victim.short_name, isUserEvent: !isUserFouler, actorName: !isUserFouler ? "user" : "opponent",
+        });
+      } else {
+        events.push({
+          minute: Math.min(minute + 1, 90), type: "var_check",
+          description: `✅ VAR confirms the penalty — spot kick stands! 🎯`,
+          playerName: victim.short_name, isUserEvent: false, actorName: "",
+        });
+      }
+    }
+
+    if (!penaltyOverturned) {
+      // 75% chance to score penalty
+      if (Math.random() < 0.75) {
+        if (!isUserFouler) userScore.current++;
+        else opponentScore.current++;
+        events.push({
+          minute: penaltyMinute, type: "goal",
+          description: penaltyScoredDescs[Math.floor(Math.random() * penaltyScoredDescs.length)](penaltyTaker.short_name),
+          playerName: penaltyTaker.short_name, isUserEvent: !isUserFouler, actorName: !isUserFouler ? "user" : "opponent",
+        });
+      } else {
+        events.push({
+          minute: penaltyMinute, type: "save",
+          description: penaltyMissedDescs[Math.floor(Math.random() * penaltyMissedDescs.length)](penaltyTaker.short_name),
+          playerName: penaltyTaker.short_name, isUserEvent: false, actorName: "",
+        });
+      }
+    }
+  } else {
+    // Free kick outside the box
+    const fkMinute = Math.min(minute + 1, 90); // stagger by 1'
+    const fkTaker = isUserFouler ? pickGoalScorer(oppPlayers) : pickGoalScorer(userPlayers);
+    // 20% chance the free kick leads to a goal
+    if (Math.random() < 0.2) {
+      if (!isUserFouler) userScore.current++;
+      else opponentScore.current++;
+      events.push({
+        minute: fkMinute, type: "goal",
+        description: userGoalDescs[Math.floor(Math.random() * userGoalDescs.length)](fkTaker.short_name),
+        playerName: fkTaker.short_name, isUserEvent: !isUserFouler, actorName: !isUserFouler ? "user" : "opponent",
+      });
+    } else {
+      events.push({
+        minute: fkMinute, type: "chance",
+        description: freeKickDescs[Math.floor(Math.random() * freeKickDescs.length)](fkTaker.short_name),
+        playerName: fkTaker.short_name, isUserEvent: !isUserFouler, actorName: !isUserFouler ? "user" : "opponent",
+      });
+    }
+  }
+
+  return true; // consumed this event iteration — no further shot logic
+}
 
 // ─── Match Simulation ───────────────────────────────────────────────────────
 export function simulateMatch(
@@ -358,16 +829,31 @@ export function simulateMatch(
   const opponentRating = calculateSquadRating(opponent);
 
   const events: MatchEvent[] = [];
-  let userScore = 0,
-    opponentScore = 0;
+  const userScore = { current: 0 };
+  const opponentScore = { current: 0 };
   let userShots = 0,
     opponentShots = 0;
   let userShotsOnTarget = 0,
     opponentShotsOnTarget = 0;
 
-  // Possession based on midfield battle
-  const userMidBonus = userRating.midfield / (userRating.midfield + opponentRating.midfield);
-  const userPossession = Math.round(30 + userMidBonus * 40);
+  // Discipline & set-piece stats (mutable — passed by reference to sub-fns)
+  const stats = {
+    userFouls: 0, opponentFouls: 0,
+    userYellowCards: 0, opponentYellowCards: 0,
+    userRedCards: 0, opponentRedCards: 0,
+    userPenalties: 0, opponentPenalties: 0,
+    userCorners: 0, opponentCorners: 0,
+  };
+
+  // Possession blends midfield (60%) + overall squad quality (40%) with amplified differences + home advantage
+  const midRatio = userRating.midfield / (userRating.midfield + opponentRating.midfield);
+  const overallRatio = userRating.overall / (userRating.overall + opponentRating.overall);
+  const blendedRatio = midRatio * 0.6 + overallRatio * 0.4;
+  // Amplify: shift the ratio away from 0.5 so small advantages are more visible
+  const amplified = (blendedRatio - 0.5) * 1.8 + 0.5;
+  const clamped = Math.max(0.15, Math.min(0.85, amplified));
+  // Map to 20-80 range + tiny home advantage
+  const userPossession = Math.round(20 + clamped * 60) + 2;
 
   const homeName = userSquad.name || "Your Team";
   const awayName = opponent.name || "Opponent";
@@ -387,12 +873,21 @@ export function simulateMatch(
   });
 
   // ── FIRST HALF ─────────────────────────────────────────────────────────
-  const firstHalfMinutes = [3, 8, 12, 18, 24, 30, 35, 42];
   const firstHalfEvents = Math.floor(Math.random() * 4) + 6; // 6-9
 
   for (let i = 0; i < firstHalfEvents; i++) {
-    const minute = firstHalfMinutes[i] || Math.floor(Math.random() * 40) + 2;
+    const minute = Math.floor(Math.random() * 43) + 2; // 2-44
     const isUserAttack = Math.random() * 100 < userPossession;
+
+    // Check for foul before regular play
+    if (maybeInjectFoul(minute, isUserAttack, userPlayers, oppPlayers, events, userScore, opponentScore, stats)) continue;
+
+    // Offside check (~8%) — forwards get caught offside more
+    const attackingPlayers = isUserAttack ? userPlayers : oppPlayers;
+    if (maybeInjectOffside(minute, events, pickGoalScorer(attackingPlayers), isUserAttack)) continue;
+
+    // Controversial decision (~5%)
+    if (maybeInjectControversial(minute, events, pickOutfieldPlayer(attackingPlayers), isUserAttack)) continue;
 
     if (isUserAttack) {
       userShots++;
@@ -402,12 +897,7 @@ export function simulateMatch(
         const scorer = pickGoalScorer(userPlayers);
         const scores = Math.random() < 0.35 + (userRating.attack / (userRating.attack + opponentRating.goalkeeping)) * 0.15;
         if (scores) {
-          userScore++;
-          events.push({
-            minute, type: "goal",
-            description: userGoalDescs[Math.floor(Math.random() * userGoalDescs.length)](scorer.short_name),
-            playerName: scorer.short_name, isUserEvent: true, actorName: "user",
-          });
+          handleGoalWithVAR(minute, true, scorer.short_name, userGoalDescs, events, userScore, opponentScore);
         } else {
           const shooter = pickOutfieldPlayer(userPlayers);
           const gk = getGK(oppPlayers);
@@ -416,6 +906,8 @@ export function simulateMatch(
             description: oppSaveDescs[Math.floor(Math.random() * oppSaveDescs.length)](gk.short_name, shooter.short_name),
             playerName: gk.short_name, isUserEvent: false, actorName: "opponent",
           });
+          // ~35% chance the save concedes a corner for the attacker
+          if (Math.random() < 0.35) stats.userCorners++;
         }
       } else {
         const shooter = pickOutfieldPlayer(userPlayers);
@@ -426,6 +918,8 @@ export function simulateMatch(
             description: oppBlockDescs[Math.floor(Math.random() * oppBlockDescs.length)](def.short_name, shooter.short_name),
             playerName: def.short_name, isUserEvent: false, actorName: "opponent",
           });
+          // ~35% chance the block deflects behind for a corner
+          if (Math.random() < 0.35) stats.userCorners++;
         } else {
           events.push({
             minute, type: "chance",
@@ -442,12 +936,7 @@ export function simulateMatch(
         const scorer = pickGoalScorer(oppPlayers);
         const scores = Math.random() < 0.3 + (opponentRating.attack / (opponentRating.attack + userRating.goalkeeping)) * 0.15;
         if (scores) {
-          opponentScore++;
-          events.push({
-            minute, type: "goal",
-            description: oppGoalDescs[Math.floor(Math.random() * oppGoalDescs.length)](scorer.short_name),
-            playerName: scorer.short_name, isUserEvent: false, actorName: "opponent",
-          });
+          handleGoalWithVAR(minute, false, scorer.short_name, oppGoalDescs, events, userScore, opponentScore);
         } else {
           const shooter = pickOutfieldPlayer(oppPlayers);
           const gk = getGK(userPlayers);
@@ -456,6 +945,8 @@ export function simulateMatch(
             description: userSaveDescs[Math.floor(Math.random() * userSaveDescs.length)](gk.short_name, shooter.short_name),
             playerName: gk.short_name, isUserEvent: true, actorName: "user",
           });
+          // ~35% chance the save concedes a corner for the attacker
+          if (Math.random() < 0.35) stats.opponentCorners++;
         }
       } else {
         const shooter = pickOutfieldPlayer(oppPlayers);
@@ -466,6 +957,8 @@ export function simulateMatch(
             description: userBlockDescs[Math.floor(Math.random() * userBlockDescs.length)](def.short_name, shooter.short_name),
             playerName: def.short_name, isUserEvent: true, actorName: "user",
           });
+          // ~35% chance the block deflects behind for a corner
+          if (Math.random() < 0.35) stats.opponentCorners++;
         } else {
           events.push({
             minute, type: "chance",
@@ -481,19 +974,28 @@ export function simulateMatch(
   events.push({
     minute: 45,
     type: "half_time",
-    description: `HALF TIME: ${userScore} - ${opponentScore}. ${homeName} ${userScore >= opponentScore ? "lead" : "trail"} at the break.`,
+    description: `HALF TIME: ${userScore.current} - ${opponentScore.current}. ${homeName} ${userScore.current >= opponentScore.current ? "lead" : "trail"} at the break.`,
     playerName: "",
     isUserEvent: true,
     actorName: "",
   });
 
   // ── SECOND HALF ────────────────────────────────────────────────────────
-  const secondHalfMinutes = [50, 55, 62, 68, 74, 78, 82, 88];
   const secondHalfEvents = Math.floor(Math.random() * 3) + 4; // 4-6
 
   for (let i = 0; i < secondHalfEvents; i++) {
-    const minute = secondHalfMinutes[i] || Math.floor(Math.random() * 35) + 50;
+    const minute = Math.floor(Math.random() * 43) + 46; // 46-89
     const isUserAttack = Math.random() * 100 < userPossession;
+
+    // Check for foul before regular play
+    if (maybeInjectFoul(minute, isUserAttack, userPlayers, oppPlayers, events, userScore, opponentScore, stats)) continue;
+
+    // Offside check (~8%) — forwards get caught offside more
+    const attackingPlayers = isUserAttack ? userPlayers : oppPlayers;
+    if (maybeInjectOffside(minute, events, pickGoalScorer(attackingPlayers), isUserAttack)) continue;
+
+    // Controversial decision (~5%)
+    if (maybeInjectControversial(minute, events, pickOutfieldPlayer(attackingPlayers), isUserAttack)) continue;
 
     if (isUserAttack) {
       userShots++;
@@ -503,12 +1005,7 @@ export function simulateMatch(
         const scorer = pickGoalScorer(userPlayers);
         const scores = Math.random() < 0.3;
         if (scores) {
-          userScore++;
-          events.push({
-            minute, type: "goal",
-            description: userGoalDescs[Math.floor(Math.random() * userGoalDescs.length)](scorer.short_name),
-            playerName: scorer.short_name, isUserEvent: true, actorName: "user",
-          });
+          handleGoalWithVAR(minute, true, scorer.short_name, userGoalDescs, events, userScore, opponentScore);
         } else {
           const shooter = pickOutfieldPlayer(userPlayers);
           const gk = getGK(oppPlayers);
@@ -517,6 +1014,8 @@ export function simulateMatch(
             description: oppSaveDescs[Math.floor(Math.random() * oppSaveDescs.length)](gk.short_name, shooter.short_name),
             playerName: gk.short_name, isUserEvent: false, actorName: "opponent",
           });
+          // ~35% chance the save concedes a corner for the attacker
+          if (Math.random() < 0.35) stats.userCorners++;
         }
       } else {
         const shooter = pickOutfieldPlayer(userPlayers);
@@ -527,6 +1026,8 @@ export function simulateMatch(
             description: oppBlockDescs[Math.floor(Math.random() * oppBlockDescs.length)](def.short_name, shooter.short_name),
             playerName: def.short_name, isUserEvent: false, actorName: "opponent",
           });
+          // ~35% chance the block deflects behind for a corner
+          if (Math.random() < 0.35) stats.userCorners++;
         } else {
           events.push({
             minute, type: "chance",
@@ -543,12 +1044,7 @@ export function simulateMatch(
         const scorer = pickGoalScorer(oppPlayers);
         const scores = Math.random() < 0.25;
         if (scores) {
-          opponentScore++;
-          events.push({
-            minute, type: "goal",
-            description: oppGoalDescs[Math.floor(Math.random() * oppGoalDescs.length)](scorer.short_name),
-            playerName: scorer.short_name, isUserEvent: false, actorName: "opponent",
-          });
+          handleGoalWithVAR(minute, false, scorer.short_name, oppGoalDescs, events, userScore, opponentScore);
         } else {
           const shooter = pickOutfieldPlayer(oppPlayers);
           const gk = getGK(userPlayers);
@@ -557,6 +1053,8 @@ export function simulateMatch(
             description: userSaveDescs[Math.floor(Math.random() * userSaveDescs.length)](gk.short_name, shooter.short_name),
             playerName: gk.short_name, isUserEvent: true, actorName: "user",
           });
+          // ~35% chance the save concedes a corner for the attacker
+          if (Math.random() < 0.35) stats.opponentCorners++;
         }
       } else {
         const shooter = pickOutfieldPlayer(oppPlayers);
@@ -567,6 +1065,8 @@ export function simulateMatch(
             description: userBlockDescs[Math.floor(Math.random() * userBlockDescs.length)](def.short_name, shooter.short_name),
             playerName: def.short_name, isUserEvent: true, actorName: "user",
           });
+          // ~35% chance the block deflects behind for a corner
+          if (Math.random() < 0.35) stats.opponentCorners++;
         } else {
           events.push({
             minute, type: "chance",
@@ -582,14 +1082,19 @@ export function simulateMatch(
   events.push({
     minute: 90,
     type: "full_time",
-    description: `FULL TIME: ${userScore} - ${opponentScore}. ${homeName} ${userScore > opponentScore ? "win" : userScore < opponentScore ? "lose" : "draw"}!`,
+    description: `FULL TIME: ${userScore.current} - ${opponentScore.current}. ${homeName} ${userScore.current > opponentScore.current ? "win" : userScore.current < opponentScore.current ? "lose" : "draw"}!`,
     playerName: "",
     isUserEvent: true,
     actorName: "",
   });
 
+  // Sort all events by minute ascending
+  events.sort((a, b) => a.minute - b.minute);
+
   // ─── Player of the Match ────────────────────────────────────────────────
-  const result = userScore > opponentScore ? "win" : userScore < opponentScore ? "loss" : "draw";
+  const finalUserScore = userScore.current;
+  const finalOppScore = opponentScore.current;
+  const result = finalUserScore > finalOppScore ? "win" : finalUserScore < finalOppScore ? "loss" : "draw";
 
   const userPOTM = userSquad.players.reduce((best, p) => {
     const score = p.overall * 0.5 + p.shooting * 0.2 + p.passing * 0.15 + p.defending * 0.15;
@@ -601,14 +1106,24 @@ export function simulateMatch(
     : { playerId: userPOTM.player?._id || "", shortName: userPOTM.player?.short_name || "Player", team: "user" as const };
 
   return {
-    userScore,
-    opponentScore,
+    userScore: userScore.current,
+    opponentScore: opponentScore.current,
     userPossession,
     opponentPossession: 100 - userPossession,
     userShots,
     opponentShots,
     userShotsOnTarget,
     opponentShotsOnTarget,
+    userFouls: stats.userFouls,
+    opponentFouls: stats.opponentFouls,
+    userYellowCards: stats.userYellowCards,
+    opponentYellowCards: stats.opponentYellowCards,
+    userRedCards: stats.userRedCards,
+    opponentRedCards: stats.opponentRedCards,
+    userPenalties: stats.userPenalties,
+    opponentPenalties: stats.opponentPenalties,
+    userCorners: stats.userCorners,
+    opponentCorners: stats.opponentCorners,
     events,
     playerOfTheMatch: potm,
     duration_seconds: 25 + Math.floor(Math.random() * 10),
