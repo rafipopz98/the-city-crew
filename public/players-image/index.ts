@@ -1,13 +1,5 @@
 export const playerImages = [
   {
-    name: "James Trafford",
-    prefferedName: "Trafford",
-    verticalImage: "/players-image/james-trafford-vertical.webp",
-    roundImage: "/players-image/james-trafford-round.png",
-    alt: "James Trafford",
-    value: "james-trafford",
-  },
-  {
     name: "Marcus Bettinelli",
     prefferedName: "Bettinelli",
     verticalImage: "/players-image/marcus-bettinelli-vertical.webp",

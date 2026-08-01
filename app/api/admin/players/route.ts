@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 
     const players = await PlayersModels.find(query)
       .populate("season", "year")
-      .sort({ goals: -1, position: 1, name: 1 })
+      .sort({ goals: -1, assists:-1,  position: 1, name: 1 })
       .skip(skip)
       .limit(limit)
       .lean();

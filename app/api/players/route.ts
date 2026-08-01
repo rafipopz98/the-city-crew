@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       assists: p.assists || 0,
       cleanSheets: p.clean_sheets || 0,
       games: p.appearances || 0,
-      rating: p.rating || 0,
+      rating: p.rating / Math.max(p.total_ratings, 1) || 0,
       _id: p._id.toString(),
     }));
 
