@@ -8,14 +8,13 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 // Your standings data - you can replace with API later
 const standings = [
-  { pos: 1, team: "Manchester City", p: 38, w: 28, d: 6, l: 4, pts: 90 },
-  { pos: 2, team: "Manchester United", p: 38, w: 27, d: 7, l: 4, pts: 88 },
-  { pos: 3, team: "Aston Villa", p: 38, w: 25, d: 8, l: 5, pts: 83 },
-  { pos: 4, team: "Arsenal", p: 38, w: 21, d: 8, l: 9, pts: 71 },
-  { pos: 5, team: "Chelsea", p: 38, w: 27, d: 6, l: 12, pts: 66 },
-  { pos: 6, team: "Liverpool", p: 38, w: 18, d: 9, l: 11, pts: 63 },
-  { pos: 7, team: "Brentford", p: 38, w: 18, d: 6, l: 14, pts: 60 },
-  { pos: 8, team: "Everton", p: 38, w: 18, d: 6, l: 14, pts: 60 },
+  { pos: 12, team: "Ipswich Town", p: 0, w: 0, d: 0, l: 0, pts: 0 },
+  { pos: 13, team: "Leeds United", p: 0, w: 0, d: 0, l: 0, pts: 0 },
+  { pos: 14, team: "Liverpool", p: 0, w: 0, d: 0, l: 0, pts: 0 },
+  { pos: 15, team: "Manchester City", p: 0, w: 0, d: 0, l: 0, pts: 0 },
+  { pos: 16, team: "Manchester United", p: 0, w: 0, d: 0, l: 0, pts: 0 },
+  { pos: 17, team: "Newcastle United", p: 0, w: 0, d: 0, l: 0, pts: 0 },
+  { pos: 18, team: "Nottingham Forest", p: 0, w: 0, d: 0, l: 0, pts: 0 },
 ];
 
 const StandingsSection = () => {
@@ -51,45 +50,55 @@ const StandingsSection = () => {
   };
 
   return (
-    <div className="w-full bg-[#06182e] py-16 sm:py-20 px-4">
+    <div className="w-full bg-[#06182e] py-8 sm:py-20 px-4">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6">
         {/* TABLE */}
-        <div className="lg:col-span-2 bg-[#0a223f] rounded-2xl p-4 sm:p-6 border border-[#ece1cf]/10 overflow-x-auto">
+        <div className="lg:col-span-2 bg-[#0a223f] rounded-2xl p-4 sm:p-6 border border-[#ece1cf]/10">
           <h2 className="text-[#ece1cf] text-sm font-semibold mb-4 sm:mb-6">
             STANDINGS
           </h2>
 
           {/* HEADER */}
-          <div className="min-w-150 grid grid-cols-[40px_1fr_60px_60px_60px_60px_60px] text-[11px] sm:text-[12px] text-[#ece1cf]/60 pb-3 border-b border-[#ece1cf]/10">
+          <div className="grid grid-cols-[40px_1fr_60px_60px] md:grid-cols-[40px_1fr_60px_60px_60px_60px_60px] text-[11px] sm:text-[12px] text-[#ece1cf]/60 pb-3 border-b border-[#ece1cf]/10">
             <span>#</span>
             <span>Team</span>
             <span className="text-center">P</span>
-            <span className="text-center">W</span>
-            <span className="text-center">D</span>
-            <span className="text-center">L</span>
+
+            <span className="hidden md:block text-center">W</span>
+            <span className="hidden md:block text-center">D</span>
+            <span className="hidden md:block text-center">L</span>
+
             <span className="text-center">PTS</span>
           </div>
 
           {/* ROWS */}
-          <div className="mt-2 sm:mt-3 space-y-1 min-w-150">
-            {standings.map((team, i) => (
-              <div
-                key={i}
-                className={`grid grid-cols-[40px_1fr_60px_60px_60px_60px_60px] items-center text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-3 rounded-md transition-all ${
-                  i === 0
-                    ? "bg-[#e09225] text-black font-bold"
-                    : "text-[#ece1cf] hover:bg-[#ece1cf]/5"
-                }`}
-              >
-                <span>{team.pos}</span>
-                <span className="font-medium truncate">{team.team}</span>
-                <span className="text-center">{team.p}</span>
-                <span className="text-center">{team.w}</span>
-                <span className="text-center">{team.d}</span>
-                <span className="text-center">{team.l}</span>
-                <span className="text-center">{team.pts}</span>
-              </div>
-            ))}
+          <div className="mt-2 sm:mt-3 space-y-1">
+            {standings.map((team) => {
+              const isManCity = team.team === "Manchester City";
+
+              return (
+                <div
+                  key={team.team}
+                  className={`grid grid-cols-[40px_1fr_60px_60px] md:grid-cols-[40px_1fr_60px_60px_60px_60px_60px] items-center text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-3 rounded-md transition-all ${
+                    isManCity
+                      ? "bg-[#e09225] text-black font-bold"
+                      : "text-[#ece1cf] hover:bg-[#ece1cf]/5"
+                  }`}
+                >
+                  <span>{team.pos}</span>
+
+                  <span className="font-medium truncate">{team.team}</span>
+
+                  <span className="text-center">{team.p}</span>
+
+                  <span className="hidden md:block text-center">{team.w}</span>
+                  <span className="hidden md:block text-center">{team.d}</span>
+                  <span className="hidden md:block text-center">{team.l}</span>
+
+                  <span className="text-center">{team.pts}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
