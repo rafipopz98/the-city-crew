@@ -287,4 +287,12 @@ export const playerImages = [
     alt: "Mahamadou Sangare",
     value: "mahamadou-sangare",
   },
+  {
+    name: "Kaden Braithwaite",
+    prefferedName: "Braithwaite",
+    verticalImage: "/players-image/braithwaite-vertical.webp",
+    roundImage: "/players-image/braithwaite-round.png",
+    alt: "Kaden Braithwaite",
+    value: "kaden-braithwaite",
+  },
 ];
