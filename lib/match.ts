@@ -1,5 +1,27 @@
 import { GoalScorer } from "@/components/Landing-Page/Matches/type-matches";
 
+export const isSameLocalDay = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+export const getRelativeDayLabel = (
+  date: Date,
+  now: Date = new Date(),
+): string | null => {
+  if (isSameLocalDay(date, now)) return "Today";
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (isSameLocalDay(date, tomorrow)) return "Tomorrow";
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameLocalDay(date, yesterday)) return "Yesterday";
+
+  return null;
+};
+
 export const formatDate = (date: string): string => {
   if (!date) return "";
   return new Date(date)

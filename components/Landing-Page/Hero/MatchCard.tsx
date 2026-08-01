@@ -3,6 +3,7 @@ import { Calendar, MapPin, Trophy, Swords } from "lucide-react";
 import { STATUS_STYLES, STATUS_LABELS } from "@/constants/hero";
 import { Match, Team } from "./types-hero";
 import { formatMatchDate } from "@/lib/hero";
+import { getRelativeDayLabel } from "@/lib/match";
 
 interface MatchCardProps {
   match: Match;
@@ -16,7 +17,9 @@ const MatchStatus = ({
   date: string;
 }) => (
   <span className={`text-xs px-3 py-1 rounded-full ${STATUS_STYLES[status]}`}>
-    {status === "upcoming" ? formatMatchDate(date) : STATUS_LABELS[status]}
+    {status === "upcoming"
+      ? getRelativeDayLabel(new Date(date)) ?? formatMatchDate(date)
+      : STATUS_LABELS[status]}
   </span>
 );
 
@@ -73,9 +76,10 @@ export const MatchCard = ({ match }: MatchCardProps) => (
       <TeamDisplay team={match.awayTeam} />
     </div>
 
-    {(match.matchday || match.venue) && (
+    {((match.competition?.toLowerCase() !== "friendly" && match.matchday) ||
+      match.venue) && (
       <div className="flex items-center justify-center gap-2 mt-3 text-[10px] text-[#ece1cf]/40 uppercase">
-        {match.matchday && (
+        {match.competition?.toLowerCase() !== "friendly" && match.matchday && (
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             Matchday {match.matchday}

@@ -3,13 +3,16 @@ import Link from "next/link";
 import { GoalScorers } from "./GoalScorers";
 import { MATCH_STATUS, BUTTON_LABELS } from "@/constants/match";
 import { Match } from "./type-matches";
-import { formatDate } from "@/lib/match";
+import { formatDate, getRelativeDayLabel } from "@/lib/match";
 
 interface ResultsCardProps {
   match: Match;
 }
 
-export const ResultsCard = ({ match }: ResultsCardProps) => (
+export const ResultsCard = ({ match }: ResultsCardProps) => {
+  const relativeLabel = getRelativeDayLabel(new Date(match.matchDate));
+
+  return (
   <Link
     href={`/match-hub/${match._id}`}
     className="min-w-75 lg:min-w-0 bg-[#ece1cf] rounded-2xl p-6 flex flex-col justify-between shrink-0 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl group"
@@ -67,9 +70,10 @@ export const ResultsCard = ({ match }: ResultsCardProps) => (
 
     {/* Meta */}
     <div className="mt-4 text-xs text-black/40">
-      <p>{formatDate(match.matchDate)}</p>
+      <p>{relativeLabel ?? formatDate(match.matchDate)}</p>
       {match.venue && <p>{match.venue}</p>}
-      {match.matchday && <p className="mt-1">Matchday {match.matchday}</p>}
+      {match.competition?.toLowerCase() !== "friendly" &&
+        match.matchday && <p className="mt-1">Matchday {match.matchday}</p>}
     </div>
 
     {/* View Button */}
@@ -80,4 +84,5 @@ export const ResultsCard = ({ match }: ResultsCardProps) => (
       </span>
     </div>
   </Link>
-);
+  );
+};

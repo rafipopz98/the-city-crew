@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       matchType: body.matchType || "regular",
       venue: body.venue || "",
       matchday: body.matchday || 1,
+      formation: body.formation || "4-3-3",
       isHome: body.isHome,
       goalScorers: body.goalScorers || [], // ✅ Explicitly include
       lineup: body.lineup || [], // ✅ Explicitly include

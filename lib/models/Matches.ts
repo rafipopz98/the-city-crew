@@ -66,6 +66,11 @@ const MatchesSchema = new mongoose.Schema(
       type: Number,
     },
 
+    formation: {
+      type: String,
+      default: "4-3-3",
+    },
+
     isHome: {
       type: Boolean,
       required: true,

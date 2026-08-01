@@ -2,11 +2,10 @@ import { connectDB } from "@/lib/db/mongoose";
 import { MatchesModel } from "@/lib/models/Matches";
 import { notFound } from "next/navigation";
 import { createMetadata } from "@/lib/seo";
-import { ArrowLeft, Users, Shirt } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import MatchHero from "@/components/MatchDetail/MatchHero";
-import MatchMeta from "@/components/MatchDetail/MatchMeta";
-import MatchScorers from "@/components/MatchDetail/MatchScorers";
+import MatchLineup from "@/components/MatchDetail/MatchLineup";
 import PlayerRatingsPreview from "@/components/MatchDetail/PlayerRatingsPreview";
 
 type Props = {
@@ -64,9 +63,8 @@ export default async function MatchDetailPage({ params }: Props) {
 
   const matchDate = new Date(match.matchDate);
   const formattedDate = matchDate.toLocaleDateString("en-GB", {
-    weekday: "long",
     day: "numeric",
-    month: "long",
+    month: "short",
     year: "numeric",
   });
   const formattedTime = matchDate.toLocaleTimeString("en-GB", {
@@ -84,8 +82,19 @@ export default async function MatchDetailPage({ params }: Props) {
       isOwnGoal: scorer.isOwnGoal || false,
     })) || [];
 
+  // Serialize lineup players to plain objects — Mongoose ObjectIds have toJSON
+  // methods which Next.js refuses to pass from Server to Client Components.
+  const serializePlayer = (p: any) => ({
+    _id: p._id?.toString() ?? String(p._id),
+    name: p.name,
+    position: p.position,
+    vertical_image: p.vertical_image,
+    round_image: p.round_image,
+    number: p.number,
+  });
+
   // Split lineup into Starting XI (first 11) and Subs (rest)
-  const allPlayers = match.lineup || [];
+  const allPlayers = (match.lineup || []).map(serializePlayer);
   const startingXI = allPlayers.slice(0, 11);
   const subs = allPlayers.slice(11);
 
@@ -113,141 +122,21 @@ export default async function MatchDetailPage({ params }: Props) {
             homeScore={match.homeTeamScore}
             awayScore={match.awayTeamScore}
             status={match.status}
-          />
-
-          <MatchMeta
+            venue={match.venue}
             date={formattedDate}
             time={formattedTime}
-            venue={match.venue}
             matchday={match.matchday}
-            isHome={match.isHome}
-            matchType={match.matchType}
-            competition={match.competition}
+            goalScorers={cleanGoalScorers}
           />
-
-          {cleanGoalScorers.length > 0 && (
-            <MatchScorers
-              goalScorers={cleanGoalScorers}
-              homeTeamName={match.homeTeam.name}
-              awayTeamName={match.awayTeam.name}
-            />
-          )}
 
           {/* Lineup */}
           {allPlayers.length > 0 && (
-            <section className="rounded-2xl sm:rounded-3xl bg-white/40 backdrop-blur-sm border border-black/5 p-6 sm:p-8">
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-[#e09225]/20 to-[#e09225]/10">
-                  <Shirt size={16} className="text-[#e09225]" />
-                </div>
-                <div>
-                  <h3 className="text-xs uppercase tracking-[0.25em] text-black/40 font-medium">
-                    City Lineup
-                  </h3>
-                  <p className="text-[10px] text-black/25 mt-0.5">
-                    {startingXI.length} starting · {subs.length} on bench
-                  </p>
-                </div>
-              </div>
-
-              {/* Starting XI — compact row, no vertical images */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-2 sm:gap-2.5">
-                {startingXI.map((player: any, idx: number) => (
-                  <div
-                    key={player._id.toString()}
-                    className="flex flex-col items-center text-center gap-1.5 p-2 sm:p-2.5 rounded-xl bg-white border border-black/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-                  >
-                    {/* Small round avatar */}
-                    <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-gradient-to-b from-[#f0e6d8] to-[#e5d7c0] ring-2 ring-[#e09225]/20 flex-shrink-0">
-                      {player.round_image ? (
-                        <img
-                          src={player.round_image}
-                          alt={player.name}
-                          className="w-full h-full object-contain"
-                        />
-                      ) : player.vertical_image ? (
-                        <img
-                          src={player.vertical_image}
-                          alt={player.name}
-                          className="w-full h-full object-cover object-top"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center">
-                          <span className="text-sm font-bold text-black/20">
-                            {player.number || idx + 1}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Name + number */}
-                    <div className="min-w-0">
-                      <p className="text-[9px] sm:text-[10px] text-black/35 uppercase tracking-[0.05em] font-medium truncate">
-                        {player.position}
-                      </p>
-                      <p className="text-[10px] sm:text-xs font-bold text-black/80 truncate leading-tight">
-                        {player.name}
-                      </p>
-                      {player.number && (
-                        <p className="text-[8px] sm:text-[10px] text-black/30">
-                          #{player.number}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Subs — simple horizontal scrollable strip */}
-              {subs.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-black/5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users size={12} className="text-black/30" />
-                    <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-black/30 font-medium">
-                      Substitutes ({subs.length})
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {subs.map((player: any) => (
-                      <div
-                        key={player._id.toString()}
-                        className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white border border-black/5 hover:shadow-sm transition-shadow"
-                      >
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden bg-gradient-to-b from-[#f0e6d8] to-[#e5d7c0] flex-shrink-0">
-                          {player.round_image ? (
-                            <img
-                              src={player.round_image}
-                              alt={player.name}
-                              className="w-full h-full object-contain"
-                            />
-                          ) : player.vertical_image ? (
-                            <img
-                              src={player.vertical_image}
-                              alt={player.name}
-                              className="w-full h-full object-cover object-top"
-                            />
-                          ) : null}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {player.number && (
-                            <span className="text-[9px] sm:text-[10px] font-bold text-black/40">
-                              #{player.number}
-                            </span>
-                          )}
-                          <span className="text-[10px] sm:text-xs font-medium text-black/70 truncate max-w-[80px] sm:max-w-[120px]">
-                            {player.name}
-                          </span>
-                          <span className="text-[8px] sm:text-[9px] text-black/30 uppercase">
-                            {player.position}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
+            <MatchLineup
+              matchId={match._id.toString()}
+              startingXI={startingXI}
+              subs={subs}
+              formation={match.formation}
+            />
           )}
 
           <PlayerRatingsPreview matchId={match._id.toString()} />

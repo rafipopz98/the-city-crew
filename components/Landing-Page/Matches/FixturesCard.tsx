@@ -3,13 +3,16 @@ import Link from "next/link";
 import { GoalScorers } from "./GoalScorers";
 import { BUTTON_LABELS } from "@/constants/match";
 import { Match } from "./type-matches";
-import { formatDate, formatTime } from "@/lib/match";
+import { formatDate, formatTime, getRelativeDayLabel } from "@/lib/match";
 
 interface FixturesCardProps {
   match: Match;
 }
 
-export const FixturesCard = ({ match }: FixturesCardProps) => (
+export const FixturesCard = ({ match }: FixturesCardProps) => {
+  const relativeLabel = getRelativeDayLabel(new Date(match.matchDate));
+
+  return (
   <Link
     href={`/match-hub/${match._id}`}
     className="min-w-75 lg:min-w-0 bg-[#ece1cf] rounded-2xl p-6 flex flex-col justify-between shrink-0 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl group"
@@ -41,12 +44,13 @@ export const FixturesCard = ({ match }: FixturesCardProps) => (
     <div className="mt-4 text-xs text-black/70">
       <p>{formatTime(match.matchDate)}</p>
       {match.venue && <p>{match.venue}</p>}
-      {match.matchday && <p className="mt-1">Matchday {match.matchday}</p>}
+      {match.competition?.toLowerCase() !== "friendly" &&
+        match.matchday && <p className="mt-1">Matchday {match.matchday}</p>}
     </div>
 
     {/* Date Display */}
     <h3 className="text-5xl font-extrabold my-6">
-      {formatDate(match.matchDate)}
+      {relativeLabel ?? formatDate(match.matchDate)}
     </h3>
 
     {/* Teams */}
@@ -84,4 +88,5 @@ export const FixturesCard = ({ match }: FixturesCardProps) => (
       </span>
     </div>
   </Link>
-);
+  );
+};

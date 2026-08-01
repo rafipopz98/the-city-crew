@@ -56,8 +56,11 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     if (body.matchType) updateData.matchType = body.matchType;
     if (body.venue) updateData.venue = body.venue;
     if (body.matchday !== undefined) updateData.matchday = body.matchday;
+    if (body.formation !== undefined) updateData.formation = body.formation;
     if (body.isHome !== undefined) updateData.isHome = body.isHome;
     if (body.matchDate) updateData.matchDate = body.matchDate;
+    if (body.homeTeam) updateData.homeTeam = body.homeTeam;
+    if (body.awayTeam) updateData.awayTeam = body.awayTeam;
 
     console.log("Update data:", JSON.stringify(updateData, null, 2));
 

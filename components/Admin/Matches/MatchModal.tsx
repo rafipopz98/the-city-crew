@@ -8,6 +8,13 @@ import SettingRow from "../Players/SettingRow";
 import TCCInput from "@/components/common/TCCInput";
 import SettingGroup from "../Players/SettingGroup";
 import TCCSelect from "@/components/common/TCCSelect";
+import PitchSvg from "@/components/BuildXI/PitchSvg";
+import {
+  SLOT_FORMATIONS,
+  generateCoords,
+  formationSlotLabels,
+} from "@/constants/formation";
+import { getPreferredName } from "@/components/MatchDetail/lineup/shared";
 
 type MatchModalProps = {
   open: boolean;
@@ -70,14 +77,19 @@ const MatchModal = ({
     matchType: "regular",
     venue: "Etihad Stadium",
     matchday: 1,
+    formation: "4-3-3",
     isHome: true,
   });
 
   // New state for goal scorers
   const [goalScorers, setGoalScorers] = useState<GoalScorer[]>([]);
 
-  // New state for lineup
-  const [lineup, setLineup] = useState<string[]>([]);
+  // New state for lineup — 11 formation slots + bench subs
+  const [lineupSlots, setLineupSlots] = useState<(string | null)[]>(
+    Array(11).fill(null),
+  );
+  const [subs, setSubs] = useState<string[]>([]);
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
 
   // All players from the season
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
@@ -116,10 +128,14 @@ const MatchModal = ({
       const dateStr = matchDate.toISOString().split("T")[0];
       const timeStr = matchDate.toTimeString().slice(0, 5);
 
+      // Always normalize so the City row is the home slot in the form and the
+      // opponent is the away slot, regardless of which side City is actually on.
+      const cityIsHome = match.homeTeam?.name === "Manchester City";
+
       setFormData({
         season: match.season?._id || match.season || "",
-        homeTeam: match.homeTeam,
-        awayTeam: match.awayTeam,
+        homeTeam: cityIsHome ? match.homeTeam : match.awayTeam,
+        awayTeam: cityIsHome ? match.awayTeam : match.homeTeam,
         homeTeamScore: match.homeTeamScore,
         awayTeamScore: match.awayTeamScore,
         matchDate: dateStr,
@@ -129,7 +145,8 @@ const MatchModal = ({
         matchType: match.matchType || "regular",
         venue: match.venue || "",
         matchday: match.matchday || 1,
-        isHome: match.isHome,
+        formation: match.formation || "4-3-3",
+        isHome: match.isHome ?? cityIsHome,
       });
 
       // Set goal scorers from match data
@@ -147,14 +164,19 @@ const MatchModal = ({
         setGoalScorers([]);
       }
 
-      // Set lineup from match data
-      if (match.lineup && match.lineup.length > 0) {
-        setLineup(match.lineup.map((p: any) => p._id || p));
-      } else {
-        setLineup([]);
-      }
+      // Set lineup: first 11 players fill formation slots, rest are subs
+      const lineupIds: string[] = (match.lineup || []).map(
+        (p: any) => p._id || p,
+      );
+      const slots = Array(11).fill(null) as (string | null)[];
+      lineupIds.slice(0, 11).forEach((id: string, i: number) => {
+        slots[i] = id;
+      });
+      setLineupSlots(slots);
+      setSubs(lineupIds.slice(11));
+      setActiveSlot(null);
 
-      setSelectedAwayTeam(match.awayTeam.name);
+      setSelectedAwayTeam(cityIsHome ? match.awayTeam.name : match.homeTeam.name);
     } else {
       resetForm();
     }
@@ -177,11 +199,14 @@ const MatchModal = ({
       matchType: "regular",
       venue: "Etihad Stadium",
       matchday: 1,
+      formation: "4-3-3",
       isHome: true,
     });
     setSelectedAwayTeam("");
     setGoalScorers([]);
-    setLineup([]);
+    setLineupSlots(Array(11).fill(null));
+    setSubs([]);
+    setActiveSlot(null);
   };
 
   const handleAwayTeamSelect = (teamName: string) => {
@@ -226,12 +251,28 @@ const MatchModal = ({
     setGoalScorers(updated);
   };
 
-  // Lineup Functions
-  const togglePlayer = (playerId: string) => {
-    setLineup((prev) =>
+  // Lineup Functions — assign to a formation slot, clear a slot, toggle subs
+  const assignToSlot = (playerId: string) => {
+    if (activeSlot === null) return;
+    setLineupSlots((prev) =>
+      prev.map((id, i) => (i === activeSlot ? playerId : id)),
+    );
+    setSubs((prev) => prev.filter((id) => id !== playerId));
+    setActiveSlot(null);
+  };
+
+  const clearSlot = (index: number) => {
+    setLineupSlots((prev) => prev.map((id, i) => (i === index ? null : id)));
+  };
+
+  const toggleSub = (playerId: string) => {
+    setSubs((prev) =>
       prev.includes(playerId)
         ? prev.filter((id) => id !== playerId)
         : [...prev, playerId],
+    );
+    setLineupSlots((prev) =>
+      prev.map((id) => (id === playerId ? null : id)),
     );
   };
 
@@ -242,13 +283,19 @@ const MatchModal = ({
     try {
       const dateTime = new Date(`${formData.matchDate}T${formData.matchTime}`);
 
+      // When City plays away, swap the teams so the opponent is stored as the
+      // home team and City as the away team (matching how it's displayed).
+      const isHome = formData.isHome;
+
       const payload = {
         ...formData,
         matchDate: dateTime.toISOString(),
+        homeTeam: isHome ? formData.homeTeam : formData.awayTeam,
+        awayTeam: isHome ? formData.awayTeam : formData.homeTeam,
         goalScorers: goalScorers.filter(
           (g) => g.playerName.trim() && g.minute !== "",
         ),
-        lineup: lineup,
+        lineup: [...lineupSlots.filter((id): id is string => !!id), ...subs],
       };
 
       const url = match
@@ -576,8 +623,16 @@ const MatchModal = ({
                         }
                         className="w-full border-b-2 border-black/10 bg-transparent pb-2 text-sm outline-none focus:border-[#e09225] transition"
                       >
-                        <option value="home">Home</option>
-                        <option value="away">Away</option>
+                        <option value="home">
+                          {formData.isHome
+                            ? formData.homeTeam.name
+                            : formData.awayTeam.name || "Home"}
+                        </option>
+                        <option value="away">
+                          {formData.isHome
+                            ? formData.awayTeam.name
+                            : formData.homeTeam.name || "Away"}
+                        </option>
                       </select>
                     </div>
 
@@ -683,6 +738,19 @@ const MatchModal = ({
 
             {/* ============ CITY LINEUP SECTION ============ */}
             <SettingGroup title="City Lineup">
+              <SettingRow label="Formation">
+                <TCCSelect
+                  value={formData.formation}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, formation: value }))
+                  }
+                  options={SLOT_FORMATIONS.map((formation) => ({
+                    label: formation,
+                    value: formation,
+                  }))}
+                />
+              </SettingRow>
+
               <div className="space-y-4">
                 {loadingPlayers ? (
                   <div className="flex items-center gap-3 py-4">
@@ -696,34 +764,160 @@ const MatchModal = ({
                     No players found for this season.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {allPlayers
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((player) => (
-                        <label
-                          key={player._id}
-                          className="flex items-center gap-3 p-2 rounded hover:bg-black/5 transition cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={lineup.includes(player._id)}
-                            onChange={() => togglePlayer(player._id)}
-                            className="cursor-pointer"
-                          />
-                          <span className="text-sm">{player.name}</span>
-                          <span className="text-xs text-black/30 ml-auto">
-                            {player.position}
-                          </span>
-                        </label>
-                      ))}
-                  </div>
-                )}
+                  <>
+                    {/* Mini pitch with formation slots */}
+                    <div className="relative w-full max-w-[320px] mx-auto aspect-[3/4] rounded-2xl overflow-hidden bg-[#06182e]">
+                      <div className="absolute inset-0">
+                        <PitchSvg />
+                      </div>
 
-                {lineup.length > 0 && (
-                  <p className="text-sm text-black/40">
-                    {lineup.length} player{lineup.length !== 1 ? "s" : ""}{" "}
-                    selected
-                  </p>
+                      {generateCoords(formData.formation).map(([x, y], i) => {
+                        const playerId = lineupSlots[i];
+                        const player = playerId
+                          ? allPlayers.find((p) => p._id === playerId)
+                          : null;
+                        const isActive = activeSlot === i;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() =>
+                              setActiveSlot(isActive ? null : i)
+                            }
+                            style={{ left: `${x}%`, top: `${y}%` }}
+                            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-1 transition-transform duration-200 ${
+                              isActive ? "scale-110" : ""
+                            }`}
+                          >
+                            {player ? (
+                              <>
+                                <div className="relative">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={
+                                      player.round_image ||
+                                      player.vertical_image
+                                    }
+                                    alt={player.name}
+                                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white object-contain ring-2 ring-[#e09225]"
+                                  />
+                                  {isActive && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        clearSlot(i);
+                                      }}
+                                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </div>
+                                <span className="text-[8px] font-bold text-[#ece1cf] max-w-14 truncate">
+                                  {getPreferredName(player.name)}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div
+                                  className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full border-2 border-dashed flex items-center justify-center ${
+                                    isActive
+                                      ? "border-[#e09225] bg-[#e09225]/15"
+                                      : "border-[#ece1cf]/40 bg-white/5"
+                                  }`}
+                                >
+                                  <span className="text-[#e09225] text-sm font-bold">
+                                    +
+                                  </span>
+                                </div>
+                                <span className="text-[7px] uppercase tracking-wider text-[#ece1cf]/40">
+                                  {formationSlotLabels(formData.formation)[i]}
+                                </span>
+                              </>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-xs text-black/40 text-center">
+                      Tap a slot to pick a player ·{" "}
+                      {lineupSlots.filter(Boolean).length}/11 in XI ·{" "}
+                      {subs.length} on bench
+                    </p>
+
+                    {/* Player picker when a slot is active */}
+                    {activeSlot !== null && (
+                      <div className="p-3 bg-black/5 border border-black/10 rounded-xl">
+                        <p className="text-xs uppercase tracking-[0.2em] text-black/40 mb-2">
+                          Slot {activeSlot + 1} ·{" "}
+                          {formationSlotLabels(formData.formation)[activeSlot]}{" "}
+                          — pick player
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
+                          {allPlayers
+                            .filter((p) => !lineupSlots.includes(p._id))
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((player) => (
+                              <button
+                                key={player._id}
+                                type="button"
+                                onClick={() => assignToSlot(player._id)}
+                                className="flex items-center gap-2 p-1.5 rounded hover:bg-black/10 transition text-left"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={
+                                    player.round_image ||
+                                    player.vertical_image
+                                  }
+                                  alt={player.name}
+                                  className="w-6 h-6 rounded-full bg-white object-contain"
+                                />
+                                <span className="text-sm truncate">
+                                  {getPreferredName(player.name)}
+                                </span>
+                                <span className="text-[10px] text-black/30 ml-auto shrink-0">
+                                  {player.position}
+                                </span>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subs */}
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-black/40 mb-2">
+                        Substitutes ({subs.length})
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-37.5 overflow-y-auto">
+                        {allPlayers
+                          .filter((p) => !lineupSlots.includes(p._id))
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((player) => (
+                            <label
+                              key={player._id}
+                              className="flex items-center gap-3 p-2 rounded hover:bg-black/5 transition cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={subs.includes(player._id)}
+                                onChange={() => toggleSub(player._id)}
+                                className="cursor-pointer"
+                              />
+                              <span className="text-sm truncate">
+                                {getPreferredName(player.name)}
+                              </span>
+                              <span className="text-xs text-black/30 ml-auto shrink-0">
+                                {player.position}
+                              </span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </SettingGroup>

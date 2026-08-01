@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Goal } from "lucide-react";
+import { getRelativeDayLabel } from "@/lib/match";
 
 type Match = {
   _id: string;
@@ -37,11 +38,13 @@ type Props = {
 const MatchCard = ({ match }: Props) => {
   const matchDate = new Date(match.matchDate);
 
-  const formattedDate = matchDate.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const formattedDate =
+    getRelativeDayLabel(matchDate) ??
+    matchDate.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
 
   const formattedTime = matchDate.toLocaleTimeString([], {
     hour: "2-digit",
@@ -157,11 +160,12 @@ const MatchCard = ({ match }: Props) => {
               {match.competition}
             </p>
 
-            {match.matchday && (
-              <p className="mt-2 text-sm text-black/40">
-                Matchday {match.matchday}
-              </p>
-            )}
+            {match.competition?.toLowerCase() !== "friendly" &&
+              match.matchday && (
+                <p className="mt-2 text-sm text-black/40">
+                  Matchday {match.matchday}
+                </p>
+              )}
           </div>
 
           <span
@@ -187,8 +191,8 @@ const MatchCard = ({ match }: Props) => {
         <div className="mt-10 space-y-7">
           {/* Home */}
 
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-5 min-w-0">
+          <div className="flex items-center justify-between gap-4 sm:gap-6">
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
               <Image
                 src={match.homeTeam.image}
                 alt={match.homeTeam.name}
@@ -201,13 +205,18 @@ const MatchCard = ({ match }: Props) => {
                 className="
                   para
 
-                  text-3xl
+                  min-w-0
+                  flex-1
+
+                  text-xl
+                  sm:text-2xl
+                  lg:text-3xl
 
                   uppercase
 
-                  leading-none
+                  leading-[1.1]
 
-                  wrap-break-word
+                  break-words
                 "
               >
                 {match.homeTeam.name}
@@ -219,7 +228,8 @@ const MatchCard = ({ match }: Props) => {
                 className="
                   para
 
-                  text-4xl
+                  text-3xl
+                  sm:text-4xl
 
                   shrink-0
                 "
@@ -266,8 +276,8 @@ const MatchCard = ({ match }: Props) => {
 
           {/* Away */}
 
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-5 min-w-0">
+          <div className="flex items-center justify-between gap-4 sm:gap-6">
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
               <Image
                 src={match.awayTeam.image}
                 alt={match.awayTeam.name}
@@ -280,13 +290,18 @@ const MatchCard = ({ match }: Props) => {
                 className="
                   para
 
-                  text-3xl
+                  min-w-0
+                  flex-1
+
+                  text-xl
+                  sm:text-2xl
+                  lg:text-3xl
 
                   uppercase
 
-                  leading-none
+                  leading-[1.1]
 
-                  wrap-break-word
+                  break-words
                 "
               >
                 {match.awayTeam.name}
@@ -298,7 +313,8 @@ const MatchCard = ({ match }: Props) => {
                 className="
                   para
 
-                  text-4xl
+                  text-3xl
+                  sm:text-4xl
 
                   shrink-0
                 "

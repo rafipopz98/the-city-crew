@@ -2,6 +2,7 @@
 import useSWR from "swr";
 import Image from "next/image";
 import Link from "next/link";
+import { getRelativeDayLabel } from "@/lib/match";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -21,6 +22,10 @@ const StandingsSection = () => {
   const { data } = useSWR("/api/matches?status=upcoming&limit=1", fetcher);
 
   const nextMatch = data?.matches?.[0];
+
+  const nextMatchDayLabel = nextMatch
+    ? getRelativeDayLabel(new Date(nextMatch.matchDate))
+    : null;
 
   const formatDate = (date: string) => {
     const d = new Date(date);
@@ -119,16 +124,17 @@ const StandingsSection = () => {
               <div className="mt-3 sm:mt-4 text-[11px] sm:text-xs text-black/70">
                 <p>{formatMatchInfo(nextMatch.matchDate).dayTime}</p>
                 {nextMatch.venue && <p>{nextMatch.venue}</p>}
-                {nextMatch.matchday && (
-                  <p className="mt-1 opacity-50">
-                    Matchday {nextMatch.matchday}
-                  </p>
-                )}
+                {nextMatch.competition?.toLowerCase() !== "friendly" &&
+                  nextMatch.matchday && (
+                    <p className="mt-1 opacity-50">
+                      Matchday {nextMatch.matchday}
+                    </p>
+                  )}
               </div>
 
               {/* Date */}
               <h3 className="text-3xl sm:text-5xl font-extrabold my-4 sm:my-6">
-                {formatDate(nextMatch.matchDate)}
+                {nextMatchDayLabel ?? formatDate(nextMatch.matchDate)}
               </h3>
 
               {/* Teams */}

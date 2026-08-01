@@ -566,8 +566,8 @@ const MatchRow = ({
                         }
                         className="w-full border-b-2 border-black/10 bg-transparent pb-1.5 text-sm outline-none focus:border-[#e09225] transition"
                       >
-                        <option value="home">Home</option>
-                        <option value="away">Away</option>
+                        <option value="home">{match.homeTeam.name}</option>
+                        <option value="away">{match.awayTeam.name}</option>
                       </select>
                     </div>
 

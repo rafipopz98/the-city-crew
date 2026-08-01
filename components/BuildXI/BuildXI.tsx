@@ -8,6 +8,7 @@ import { playerImages } from "@/public/players-image";
 import { useMediaQuery } from "@/app/hooks/useMediaQuery";
 import PitchSvg from "./PitchSvg";
 import PitchSvgDesktop from "./PitchSvgDesktop";
+import { FORMATION_LIST, generateCoords } from "@/constants/formation";
 
 const firstName = (fullName: string) => fullName.trim().split(" ")[0];
 
@@ -30,41 +31,6 @@ interface PlayerTemplate {
   prefferedName: string;
 }
 
-const FORMATION_LIST = [
-  "4-3-3",
-  "4-4-2",
-  "4-2-3-1",
-  "4-1-4-1",
-  "4-3-2-1",
-  "4-1-2-1-2",
-  "3-4-3",
-  "3-5-2",
-  "3-2-4-1",
-  "5-3-2",
-  "5-4-1",
-  "4-5-1",
-  "4-4-1-1",
-  "4-2-2-2",
-  "4-2-4",
-  "3-4-2-1",
-  "3-4-1-2",
-  "4-3-1-2",
-  "5-2-3",
-  "5-2-2-1",
-  "4-2-1-3",
-  "4-1-2-3",
-  "3-1-4-2",
-  "4-1-3-2",
-  "4-1-2-2-1",
-  "3-3-4",
-  "3-3-3-1",
-  "5-3-1-1",
-  "3-3-2-2",
-  "3-5-1-1",
-  "2-3-2-3",
-  "Free form",
-];
-
 // Local round images only — no proxying, no per-player network requests,
 // and (important) same-origin images so the export canvas never gets tainted.
 const ALL_PLAYERS: PlayerTemplate[] = playerImages.map((p) => ({
@@ -74,21 +40,6 @@ const ALL_PLAYERS: PlayerTemplate[] = playerImages.map((p) => ({
   image: p.roundImage,
   prefferedName: p.prefferedName,
 }));
-
-const generateCoords = (formation: string): [number, number][] => {
-  if (formation === "Free form") return [];
-  const parts = formation.split("-").map(Number);
-  const coords: [number, number][] = [];
-  coords.push([50, 88]); // GK
-  const rowCount = parts.length;
-  parts.forEach((count, i) => {
-    const y = 72 - (i / (rowCount - 1)) * 60;
-    for (let j = 0; j < count; j++) {
-      coords.push([(100 / (count + 1)) * (j + 1), y]);
-    }
-  });
-  return coords;
-};
 
 // ─── Empty slot ─────────────────────────────────────────────────────────────
 // data-slot-index is what DraggablePlayer's pointer hit-test looks for
