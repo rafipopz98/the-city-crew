@@ -4,13 +4,13 @@ const UserSchema = new mongoose.Schema(
   {
     first_name: {
       type: String,
-      required: true,
       trim: true,
+      default: null,
     },
     last_name: {
       type: String,
-      required: true,
       trim: true,
+      default: null,
     },
     email: {
       type: String,
@@ -30,6 +30,20 @@ const UserSchema = new mongoose.Schema(
       default: "user",
     },
     is_deleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    /**
+     * True when the account was auto-created from the login flow because
+     * the email didn't exist yet ("sign in = sign up"). Used to prompt
+     * the user to complete their name/username later.
+     */
+    signedUpFromLogin: {
+      type: Boolean,
+      default: false,
+    },
+    profile_completed: {
       type: Boolean,
       default: false,
     },

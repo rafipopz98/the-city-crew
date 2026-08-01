@@ -12,21 +12,20 @@ import { setAuthCookies } from "@/lib/auth/cookies";
 export async function POST(req: Request) {
   try {
     await connectDB();
-    console.log("done with db");
 
     const { first_name, last_name, username, email, password, utm_params, first_landing_page, conversion_page } =
       await req.json();
 
     const normalizedEmail = email?.toLowerCase();
 
-    // validation
-    if (!first_name || !last_name || !normalizedEmail || !password) {
+    // Only email + password are required — name/username can be completed
+    // later from the profile-completion prompt.
+    if (!normalizedEmail || !password) {
       return NextResponse.json(
-        { message: "All fields are required" },
+        { message: "Email and password are required" },
         { status: 400 },
       );
     }
-    console.log("am i here");
 
     if (password.length < 6) {
       return NextResponse.json(
@@ -51,7 +50,6 @@ export async function POST(req: Request) {
       email: normalizedEmail,
       is_deleted: false,
     });
-    console.log("ami here 2");
 
     if (existingUser) {
       return NextResponse.json(
@@ -63,10 +61,10 @@ export async function POST(req: Request) {
     // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // create user
+    // create user — name/username optional, filled later via profile prompt
     const user = await UserModel.create({
-      first_name,
-      last_name,
+      ...(first_name ? { first_name } : {}),
+      ...(last_name ? { last_name } : {}),
       email: normalizedEmail,
       password: hashedPassword,
       ...(username ? { username: username.toLowerCase() } : {}),
@@ -93,7 +91,6 @@ export async function POST(req: Request) {
 
     // cookies
     await setAuthCookies(accessToken, refreshToken);
-    console.log("ami here 3");
 
     return NextResponse.json(
       {

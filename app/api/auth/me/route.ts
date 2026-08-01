@@ -36,7 +36,7 @@ export async function GET() {
     }
 
     const user = await UserModel.findById(payload.userId).select(
-      "first_name email role username",
+      "first_name last_name email role username signedUpFromLogin profile_completed",
     );
 
     if (!user) {
@@ -50,13 +50,23 @@ export async function GET() {
       );
     }
 
+    const displayName =
+      user.first_name ||
+      user.username ||
+      (user.email?.split("@")[0] ?? null) ||
+      "City Crew Member";
+
     return NextResponse.json({
       user: {
         id: user._id.toString(),
-        first_name: user.first_name,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
         email: user.email,
         role: user.role,
-        username: (user as any).username || undefined,
+        username: user.username || undefined,
+        signedUpFromLogin: !!user.signedUpFromLogin,
+        profile_completed: !!user.profile_completed,
+        displayName,
       },
     });
   } catch (error) {

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Mail, Calendar, Shield } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Mail, Calendar, Shield, Eye } from "lucide-react";
 
 type User = {
   _id: string;
@@ -13,21 +14,25 @@ type User = {
 };
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  // `search` is the live input value; `submittedSearch` only changes on form
+  // submit so typing doesn't fire an API call on every keystroke.
   const [search, setSearch] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "10",
       });
-      if (search) params.set("search", search);
+      if (submittedSearch) params.set("search", submittedSearch);
 
       const res = await fetch(`/api/admin/users?${params}`);
       if (!res.ok) throw new Error("Failed to fetch users");
@@ -40,16 +45,16 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, submittedSearch]);
 
   useEffect(() => {
     fetchUsers();
-  }, [page]);
+  }, [fetchUsers]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchUsers();
+    setSubmittedSearch(search);
   };
 
   return (
@@ -123,7 +128,8 @@ export default function AdminUsersPage() {
               {users.map((user) => (
                 <div
                   key={user._id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-4 hover:bg-[#f4ebda] transition-colors"
+                  onClick={() => router.push(`/admin/users/${user._id}`)}
+                  className="group flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-4 hover:bg-[#f4ebda] transition-colors cursor-pointer"
                 >
                   {/* Avatar + Name row - mobile */}
                   <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -185,6 +191,20 @@ export default function AdminUsersPage() {
                     <Shield size={12} />
                     {user.role}
                   </span>
+
+                  {/* View profile (eye) button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/admin/users/${user._id}`);
+                    }}
+                    aria-label={`View ${user.first_name || user.email}'s profile`}
+                    title="View user profile"
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#e09225]/10 text-[#e09225] text-xs font-bold hover:bg-[#e09225] hover:text-[#06182e] transition-all shrink-0 active:scale-[0.95]"
+                  >
+                    <Eye size={14} />
+                    View
+                  </button>
                 </div>
               ))}
             </div>

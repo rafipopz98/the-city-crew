@@ -6,6 +6,48 @@ import { DailyChallengeModel } from "@/lib/models/DailyChallenge";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
 import { logError } from "@/lib/errorLogger";
 
+type LeaderboardEntry = {
+  rank: number;
+  userId: unknown;
+  username: string;
+  score: number;
+  totalCorrect?: number;
+  bestTime?: number | null;
+  streak?: number;
+  badges?: string[];
+  dailyWins?: number;
+  completionTimeMs?: number | null;
+};
+
+type PopulatedUser = {
+  _id?: unknown;
+  username?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string;
+  streak?: number;
+  badges?: string[];
+};
+
+type PopulatedAttempt = {
+  score: number;
+  completionTimeMs: number | null;
+  userId: PopulatedUser | null;
+};
+
+type StatsUser = PopulatedUser & {
+  totalPoints: number;
+  totalCorrect: number;
+  bestTime: number | null;
+  dailyWins?: number;
+};
+
+const displayName = (u: PopulatedUser | null | undefined): string =>
+  u?.username ||
+  [u?.first_name, u?.last_name].filter(Boolean).join(" ") ||
+  u?.email?.split("@")[0] ||
+  "City Crew";
+
 export async function GET(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
@@ -20,8 +62,8 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    let leaderboard: any[] = [];
-    let currentUserRank = null;
+    let leaderboard: LeaderboardEntry[] = [];
+    let currentUserRank: number | null = null;
 
     if (period === "daily") {
       // Find the active challenge
@@ -37,18 +79,23 @@ export async function GET(req: NextRequest) {
           .sort({ score: -1, completionTimeMs: 1, submittedAt: 1 })
           .skip((page - 1) * limit)
           .limit(limit)
-          .populate("userId", "username first_name last_name streak badges")
+          .populate(
+            "userId",
+            "username first_name last_name email streak badges",
+          )
           .lean();
 
-        leaderboard = attempts.map((a: any, index: number) => ({
-          rank: (page - 1) * limit + index + 1,
-          userId: a.userId?._id,
-          username: a.userId?.username || `${a.userId?.first_name} ${a.userId?.last_name}`,
-          score: a.score,
-          completionTimeMs: a.completionTimeMs,
-          streak: a.userId?.streak || 0,
-          badges: a.userId?.badges || [],
-        }));
+        leaderboard = (attempts as unknown as PopulatedAttempt[]).map(
+          (a, index: number) => ({
+            rank: (page - 1) * limit + index + 1,
+            userId: a.userId?._id,
+            username: displayName(a.userId),
+            score: a.score,
+            completionTimeMs: a.completionTimeMs,
+            streak: a.userId?.streak || 0,
+            badges: a.userId?.badges || [],
+          }),
+        );
 
         // Find current user's rank
         const currentUserAttempt = await ChallengeAttemptModel.findOne({
@@ -86,16 +133,18 @@ export async function GET(req: NextRequest) {
         challengesPlayed: { $gt: 0 },
         updatedAt: { $gte: weekStart },
       })
-        .select("username first_name last_name totalPoints totalCorrect bestTime streak badges")
+        .select(
+          "username first_name last_name email totalPoints totalCorrect bestTime streak badges",
+        )
         .sort({ totalPoints: -1, totalCorrect: -1, bestTime: 1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean();
 
-      leaderboard = users.map((u: any, index: number) => ({
+      leaderboard = (users as unknown as StatsUser[]).map((u, index: number) => ({
         rank: (page - 1) * limit + index + 1,
         userId: u._id,
-        username: u.username || `${u.first_name} ${u.last_name}`,
+        username: displayName(u),
         score: u.totalPoints,
         totalCorrect: u.totalCorrect,
         bestTime: u.bestTime,
@@ -126,16 +175,18 @@ export async function GET(req: NextRequest) {
         is_deleted: false,
         challengesPlayed: { $gt: 0 },
       })
-        .select("username first_name last_name totalPoints totalCorrect bestTime streak badges dailyWins")
+        .select(
+          "username first_name last_name email totalPoints totalCorrect bestTime streak badges dailyWins",
+        )
         .sort({ totalPoints: -1, totalCorrect: -1, bestTime: 1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean();
 
-      leaderboard = users.map((u: any, index: number) => ({
+      leaderboard = (users as unknown as StatsUser[]).map((u, index: number) => ({
         rank: (page - 1) * limit + index + 1,
         userId: u._id,
-        username: u.username || `${u.first_name} ${u.last_name}`,
+        username: displayName(u),
         score: u.totalPoints,
         totalCorrect: u.totalCorrect,
         bestTime: u.bestTime,

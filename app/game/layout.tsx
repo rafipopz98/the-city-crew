@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { CompleteProfileModal } from "@/components/auth/CompleteProfileModal";
 import {
   Home,
   Swords,
@@ -227,6 +228,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
       <main className="pt-14 h-screen overflow-y-auto">
         {children}
       </main>
+
+      {/* Profile completion prompt (auto-created / incomplete accounts) */}
+      <CompleteProfileModal />
     </div>
   );
 }

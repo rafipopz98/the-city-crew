@@ -8,6 +8,7 @@ import { createMetadata } from "@/lib/seo";
 import Footer from "@/components/common/Footer";
 import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
 import { DailyChallengeBanner } from "@/components/common/DailyChallengeBanner";
+import { CompleteProfileModal } from "@/components/auth/CompleteProfileModal";
 
 const LandingPage = () => {
   return (
@@ -21,6 +22,7 @@ const LandingPage = () => {
       <Footer />
       <PwaInstallPrompt />
       <DailyChallengeBanner />
+      <CompleteProfileModal />
     </>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { GlassInputWrapper } from "./GlassInputWrapper";
 import { Button } from "../common/Button";
@@ -10,7 +10,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSearchParams } from "next/navigation";
-import { getConversionPage } from "@/components/common/PageTracker";
+import { getConversionPage, getFirstLandingPage } from "@/components/common/PageTracker";
+import { readStoredUtm, type GeoData } from "@/lib/utm";
 
 export const SignInPage = ({
   title = (
@@ -19,18 +20,46 @@ export const SignInPage = ({
   description = "Sign in to your account and pick up where you left off.",
   heroImageSrc = "https://i.pinimg.com/1200x/d8/c4/0a/d8c40a61ad22d8341ab00bc5ebfdd72d.jpg",
   onForgotPassword,
-}: any) => {
+}: {
+  title?: React.ReactNode;
+  description?: string;
+  heroImageSrc?: string;
+  onForgotPassword?: () => void;
+}) => {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
   const { refreshUser } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+  // UTM + geo captured for auto-created accounts (sign in = sign up)
+  const [utmData, setUtmData] = useState<Record<string, unknown> | null>(null);
+  const [geoData, setGeoData] = useState<GeoData | null>(null);
+
+  // ─── On mount: read stored UTM params and fetch geo location ──────
+  useEffect(() => {
+    const stored = readStoredUtm();
+    if (stored) setUtmData({ ...stored });
+
+    const fetchGeo = async () => {
+      try {
+        const res = await fetch("/api/geo");
+        if (res.ok) {
+          const data = await res.json();
+          setGeoData(data);
+        }
+      } catch {
+        // Geo is a nice-to-have; don't block login
+        console.warn("Could not fetch geo data");
+      }
+    };
+
+    fetchGeo();
+  }, []);
 
   const handleSignIn = async () => {
     try {
@@ -41,25 +70,46 @@ export const SignInPage = ({
         return;
       }
 
-      // ── Attach conversion page ─────────────────────────────────
+      // ── Attach conversion page + utm/geo for auto-created accounts ──
       const conversionPage = getConversionPage();
+      const firstLandingPage = getFirstLandingPage();
       const loginPayload: Record<string, unknown> = { ...form };
       if (conversionPage) loginPayload.conversion_page = conversionPage;
+      if (firstLandingPage) loginPayload.first_landing_page = firstLandingPage;
 
-      await api.post("/auth/login", loginPayload);
+      const hasUtmData = utmData && Object.keys(utmData).length > 0;
+      if (hasUtmData || geoData) {
+        const utm_params: Record<string, unknown> = {
+          captured_at: new Date().toISOString(),
+        };
+        if (hasUtmData) utm_params.marketing = utmData;
+        if (geoData) utm_params.geo = geoData;
+        loginPayload.utm_params = utm_params;
+      }
+
+      const res = await api.post("/auth/login", loginPayload);
 
       // refresh global auth state
       await refreshUser();
 
-      toast.success("Welcome back", {
-        description: "You have successfully signed in.",
-      });
+      if (res.data?.signedUpFromLogin) {
+        toast.success("Welcome! Your account was created", {
+          description: "Finish setting up your profile in the next step.",
+        });
+      } else {
+        toast.success("Welcome back", {
+          description: "You have successfully signed in.",
+        });
+      }
 
       router.push(redirect);
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { status?: number; data?: { message?: string } };
+      };
+      const status = error?.response?.status;
 
-      const message = err?.response?.data?.message;
+      const message = error?.response?.data?.message;
 
       if (status === 400) {
         toast.error("Missing Information", {
@@ -176,9 +226,6 @@ export const SignInPage = ({
               >
                 Sign In
               </Button>
-              {error && (
-                <p className="text-sm text-red-500 text-center">{error}</p>
-              )}
             </div>
 
             {/* DIVIDER */}

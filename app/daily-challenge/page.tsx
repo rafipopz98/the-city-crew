@@ -140,10 +140,13 @@ export default function DailyChallengePage() {
       const profileData = profileRes.data;
       setProfile(profileData);
 
-      if (!profileData.hasUsername) {
+      // Users with no name at all are handled by the global
+      // CompleteProfileModal (mounted in this layout). The local modal here
+      // only covers the edge case: has a name but still no username.
+      if (!profileData.hasUsername && user?.first_name) {
         setShowUsernameModal(true);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to load challenge data");
     } finally {
       setLoading(false);
@@ -157,9 +160,13 @@ export default function DailyChallengePage() {
       await api.put("/daily-challenge/username", { username });
       setShowUsernameModal(false);
       fetchData();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorObj = err as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
       setUsernameError(
-        err?.response?.data?.message || "Failed to set username",
+        errorObj?.response?.data?.message || "Failed to set username",
       );
     } finally {
       setUsernameLoading(false);
@@ -170,7 +177,7 @@ export default function DailyChallengePage() {
     try {
       await api.post("/daily-challenge/start");
       router.push("/daily-challenge/play");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to start challenge", err);
     }
   };
@@ -348,7 +355,7 @@ export default function DailyChallengePage() {
               </div>
               <div>
                 <p className="text-base font-bold text-[#06182e]">
-                  Couldn't load the challenge
+                  Couldn&apos;t load the challenge
                 </p>
                 <p className="text-sm text-[#06182e]/45 mt-1 para">
                   Something went wrong on our end. Give it another try.

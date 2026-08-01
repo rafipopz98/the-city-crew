@@ -4,9 +4,15 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 type User = {
   id: string;
-  first_name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string;
   role: string;
   username?: string;
+  signedUpFromLogin?: boolean;
+  profile_completed?: boolean;
+  /** Name fallback: first_name, else username, else email prefix */
+  displayName?: string;
 };
 
 type AuthContextType = {

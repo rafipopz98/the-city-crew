@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import { UserModel } from "@/lib/models/User";
-import { ChallengeAttemptModel } from "@/lib/models/ChallengeAttempt";
 import { getUserFromRequest } from "@/utils/getUserFromRequest";
 import { logError } from "@/lib/errorLogger";
 
@@ -41,7 +40,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       profile: {
         username: userDoc.username || null,
-        firstName: userDoc.first_name,
+        firstName:
+          userDoc.first_name || userDoc.email?.split("@")[0] || "City Crew",
         lastName: userDoc.last_name,
         email: userDoc.email,
         joinedDate: userDoc.createdAt,

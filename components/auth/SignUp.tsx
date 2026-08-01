@@ -9,6 +9,7 @@ import { Button } from "../common/Button";
 import api from "@/lib/api/axios";
 import { readStoredUtm, type GeoData } from "@/lib/utm";
 import { getFirstLandingPage, getConversionPage } from "@/components/common/PageTracker";
+import { useAuth } from "@/context/AuthContext";
 
 export const SignUpPage = ({
   title = (
@@ -16,10 +17,13 @@ export const SignUpPage = ({
       Create Account
     </span>
   ),
-  description = "Join us today and start your journey.",
   heroImageSrc,
-}: any) => {
+}: {
+  title?: React.ReactNode;
+  heroImageSrc?: string;
+}) => {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const searchParams = useSearchParams();
 
@@ -33,9 +37,6 @@ export const SignUpPage = ({
   const [geoData, setGeoData] = useState<GeoData | null>(null);
 
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    username: "",
     email: "",
     password: "",
     confirm_password: "",
@@ -73,18 +74,8 @@ export const SignUpPage = ({
       setError("");
 
       // basic frontend validation
-      if (!form.firstName || !form.lastName || !form.email || !form.password) {
-        setError("All fields are required");
-        return;
-      }
-
-      if (form.username && (form.username.length < 3 || form.username.length > 20)) {
-        setError("Username must be 3-20 characters");
-        return;
-      }
-
-      if (form.username && !/^[a-zA-Z0-9_]+$/.test(form.username)) {
-        setError("Username can only contain letters, numbers, and underscores");
+      if (!form.email || !form.password) {
+        setError("Email and password are required");
         return;
       }
 
@@ -95,9 +86,6 @@ export const SignUpPage = ({
 
       // Build the payload once — attach utm_params only if we have data
       const payload: Record<string, unknown> = {
-        first_name: form.firstName,
-        last_name: form.lastName,
-        username: form.username,
         email: form.email,
         password: form.password,
       };
@@ -120,11 +108,21 @@ export const SignUpPage = ({
 
       await api.post("/auth/register", payload);
 
+      // Refresh global auth state so the navbar + profile-completion
+      // prompt know about the newly created account.
+      await refreshUser();
+
       router.push(redirect);
-    } catch (err: any) {
-      console.log(err);
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      console.log(error);
       setError(
-        err?.response?.data?.message || err?.message || "Something went wrong",
+        error?.response?.data?.message ||
+          error?.message ||
+          "Something went wrong",
       );
     } finally {
       setLoading(false);
@@ -139,63 +137,13 @@ export const SignUpPage = ({
           <div className="flex flex-col gap-5">
             <h1 className="text-4xl md:text-5xl font-semibold">{title}</h1>
 
+            <p className="text-sm text-[#06182e]/60 para">
+              Only your email and password — pick a username and display name
+              in one minute after sign up.
+            </p>
+
             {/* FORM */}
             <div className="space-y-5">
-              {/* NAME ROW */}
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="text-sm text-[#06182e]">First Name</label>
-
-                  <GlassInputWrapper>
-                    <input
-                      value={form.firstName}
-                      placeholder="First name"
-                      onChange={(e) =>
-                        setForm({ ...form, firstName: e.target.value })
-                      }
-                      className="w-full bg-transparent p-4 text-[#06182e] text-sm placeholder:text-[#06182e] focus:outline-none"
-                    />
-                  </GlassInputWrapper>
-                </div>
-
-                <div className="flex-1">
-                  <label className="text-sm text-[#06182e]">Last Name</label>
-
-                  <GlassInputWrapper>
-                    <input
-                      value={form.lastName}
-                      placeholder="Last name"
-                      onChange={(e) =>
-                        setForm({ ...form, lastName: e.target.value })
-                      }
-                      className="w-full bg-transparent p-4 text-[#06182e] text-sm placeholder:text-[#06182e] focus:outline-none"
-                    />
-                  </GlassInputWrapper>
-                </div>
-              </div>
-
-              {/* USERNAME */}
-              <div>
-                <label className="text-sm text-[#06182e]">
-                  Username <span className="text-[#06182e]/40">(optional)</span>
-                </label>
-
-                <GlassInputWrapper>
-                  <input
-                    value={form.username}
-                    placeholder="Choose your username"
-                    onChange={(e) =>
-                      setForm({ ...form, username: e.target.value })
-                    }
-                    maxLength={20}
-                    className="w-full bg-transparent p-4 text-[#06182e] text-sm placeholder:text-[#06182e] focus:outline-none"
-                  />
-                </GlassInputWrapper>
-                <p className="text-xs text-[#06182e]/30 mt-1">
-                  Letters, numbers, and underscores. 3-20 characters.
-                </p>
-              </div>
-
               {/* EMAIL */}
               <div>
                 <label className="text-sm text-[#06182e]">Email Address</label>

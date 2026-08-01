@@ -118,9 +118,14 @@ const Navbar = ({ className = "" }: NavbarProps) => {
       <div className="hidden lg:flex items-center gap-3">
         {user ? (
           <>
-            <span className="bg-[#e09225] text-[#FFF5E5] font-bold px-3 py-1.5 rounded-[5px] capitalize shadow-lg text-sm">
-              Hi, {user.first_name}
-            </span>
+            <NavLink
+              href="/profile"
+              isActive={pathname === "/profile"}
+              variant="cta"
+              className="px-3 py-1.5"
+            >
+              My Profile
+            </NavLink>
             {user.role === "admin" && (
               <NavLink
                 href="/admin/dashboard"
@@ -189,9 +194,14 @@ const Navbar = ({ className = "" }: NavbarProps) => {
             <div className="w-full px-4 sm:px-6 max-w-2xl mx-auto mt-4 pt-4 border-t border-white/10">
               {user ? (
                 <div className="flex flex-col sm:flex-row gap-3 items-center">
-                  <div className="w-full sm:w-auto text-center bg-[#e09225] text-[#FFF5E5] py-3 px-6 rounded-[5px] font-bold text-sm">
-                    Hi, {user.first_name}
-                  </div>
+                  <NavLink
+                    href="/profile"
+                    isActive={pathname === "/profile"}
+                    variant="mobile"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    My Profile
+                  </NavLink>
                   {user.role === "admin" && (
                     <NavLink
                       href="/admin/dashboard"

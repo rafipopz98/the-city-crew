@@ -13,7 +13,13 @@ export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const { email, password, conversion_page } = await req.json();
+    const {
+      email,
+      password,
+      conversion_page,
+      utm_params,
+      first_landing_page,
+    } = await req.json();
 
     // validation
     if (!email || !password) {
@@ -26,30 +32,49 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await UserModel.findOne({
-      email: email.toLowerCase().trim(),
-    });
+    const normalizedEmail = email.toLowerCase().trim();
 
+    let user = await UserModel.findOne({ email: normalizedEmail });
+
+    let signedUpFromLogin = false;
+
+    // ── Sign in = Sign up ──────────────────────────────────────────────
+    // If the email doesn't exist, create the account on the fly so the
+    // user can get into the app immediately. They can complete their
+    // name/username later from the profile-completion prompt.
     if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Email or password is incorrect.",
-        },
-        { status: 401 },
-      );
-    }
+      if (password.length < 6) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Password must be at least 6 characters.",
+          },
+          { status: 400 },
+        );
+      }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user = await UserModel.create({
+        email: normalizedEmail,
+        password: hashedPassword,
+        signedUpFromLogin: true,
+        ...(utm_params ? { utm_params } : {}),
+        ...(first_landing_page ? { first_landing_page } : {}),
+        ...(conversion_page ? { conversion_page } : {}),
+      });
+      signedUpFromLogin = true;
+    } else {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Email or password is incorrect.",
-        },
-        { status: 401 },
-      );
+      if (!isPasswordValid) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Email or password is incorrect.",
+          },
+          { status: 401 },
+        );
+      }
     }
 
     const userId = user._id.toString();
@@ -71,7 +96,7 @@ export async function POST(req: Request) {
     // set cookies
     await setAuthCookies(accessToken, refreshToken);
 
-    // ── Update conversion page if provided ─────────────────────
+    // ── Update conversion page if provided ─────────────────────────────
     if (conversion_page) {
       await UserModel.findByIdAndUpdate(userId, { conversion_page });
     }
@@ -79,7 +104,10 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: "Logged in successfully.",
+        message: signedUpFromLogin
+          ? "Account created. Welcome!"
+          : "Logged in successfully.",
+        signedUpFromLogin,
         data: {
           id: userId,
           email: user.email,
