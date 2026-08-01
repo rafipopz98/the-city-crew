@@ -271,4 +271,12 @@ export const playerImages = [
     alt: "Stephen Mfuni",
     value: "stephen-mfuni",
   },
+  {
+    name: "Ryan McAidoo",
+    prefferedName: "McAidoo",
+    verticalImage: "/players-image/mcaidoo-vertical.webp",
+    roundImage: "/players-image/mcaidoo-round.png",
+    alt: "Ryan McAidoo",
+    value: "ryan-mcaidoo",
+  },
 ];
