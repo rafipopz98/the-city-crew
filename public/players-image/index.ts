@@ -255,4 +255,20 @@ export const playerImages = [
     alt: "Ayyoub Bouaddi",
     value: "ayyoub-bouaddi",
   },
+  {
+    name: "Divin Mubama",
+    prefferedName: "Mubama",
+    verticalImage: "/players-image/mubama-vertical.webp",
+    roundImage: "/players-image/mubama-round.png",
+    alt: "Divin Mubama",
+    value: "divin-mubama",
+  },
+  {
+    name: "Stephen Mfuni",
+    prefferedName: "Mfuni",
+    verticalImage: "/players-image/mfuni-vertical.webp",
+    roundImage: "/players-image/mfuni-round.png",
+    alt: "Stephen Mfuni",
+    value: "stephen-mfuni",
+  },
 ];
