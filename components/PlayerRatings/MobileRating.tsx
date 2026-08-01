@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Star, Users, CheckCircle2 } from "lucide-react";
 import RatingStars from "./RatingStars";
+const noImage = "/players-image/no-player-img-vertical.png";
 
 type Player = {
   _id: string;
@@ -37,6 +38,7 @@ export default function MobileRating({
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
   const [showDone, setShowDone] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const currentPlayer = players[currentIndex];
 
@@ -151,11 +153,21 @@ export default function MobileRating({
             {/* Player Image */}
             {currentPlayer.vertical_image ? (
               <Image
-                src={currentPlayer.vertical_image}
+                src={
+                  failedImages[currentPlayer._id]
+                    ? noImage
+                    : currentPlayer.vertical_image
+                }
                 alt={currentPlayer.name}
                 fill
                 priority
                 className="object-cover object-top"
+                onError={() =>
+                  setFailedImages((prev) => ({
+                    ...prev,
+                    [currentPlayer._id]: true,
+                  }))
+                }
               />
             ) : (
               <div className="flex h-full items-center justify-center bg-[#06182e]">
@@ -274,9 +286,7 @@ export default function MobileRating({
                   <CheckCircle2 size={22} className="text-green-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-bold text-white">
-                    All Done!
-                  </h3>
+                  <h3 className="text-base font-bold text-white">All Done!</h3>
                   <p className="text-sm text-white/70 mt-0.5">
                     You&apos;ve rated all {players.length} players.
                   </p>
@@ -296,7 +306,15 @@ export default function MobileRating({
                   onClick={() => setShowDone(false)}
                   className="shrink-0 w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  >
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>

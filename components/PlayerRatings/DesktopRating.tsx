@@ -4,9 +4,15 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+} from "lucide-react";
 import RatingStars from "./RatingStars";
 import RatingProgress from "./RatingProgress";
+const noImage = "/players-image/no-player-img-vertical.png";
 
 type Player = {
   _id: string;
@@ -35,6 +41,7 @@ export default function DesktopRating({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const currentPlayer = players[selectedIndex];
 
@@ -122,10 +129,20 @@ export default function DesktopRating({
                 >
                   {player.vertical_image ? (
                     <Image
-                      src={player.vertical_image}
+                      src={
+                        failedImages[player._id]
+                          ? noImage
+                          : player.vertical_image
+                      }
                       alt={player.name}
                       fill
                       className="object-cover"
+                      onError={() =>
+                        setFailedImages((prev) => ({
+                          ...prev,
+                          [player._id]: true,
+                        }))
+                      }
                     />
                   ) : (
                     <div className="w-full h-full bg-[#ece1cf] flex items-center justify-center">
@@ -159,10 +176,20 @@ export default function DesktopRating({
               <div className="relative h-56 overflow-hidden bg-[#e5d7c0] rounded-lg">
                 {currentPlayer.vertical_image ? (
                   <Image
-                    src={currentPlayer.vertical_image}
+                    src={
+                      failedImages[currentPlayer._id]
+                        ? noImage
+                        : currentPlayer.vertical_image
+                    }
                     alt={currentPlayer.name}
                     fill
                     className="object-cover object-top"
+                    onError={() =>
+                      setFailedImages((prev) => ({
+                        ...prev,
+                        [currentPlayer._id]: true,
+                      }))
+                    }
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
@@ -267,9 +294,7 @@ export default function DesktopRating({
                 <CheckCircle2 size={22} className="text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-black/90">
-                  All Done!
-                </h3>
+                <h3 className="text-base font-bold text-black/90">All Done!</h3>
                 <p className="text-sm text-black/60 mt-0.5">
                   You&apos;ve rated all {players.length} players.
                 </p>
@@ -289,7 +314,16 @@ export default function DesktopRating({
                 onClick={() => setShowDone(false)}
                 className="shrink-0 w-7 h-7 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10 transition-colors"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-black/40">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  className="text-black/40"
+                >
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
