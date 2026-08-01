@@ -87,15 +87,6 @@ export default function RatingLock({
           <p className="text-white/60 text-sm mb-8">{info.description}</p>
 
           {info.action}
-
-          <div className="mt-6 text-white/30 text-xs">
-            <p>
-              {match?.homeTeam?.name} vs {match?.awayTeam?.name}
-            </p>
-            <p className="mt-1">
-              {new Date(match?.matchDate).toLocaleDateString()}
-            </p>
-          </div>
         </div>
       </div>
     </div>

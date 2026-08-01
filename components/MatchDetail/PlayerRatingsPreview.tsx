@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Star, ArrowUpRight, Users } from "lucide-react";
+const noImage = "/players-image/no-player-img-vertical.png";
 import { playerImages } from "@/public/players-image";
 
 const DISPLAY_LIMIT = 12;
@@ -32,6 +33,7 @@ const PlayerRatingsPreview = ({ matchId }: Props) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const fetchRatings = useCallback(async () => {
     setLoading(true);
@@ -142,9 +144,19 @@ const PlayerRatingsPreview = ({ matchId }: Props) => {
                 {player.vertical_image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={player.vertical_image}
+                    src={
+                      failedImages[player._id]
+                        ? noImage
+                        : player.vertical_image || noImage
+                    }
                     alt={player.name}
                     className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-110"
+                    onError={() =>
+                      setFailedImages((prev) => ({
+                        ...prev,
+                        [player._id]: true,
+                      }))
+                    }
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
