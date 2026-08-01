@@ -279,4 +279,12 @@ export const playerImages = [
     alt: "Ryan McAidoo",
     value: "ryan-mcaidoo",
   },
+  {
+    name: "Mahamadou Sangare",
+    prefferedName: "Sangare",
+    verticalImage: "/players-image/sangare-vertical.webp",
+    roundImage: "/players-image/sangare-round.png",
+    alt: "Mahamadou Sangare",
+    value: "mahamadou-sangare",
+  },
 ];
