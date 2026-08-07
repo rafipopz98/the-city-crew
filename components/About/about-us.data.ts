@@ -69,7 +69,7 @@ export const TEAM: TeamMember[] = [
     imageFit: "cover",
     shortBio: "Social Media.",
     favouriteGame: "City 2 - Liverpool 1 (2019).",
-    bestMoment: "When Tevez knew which Manchester mattered.",
+    bestMoment: "When Tevez joined the right side of Manchester.",
   },
 
   {
