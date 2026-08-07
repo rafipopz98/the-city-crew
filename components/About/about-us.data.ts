@@ -17,9 +17,9 @@ export const TEAM: TeamMember[] = [
     name: "Ro",
     image: "/about/ro.jpeg",
     imageFit: "cover",
-    shortBio: "Admin",
-    favouriteGame: "City 6-3 United",
-    bestMoment: "The comeback against Villa in 2022",
+    shortBio: "Admin.",
+    favouriteGame: "City 6-3 United.",
+    bestMoment: "When the clock hit 76'.",
   },
 
   {
@@ -27,9 +27,9 @@ export const TEAM: TeamMember[] = [
     name: "Craig",
     image: "/about/craig.jpeg",
     imageFit: "cover",
-    shortBio: "ST holder since 1987",
-    favouriteGame: "City 4-1 Arsenal",
-    bestMoment: "The comeback v Villa",
+    shortBio: "ST holder since 1987.",
+    favouriteGame: "City 4-1 Arsenal.",
+    bestMoment: "When Kev tied his laces.",
   },
 
   {
@@ -38,8 +38,8 @@ export const TEAM: TeamMember[] = [
     image: "/about/carl.jpeg",
     imageFit: "cover",
     shortBio: "ST Holder for 25+ years.",
-    favouriteGame: "Brighton 1 - Manchester City 4 (2019)",
-    bestMoment: "Yaya toures goal vs man united in the fa cup semi final",
+    favouriteGame: "Brighton 1 - Manchester City 4 (2019).",
+    bestMoment: "When Yaya Toure sent us to Wembley.",
   },
 
   {
@@ -58,18 +58,18 @@ export const TEAM: TeamMember[] = [
     image: "/about/jen.jpg",
     imageFit: "cover",
     shortBio: "Blue through the good, the bad and the ugly.",
-    favouriteGame: "6-1 United 2011",
-    bestMoment: "winning the champions league and completing the treble ",
+    favouriteGame: "6-1 United 2011.",
+    bestMoment: "When we finally conquered Europe.",
   },
 
   {
     id: "tom",
     name: "Tom",
-    image: "/about/tom.jpeg",
+    image: "/about/tom.jpg",
     imageFit: "cover",
     shortBio: "Social Media.",
-    favouriteGame: "some game",
-    bestMoment: "some moment",
+    favouriteGame: "City 2 - Liverpool 1 (2019).",
+    bestMoment: "When Tevez knew which Manchester mattered.",
   },
 
   {
@@ -85,9 +85,19 @@ export const TEAM: TeamMember[] = [
   {
     id: "archie",
     name: "Archie",
-    image: "/about/archie.jpeg",
+    image: "/about/archie.jpg",
     imageFit: "cover",
     shortBio: "Social Media.",
+    favouriteGame: "some game",
+    bestMoment: "some moment",
+  },
+
+  {
+    id: "thommy",
+    name: "Thommy",
+    image: "/about/thommy.jpg",
+    imageFit: "cover",
+    shortBio: "Marketing.",
     favouriteGame: "some game",
     bestMoment: "some moment",
   },
@@ -98,7 +108,7 @@ export const TEAM: TeamMember[] = [
     image: "/about/rafi.png",
     imageFit: "cover",
     shortBio: "Built this website.",
-    favouriteGame: "Manchester City 4 - 0 Real Madrid",
+    favouriteGame: "Manchester City 4 - 0 Real Madrid.",
     bestMoment: "When Kompany decided to shoot.",
   },
 ];
