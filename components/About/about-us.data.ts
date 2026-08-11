@@ -95,11 +95,11 @@ export const TEAM: TeamMember[] = [
   {
     id: "thommy",
     name: "Thommy",
-    image: "/about/thommy.jpg",
+    image: "/about/thommy.jpeg",
     imageFit: "cover",
-    shortBio: "Marketing.",
-    favouriteGame: "some game",
-    bestMoment: "some moment",
+    shortBio: "Podcast.",
+    favouriteGame: "City 4-1 Liverpool 2023.",
+    bestMoment: "Toure goal vs the rags.",
   },
 
   {
