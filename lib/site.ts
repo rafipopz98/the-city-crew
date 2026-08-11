@@ -2,7 +2,7 @@ export const SITE_CONFIG = {
   name: "The City Crew",
   shortName: "TCC",
 
-  url: "https://thecitycrew.vercel.app", // change once when you buy the domain
+  url: "https://thecitycrew.com", // change once when you buy the domain
 
   description:
     "Your home for Manchester City news, fan opinions, polls, Build XI, matchday content, and everything City.",

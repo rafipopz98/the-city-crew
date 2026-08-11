@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Watch,
+  ImagePlus,
 } from "lucide-react";
 
 const menu = [
@@ -42,6 +43,11 @@ const menu = [
     name: "Players",
     href: "/admin/players",
     icon: Users,
+  },
+  {
+    name: "Goal Graphics",
+    href: "/admin/goal-graphics",
+    icon: ImagePlus,
   },
   {
     name: "Game Players",
