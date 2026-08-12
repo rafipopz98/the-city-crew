@@ -287,4 +287,12 @@ export const playerImages = [
     alt: "Kaden Braithwaite",
     value: "kaden-braithwaite",
   },
+  {
+    name: "Enzo Fernández",
+    prefferedName: "Enzo Fernandez",
+    verticalImage: "/players-image/enzo-fvertical.webp",
+    roundImage: "/players-image/enzo-f-round.png",
+    alt: "Enzo Fernández",
+    value: "enzo-fernandez",
+  },
 ];
