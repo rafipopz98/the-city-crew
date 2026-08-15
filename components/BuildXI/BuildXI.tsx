@@ -32,10 +32,8 @@ interface PlayerTemplate {
   prefferedName: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PLAYERS
-// ─────────────────────────────────────────────────────────────────────────────
-
+// Local round images only — no proxying, no per-player network requests,
+// and same-origin images so the export canvas never gets tainted.
 const ALL_PLAYERS: PlayerTemplate[] = playerImages.map((p) => ({
   value: p.value,
   name: p.name,
@@ -44,9 +42,7 @@ const ALL_PLAYERS: PlayerTemplate[] = playerImages.map((p) => ({
   prefferedName: p.prefferedName,
 }));
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EMPTY SLOT
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Empty slot ─────────────────────────────────────────────────────────────
 
 const EmptySlot = ({ x, y, index, onClick }: any) => (
   <div
@@ -61,14 +57,11 @@ const EmptySlot = ({ x, y, index, onClick }: any) => (
   </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PLAYER MODAL
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Player modal ───────────────────────────────────────────────────────────
 
 const PlayerModal = ({ onSelect, onClose, excludeNames }: any) => {
   const [query, setQuery] = useState("");
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
-
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -92,7 +85,6 @@ const PlayerModal = ({ onSelect, onClose, excludeNames }: any) => {
 
     return () => {
       document.body.style.overflow = prevOverflow;
-
       vv?.removeEventListener("resize", updateHeight);
       vv?.removeEventListener("scroll", updateHeight);
     };
@@ -180,102 +172,17 @@ const PlayerModal = ({ onSelect, onClose, excludeNames }: any) => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IOS SAVE PREVIEW
-// ─────────────────────────────────────────────────────────────────────────────
-
-const IOSSavePreview = ({
-  imageUrl,
-  onClose,
-}: {
-  imageUrl: string;
-  onClose: () => void;
-}) => {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-[100] bg-[#06182e] text-[#FFF5E5] flex flex-col">
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-[#FFF5E5]/10 shrink-0">
-        <button
-          onClick={onClose}
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-[#FFF5E5]/10 hover:bg-[#FFF5E5]/20 transition"
-          aria-label="Close"
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path
-              d="M5 5L15 15M15 5L5 15"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-
-        <span className="text-sm font-semibold">Save your lineup</span>
-
-        <div className="w-10" />
-      </div>
-
-      {/* CONTENT */}
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center px-5 py-6">
-        <div className="text-center mb-5">
-          <p className="text-[#e09225] font-semibold text-lg">Save to Photos</p>
-
-          <p className="text-[#FFF5E5]/60 text-sm mt-1">
-            Press and hold the image, then choose
-            <span className="text-[#FFF5E5] font-medium"> Save to Photos</span>.
-          </p>
-        </div>
-
-        <div className="w-full max-w-xl flex items-center justify-center">
-          <img
-            src={imageUrl}
-            alt="Manchester City lineup"
-            className="block max-w-full max-h-[70vh] w-auto h-auto rounded-xl select-none"
-            draggable={false}
-          />
-        </div>
-      </div>
-
-      {/* BOTTOM */}
-      <div className="px-5 pb-6 pt-4 shrink-0">
-        <button
-          onClick={onClose}
-          className="w-full py-3.5 rounded-xl bg-[#e09225] text-[#06182e] font-semibold"
-        >
-          Back to lineup
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Main ───────────────────────────────────────────────────────────────────
 
 const BuildXI = () => {
   const [formation, setFormation] = useState("4-3-3");
   const [showFormationMenu, setShowFormationMenu] = useState(false);
-
   const [playersOnPitch, setPlayersOnPitch] = useState<Player[]>([]);
   const [slots, setSlots] = useState<[number, number][]>([]);
-
   const [modalOpen, setModalOpen] = useState(false);
   const [slotTarget, setSlotTarget] = useState<number | null>(null);
-
   const [recent, setRecent] = useState<string[]>([]);
   const [lineupName, setLineupName] = useState("");
-
   const [lastFormation, setLastFormation] = useState("4-3-3");
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -283,21 +190,64 @@ const BuildXI = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
-  // New: iOS preview image
-  const [iosPreviewUrl, setIosPreviewUrl] = useState<string | null>(null);
+  // True only while domToBlob is generating the image.
+  // Used to hide player controls/X buttons from the exported image.
+  const [isExporting, setIsExporting] = useState(false);
 
-  const isIOS = () => {
-    if (typeof window === "undefined") return false;
+  const capturePitch = async () => {
+    const pitch = document.getElementById("pitch");
 
-    return (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    if (!pitch) {
+      throw new Error("Couldn't find the pitch.");
+    }
+
+    const removeButtons = Array.from(
+      pitch.querySelectorAll<HTMLElement>("[data-remove-player]"),
     );
+
+    // Hide all X buttons before screenshot
+    const previousDisplay = removeButtons.map((button) => button.style.display);
+
+    removeButtons.forEach((button) => {
+      button.style.display = "none";
+    });
+
+    try {
+      return await domToBlob(pitch, {
+        scale: Math.max(window.devicePixelRatio, 2),
+      });
+    } finally {
+      // Always restore X buttons after screenshot/share generation
+      removeButtons.forEach((button, index) => {
+        button.style.display = previousDisplay[index];
+      });
+    }
+  };
+  // ─── Generate pitch image ────────────────────────────────────────────────
+
+  const generatePitchBlob = async () => {
+    const pitch = document.getElementById("pitch");
+
+    if (!pitch) {
+      throw new Error("Pitch element not found");
+    }
+
+    setIsExporting(true);
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+
+    try {
+      const blob = await capturePitch();
+
+      return blob;
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // DOWNLOAD
-  // ───────────────────────────────────────────────────────────────────────────
+  // ─── Download ────────────────────────────────────────────────────────────
 
   const handleDownload = async () => {
     const pitch = document.getElementById("pitch");
@@ -310,41 +260,18 @@ const BuildXI = () => {
     try {
       setIsDownloading(true);
 
-      const blob = await domToBlob(pitch, {
-        scale: Math.max(window.devicePixelRatio, 2),
-      });
-
-      // ─────────────────────────────────────────────────────────────────────
-      // IOS
-      // ─────────────────────────────────────────────────────────────────────
-
-      if (isIOS()) {
-        const url = URL.createObjectURL(blob);
-
-        setIosPreviewUrl(url);
-
-        toast.success("Press and hold the image to save it to Photos.");
-
-        return;
-      }
-
-      // ─────────────────────────────────────────────────────────────────────
-      // ANDROID / DESKTOP
-      // ─────────────────────────────────────────────────────────────────────
+      const blob = await capturePitch();
 
       const fileName = `${lineupName || "tcc-lineup"}.png`;
 
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement("a");
-
       a.href = url;
       a.download = fileName;
 
       document.body.appendChild(a);
-
       a.click();
-
       a.remove();
 
       setTimeout(() => {
@@ -354,16 +281,13 @@ const BuildXI = () => {
       toast.success("Lineup downloaded!");
     } catch (err) {
       console.error(err);
-
       toast.error("Failed to generate lineup image.");
     } finally {
       setIsDownloading(false);
     }
   };
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // SHARE
-  // ───────────────────────────────────────────────────────────────────────────
+  // ─── Share ───────────────────────────────────────────────────────────────
 
   const handleShare = async () => {
     const pitch = document.getElementById("pitch");
@@ -381,20 +305,13 @@ const BuildXI = () => {
     try {
       setIsSharing(true);
 
-      const blob = await domToBlob(pitch, {
-        scale: Math.max(window.devicePixelRatio, 2),
-      });
+      const blob = await capturePitch();
 
       const file = new File([blob], `${lineupName || "tcc-lineup"}.png`, {
         type: "image/png",
       });
 
-      if (
-        navigator.canShare &&
-        !navigator.canShare({
-          files: [file],
-        })
-      ) {
+      if (navigator.canShare && !navigator.canShare({ files: [file] })) {
         toast.error("This device can't share images.");
         return;
       }
@@ -414,9 +331,7 @@ const BuildXI = () => {
     }
   };
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // FORMATION
-  // ───────────────────────────────────────────────────────────────────────────
+  // ── On formation change: re-generate slot coords & reposition players ──
 
   useEffect(() => {
     const baseFormation = formation === "Free form" ? lastFormation : formation;
@@ -463,9 +378,7 @@ const BuildXI = () => {
     }
   }, [formation, lastFormation]);
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // PLAYER ACTIONS
-  // ───────────────────────────────────────────────────────────────────────────
+  // ─── Player positioning ──────────────────────────────────────────────────
 
   const handleDropToSlot = (playerId: number, slotIndex: number) => {
     const coord = slots[slotIndex];
@@ -545,9 +458,7 @@ const BuildXI = () => {
     id: number,
     x: number,
     y: number,
-    options?: {
-      shouldFreeMove?: boolean;
-    },
+    options?: { shouldFreeMove?: boolean },
   ) => {
     setPlayersOnPitch((prev) =>
       prev.map((p) =>
@@ -586,32 +497,31 @@ const BuildXI = () => {
     });
   };
 
-  const handleRemove = (id: number) =>
+  const handleRemove = (id: number) => {
     setPlayersOnPitch((prev) => prev.filter((p) => p.id !== id));
+  };
 
   const clearLineup = () => {
     setPlayersOnPitch([]);
     setLineupName("");
   };
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // CLOSE IOS PREVIEW
-  // ───────────────────────────────────────────────────────────────────────────
-
-  const closeIOSPreview = () => {
-    if (iosPreviewUrl) {
-      URL.revokeObjectURL(iosPreviewUrl);
-    }
-
-    setIosPreviewUrl(null);
-  };
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // UI
-  // ───────────────────────────────────────────────────────────────────────────
-
   return (
     <section className="w-full min-h-screen flex flex-col bg-[#FFF5E5] text-[#06182e]">
+      {/* 
+        Hide player controls while exporting.
+
+        The X/remove control inside DraggablePlayer is expected
+        to be a button. visibility:hidden keeps the player's
+        layout/position exactly the same while removing the X
+        from the generated image.
+      */}
+      <style jsx>{`
+        #pitch.exporting [data-remove-player] {
+          visibility: hidden !important;
+        }
+      `}</style>
+
       {/* HEADER */}
 
       <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#e09225]/20 bg-[#FFF5E5]">
@@ -698,7 +608,9 @@ const BuildXI = () => {
 
             <div
               id="pitch"
-              className="relative w-full overflow-hidden border border-[#e09225]/20 bg-[#06182e]/5"
+              className={`relative w-full overflow-hidden border border-[#e09225]/20 bg-[#06182e]/5 ${
+                isExporting ? "exporting" : ""
+              }`}
               style={
                 isDesktop
                   ? {
@@ -712,6 +624,8 @@ const BuildXI = () => {
               }
             >
               {isDesktop ? <PitchSvgDesktop /> : <PitchSvg />}
+
+              {/* EMPTY SLOTS */}
 
               {slots.map((coord, i) => {
                 const isOccupied = playersOnPitch.some(
@@ -730,6 +644,8 @@ const BuildXI = () => {
                   />
                 );
               })}
+
+              {/* PLAYERS */}
 
               {playersOnPitch.map((p) => (
                 <DraggablePlayer
@@ -753,7 +669,7 @@ const BuildXI = () => {
                   disabled={isDownloading || isSharing}
                   className="px-6 py-3 bg-[#e09225] text-[#06182e] font-semibold rounded-xl"
                 >
-                  {isIOS() ? "Save to Photos" : "Download PNG"}
+                  Download PNG
                 </Button>
 
                 <Button
@@ -778,12 +694,6 @@ const BuildXI = () => {
           onClose={() => setModalOpen(false)}
           excludeNames={playersOnPitch.map((p) => p?.prefferedName)}
         />
-      )}
-
-      {/* IOS SAVE PREVIEW */}
-
-      {iosPreviewUrl && (
-        <IOSSavePreview imageUrl={iosPreviewUrl} onClose={closeIOSPreview} />
       )}
     </section>
   );
