@@ -167,6 +167,19 @@ const BuildXI = () => {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const isIOS = () => {
+    if (typeof window === "undefined") return false;
+
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+  };
+  useEffect(() => {
+    setIsIOSDevice(isIOS());
+  }, []);
 
   const handleDownload = async () => {
     const pitch = document.getElementById("pitch");
@@ -185,6 +198,95 @@ const BuildXI = () => {
 
       const fileName = `${lineupName || "tcc-lineup"}.png`;
 
+      if (isIOS()) {
+        const url = URL.createObjectURL(blob);
+        const win = window.open("", "_blank");
+
+        if (!win) {
+          URL.revokeObjectURL(url);
+          toast.error("Please allow pop-ups to save your lineup.");
+          return;
+        }
+
+        win.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1, maximum-scale=1"
+            />
+            <title>Save your lineup</title>
+            <style>
+              * { box-sizing: border-box; }
+
+              html, body {
+                margin: 0;
+                width: 100%;
+                min-height: 100%;
+                background: #06182e;
+              }
+
+              body {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+                color: #fff5e5;
+                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+              }
+
+              .hint {
+                text-align: center;
+                margin-bottom: 20px;
+                line-height: 1.4;
+              }
+
+              .hint strong {
+                display: block;
+                color: #e09225;
+                font-size: 18px;
+                margin-bottom: 6px;
+              }
+
+              img {
+                display: block;
+                max-width: 100%;
+                max-height: 75vh;
+                width: auto;
+                height: auto;
+                border-radius: 12px;
+              }
+            </style>
+          </head>
+
+          <body>
+            <div class="hint">
+              <strong>Save your lineup</strong>
+              Press and hold the image, then choose
+              <b>Save to Photos</b>.
+            </div>
+
+            <img
+              src="${url}"
+              alt="Manchester City lineup"
+            />
+          </body>
+        </html>
+      `);
+
+        win.document.close();
+
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 60_000);
+
+        toast.success("Press and hold the image to save it to Photos.");
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement("a");
@@ -195,7 +297,9 @@ const BuildXI = () => {
       a.click();
       a.remove();
 
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
 
       toast.success("Lineup downloaded!");
     } catch (err) {
@@ -220,7 +324,7 @@ const BuildXI = () => {
     }
 
     try {
-      setIsDownloading(true);
+      setIsSharing(true);
 
       const blob = await domToBlob(pitch, {
         scale: Math.max(window.devicePixelRatio, 2),
@@ -246,7 +350,7 @@ const BuildXI = () => {
         toast.error("Failed to share lineup.");
       }
     } finally {
-      setIsDownloading(false);
+      setIsSharing(false);
     }
   };
 
@@ -469,9 +573,7 @@ const BuildXI = () => {
         <div className="w-full lg:w-[60%] flex flex-col items-center">
           <div
             className={
-              isDesktop
-                ? "w-full max-w-2xl"
-                : "w-full max-w-2xl lg:max-w-none"
+              isDesktop ? "w-full max-w-2xl" : "w-full max-w-2xl lg:max-w-none"
             }
           >
             <div
@@ -522,15 +624,16 @@ const BuildXI = () => {
                 <Button
                   onClick={handleDownload}
                   loading={isDownloading}
-                  disabled={isDownloading}
+                  disabled={isDownloading || isSharing}
                   className="px-6 py-3 bg-[#e09225] text-[#06182e] font-semibold rounded-xl"
                 >
-                  Download PNG
+                  {isIOSDevice ? "Save to Photos" : "Download PNG"}
                 </Button>
 
                 <Button
                   onClick={handleShare}
-                  disabled={isDownloading}
+                  loading={isSharing}
+                  disabled={isDownloading || isSharing}
                   className="px-6 py-3 border border-[#e09225] text-[#e09225] bg-transparent rounded-xl"
                 >
                   Share
