@@ -34,40 +34,54 @@ export async function PUT(req: NextRequest) {
       update.last_name = String(last_name).trim() || null;
     }
 
-    // ── Username: validate + check uniqueness ─────────────────────────
+    // ── Username: required, validate + check uniqueness ────────────────
+    // Required whenever a username is supplied at all, and whenever this
+    // call is completing the profile (first_name being set) — the game,
+    // quizzes & leaderboards all key off username, so a name-only profile
+    // is no longer considered complete.
     if (username !== undefined && username !== null) {
       const trimmed = String(username).trim().toLowerCase();
 
-      if (trimmed.length > 0) {
-        if (trimmed.length < 3 || trimmed.length > 20) {
-          return NextResponse.json(
-            { message: "Username must be between 3 and 20 characters" },
-            { status: 400 },
-          );
-        }
-        if (!/^[a-z0-9_]+$/.test(trimmed)) {
-          return NextResponse.json(
-            {
-              message:
-                "Username can only contain lowercase letters, numbers, and underscores",
-            },
-            { status: 400 },
-          );
-        }
-
-        const existing = await UserModel.findOne({
-          username: trimmed,
-          _id: { $ne: user.userId },
-        });
-        if (existing) {
-          return NextResponse.json(
-            { message: "Username is already taken" },
-            { status: 409 },
-          );
-        }
-
-        update.username = trimmed;
+      if (trimmed.length === 0) {
+        return NextResponse.json(
+          { message: "Username is required (min 3 characters)" },
+          { status: 400 },
+        );
       }
+
+      if (trimmed.length < 3 || trimmed.length > 20) {
+        return NextResponse.json(
+          { message: "Username must be between 3 and 20 characters" },
+          { status: 400 },
+        );
+      }
+      if (!/^[a-z0-9_]+$/.test(trimmed)) {
+        return NextResponse.json(
+          {
+            message:
+              "Username can only contain lowercase letters, numbers, and underscores",
+          },
+          { status: 400 },
+        );
+      }
+
+      const existing = await UserModel.findOne({
+        username: trimmed,
+        _id: { $ne: user.userId },
+      });
+      if (existing) {
+        return NextResponse.json(
+          { message: "Username is already taken" },
+          { status: 409 },
+        );
+      }
+
+      update.username = trimmed;
+    } else if (first_name !== undefined) {
+      return NextResponse.json(
+        { message: "Username is required (min 3 characters)" },
+        { status: 400 },
+      );
     }
 
     // If they're filling in their name, mark the profile as complete

@@ -7,17 +7,42 @@ import { useAuth } from "@/context/AuthContext";
 
 /**
  * Dismissal is tracked per user so one account's choice doesn't suppress
- * the prompt for another account on the same browser.
+ * the prompt for another account on the same browser. Stored as a cookie
+ * (not localStorage) with a short expiry so a dismissed prompt comes back
+ * and nags again rather than being suppressed forever — the profile is
+ * still incomplete, so the user should keep seeing it.
  */
+const DISMISS_COOKIE_MAX_AGE_SECONDS = 30 * 60;
+
 const dismissKeyFor = (userId?: string) =>
   `tcc_profile_prompt_dismissed_${userId || "anon"}`;
+
+const getCookie = (name: string): string | undefined =>
+  document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
+
+const setDismissCookie = (userId?: string) => {
+  document.cookie = `${dismissKeyFor(userId)}=true; path=/; max-age=${DISMISS_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+};
+
+type Props = {
+  /**
+   * When true, the modal ignores dismissal entirely and hides the skip
+   * options — for flows (like game onboarding) that hard-require a
+   * username to function, letting the user dismiss it just leads them into
+   * a confusing downstream error instead of actually skipping anything.
+   */
+  required?: boolean;
+};
 
 /**
  * Shown to logged-in users whose profile is incomplete — typically accounts
  * auto-created from the login flow (signedUpFromLogin) or fresh sign-ups
  * that skipped name/username. Collects first name, last name & username.
  */
-export function CompleteProfileModal() {
+export function CompleteProfileModal({ required = false }: Props) {
   const { user, refreshUser } = useAuth();
   // Track WHICH user dismissed, so a different account logging in on the
   // same session still gets prompted.
@@ -30,8 +55,10 @@ export function CompleteProfileModal() {
     username: "",
   });
 
+  // Username is required (used for the game, quizzes & leaderboards), so a
+  // profile with a name but no username still counts as incomplete.
   const needsProfile =
-    !!user && !user.profile_completed && !user.first_name;
+    !!user && (!user.first_name || !user.username);
 
   // Visibility is derived at render time (no effect needed):
   // - SSR + initial client render have user === null, so this stays hidden.
@@ -40,13 +67,14 @@ export function CompleteProfileModal() {
   const storedDismissed =
     typeof window !== "undefined" &&
     needsProfile &&
-    localStorage.getItem(dismissKeyFor(user?.id)) === "true";
+    getCookie(dismissKeyFor(user?.id)) === "true";
 
   const show =
-    needsProfile && dismissedUser !== user?.id && !storedDismissed;
+    needsProfile &&
+    (required || (dismissedUser !== user?.id && !storedDismissed));
 
   const handleClose = () => {
-    localStorage.setItem(dismissKeyFor(user?.id), "true");
+    setDismissCookie(user?.id);
     setDismissedUser(user?.id ?? null);
   };
 
@@ -60,14 +88,24 @@ export function CompleteProfileModal() {
         return;
       }
 
+      const trimmedUsername = form.username.trim();
+      if (!trimmedUsername) {
+        setError("Please choose a username.");
+        return;
+      }
+      if (trimmedUsername.length < 3 || trimmedUsername.length > 20) {
+        setError("Username must be between 3 and 20 characters.");
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
-        username: form.username.trim(),
+        username: trimmedUsername,
       };
 
       await api.put("/auth/profile", payload);
-      localStorage.setItem(dismissKeyFor(user?.id), "true");
+      setDismissCookie(user?.id);
       setDismissedUser(user?.id ?? null);
       await refreshUser();
     } catch (err: unknown) {
@@ -95,13 +133,15 @@ export function CompleteProfileModal() {
         <div className="pointer-events-none absolute -top-20 -right-20 w-52 h-52 rounded-full bg-[#e09225]/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-[#e09225]/8 blur-2xl" />
 
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-[#06182e]/40 hover:text-[#06182e] hover:bg-[#06182e]/5 transition-colors z-10"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
+        {!required && (
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 p-2 rounded-full text-[#06182e]/40 hover:text-[#06182e] hover:bg-[#06182e]/5 transition-colors z-10"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        )}
 
         <div className="relative p-6 sm:p-8">
           <div className="text-center mb-6">
@@ -157,8 +197,7 @@ export function CompleteProfileModal() {
 
             <div>
               <label className="text-xs font-semibold text-[#06182e]/70 para">
-                Username{" "}
-                <span className="text-[#06182e]/35">(optional)</span>
+                Username *
               </label>
               <input
                 type="text"
@@ -194,13 +233,15 @@ export function CompleteProfileModal() {
               {loading ? "Saving…" : "Save & continue"}
             </button>
 
-            <button
-              type="button"
-              onClick={handleClose}
-              className="w-full py-2 text-xs font-bold text-[#06182e]/40 hover:text-[#06182e]/70 transition-colors"
-            >
-              I&apos;ll do this later
-            </button>
+            {!required && (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="w-full py-2 text-xs font-bold text-[#06182e]/40 hover:text-[#06182e]/70 transition-colors"
+              >
+                I&apos;ll do this later
+              </button>
+            )}
           </form>
         </div>
       </div>

@@ -229,8 +229,11 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
 
-      {/* Profile completion prompt (auto-created / incomplete accounts) */}
-      <CompleteProfileModal />
+      {/* Profile completion prompt (auto-created / incomplete accounts).
+          Mandatory (no skip) on the onboarding page itself — onboarding
+          can't succeed without a username, so letting it be dismissed there
+          just leads to a confusing failed-request error instead. */}
+      <CompleteProfileModal required={pathname.startsWith("/game/onboarding")} />
     </div>
   );
 }
