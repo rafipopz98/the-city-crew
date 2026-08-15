@@ -103,7 +103,7 @@ export default async function MatchDetailPage({ params }: Props) {
         >
           <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
           <span className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-medium">
-            Back to Matches
+            Back to Fixtures
           </span>
         </Link>
 

@@ -29,7 +29,7 @@ export const FeaturedStory = ({ blog }: FeaturedStoryProps) => (
           href="/matches"
           className="bg-[#e09225] text-black font-bold px-4 sm:px-5 py-2 rounded-[5px] uppercase text-xs sm:text-sm transition-all hover:bg-[#f2a63b] hover:shadow-lg hover:shadow-[#e09225]/20"
         >
-          Matches
+          Fixtures
         </Link>
 
         {blog.slug && (

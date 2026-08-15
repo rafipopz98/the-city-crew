@@ -91,7 +91,7 @@ const QUICK_LINKS = [
   {
     href: "/matches",
     icon: Trophy,
-    label: "Matches",
+    label: "Fixtures",
     desc: "Fixtures, results & hubs",
     color: "#7c3aed",
     bg: "bg-[#7c3aed]/10",

@@ -16,7 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Polls", href: "/polls" },
   { label: "About Us", href: "/about-us" },
   { label: "Player Stats", href: "/player-stats" },
-  { label: "Matches", href: "/matches" },
+  { label: "Fixtures", href: "/matches" },
   { label: "Lineup Builder", href: "/lineup-builder" },
 ];
 
@@ -34,7 +34,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const exploreLinks = NAV_ITEMS.filter((item) =>
-    ["Blogs", "Matches", "Player Stats", "Lineup Builder", "Polls"].includes(
+    ["Blogs", "Fixtures", "Player Stats", "Lineup Builder", "Polls"].includes(
       item.label,
     ),
   );

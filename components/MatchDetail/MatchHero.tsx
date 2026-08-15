@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Clock3, MapPin, Shirt } from "lucide-react";
 
@@ -83,22 +84,32 @@ const MatchHero = ({
   const statusCfg =
     STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.upcoming;
 
-  // Formatted in whichever timezone this component actually renders in — the
-  // viewer's own browser once hydrated, so each visitor sees their own local
-  // kickoff time instead of one time baked in at the server.
-  const date = matchDate
-    ? new Intl.DateTimeFormat(undefined, {
+  // Left unset on the server and on the very first client render (both
+  // produce identical markup, so there's no hydration mismatch to fall back
+  // on), then filled in from useEffect — which only ever runs in the
+  // browser — so each visitor reliably sees the kickoff time in their own
+  // local timezone instead of whatever timezone the server happened to run
+  // in.
+  const [date, setDate] = useState<string | undefined>(undefined);
+  const [time, setTime] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!matchDate) return;
+    const d = new Date(matchDate);
+    setDate(
+      new Intl.DateTimeFormat(undefined, {
         day: "numeric",
         month: "short",
         year: "numeric",
-      }).format(new Date(matchDate))
-    : undefined;
-  const time = matchDate
-    ? new Intl.DateTimeFormat(undefined, {
+      }).format(d),
+    );
+    setTime(
+      new Intl.DateTimeFormat(undefined, {
         hour: "2-digit",
         minute: "2-digit",
-      }).format(new Date(matchDate))
-    : undefined;
+      }).format(d),
+    );
+  }, [matchDate]);
 
   const homeScorers = goalScorers
     .filter((s) => s.team === "home")
@@ -250,13 +261,13 @@ const MatchHero = ({
               {date && (
                 <div className="flex items-center gap-2 text-[10px] sm:text-xs text-black/55">
                   <Calendar size={13} className="text-[#e09225]" />
-                  <span suppressHydrationWarning>{date}</span>
+                  <span>{date}</span>
                 </div>
               )}
               {time && (
                 <div className="flex items-center gap-2 text-[10px] sm:text-xs text-black/55">
                   <Clock3 size={13} className="text-[#e09225]" />
-                  <span suppressHydrationWarning>{time}</span>
+                  <span>{time}</span>
                 </div>
               )}
               {!isFriendly && matchday && (

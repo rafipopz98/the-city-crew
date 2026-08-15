@@ -47,7 +47,7 @@ const MatchGrid = ({
           <Loader2 size={36} className="animate-spin text-[#e09225]" />
 
           <p className="mt-5 text-black/40 uppercase tracking-[0.3em] text-xs">
-            Loading Matches
+            Loading Fixtures
           </p>
         </div>
       </section>
@@ -69,7 +69,7 @@ const MatchGrid = ({
       <section className="py-28 text-center">
         <SearchX size={42} className="mx-auto text-black/30" />
 
-        <h2 className="mt-6 para text-5xl uppercase">No Matches Found</h2>
+        <h2 className="mt-6 para text-5xl uppercase">No Fixtures Found</h2>
 
         <p className="mt-4 text-black/45">Try changing your filters.</p>
       </section>

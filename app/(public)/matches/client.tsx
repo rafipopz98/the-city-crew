@@ -150,7 +150,7 @@ export default function MatchesClient({ initialSeason, allSeasons }: Props) {
               leading-none
             "
           >
-            Matches
+            Fixtures
           </h1>
 
           <p
