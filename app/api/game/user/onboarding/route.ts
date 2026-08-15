@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import { GameUserModel } from "@/lib/game/models/GameUser";
 import { GameOwnedPlayerModel } from "@/lib/game/models/GameOwnedPlayer";
@@ -7,8 +8,72 @@ import { GameSquadModel } from "@/lib/game/models/GameSquad";
 import { UserModel } from "@/lib/models/User";
 import { logError } from "@/lib/errorLogger";
 import { getUserIdFromAuth } from "@/lib/game/utils/auth";
+import { POSITION_GROUPS } from "@/lib/game/utils/positionMapping";
 
-const POSITIONS: ("GK" | "DEF" | "MID" | "FWD")[] = ["GK", "DEF", "MID", "MID", "FWD"];
+type SlotPosition = "GK" | "DEF" | "MID" | "FWD";
+
+const SLOT_POSITIONS: SlotPosition[] = ["GK", "DEF", "MID", "MID", "FWD"];
+
+// Starter squads are heavily weighted toward weak players so a strong one is
+// a rare, exciting pull rather than the norm — see onboarding rarity design.
+const STARTER_TIER_WEIGHTS: { rarity: "Basic" | "Common" | "Uncommon"; weight: number }[] = [
+  { rarity: "Basic", weight: 70 },
+  { rarity: "Common", weight: 22 },
+  { rarity: "Uncommon", weight: 7 },
+];
+const JACKPOT_WEIGHT = 1; // ~1%: strongest eligible player for the slot instead of a rarity roll
+const STARTER_OVERALL_CAP = 82;
+const STARTER_RARITIES = STARTER_TIER_WEIGHTS.map((t) => t.rarity);
+
+function rollStarterTier(): "Basic" | "Common" | "Uncommon" | "jackpot" {
+  const totalWeight =
+    STARTER_TIER_WEIGHTS.reduce((sum, t) => sum + t.weight, 0) + JACKPOT_WEIGHT;
+  let roll = Math.random() * totalWeight;
+  for (const tier of STARTER_TIER_WEIGHTS) {
+    if (roll < tier.weight) return tier.rarity;
+    roll -= tier.weight;
+  }
+  return "jackpot";
+}
+
+// Draws one starter player whose real `positions` field matches the given
+// broad slot (so a right-back can never end up labeled GK), excluding
+// players already drawn for an earlier slot in this squad.
+async function pickStarterForSlot(position: SlotPosition, excludeIds: Set<string>) {
+  const baseMatch = {
+    positions: { $in: POSITION_GROUPS[position] },
+    rarity: { $in: STARTER_RARITIES },
+    overall: { $lte: STARTER_OVERALL_CAP },
+    // Raw aggregate() pipelines skip Mongoose's usual string->ObjectId cast,
+    // so $nin needs real ObjectId instances or it silently matches nothing.
+    _id: { $nin: [...excludeIds].map((id) => new Types.ObjectId(id)) },
+  };
+
+  const tier = rollStarterTier();
+
+  if (tier === "jackpot") {
+    const top = await GamePlayerModel.aggregate([
+      { $match: baseMatch },
+      { $sort: { overall: -1 } },
+      { $limit: 3 },
+    ]);
+    if (top.length > 0) return top[Math.floor(Math.random() * top.length)];
+  } else {
+    const [picked] = await GamePlayerModel.aggregate([
+      { $match: { ...baseMatch, rarity: tier } },
+      { $sample: { size: 1 } },
+    ]);
+    if (picked) return picked;
+  }
+
+  // Tier (or jackpot) pool was empty for this slot — fall back to the full
+  // eligible pool for the position rather than failing onboarding.
+  const [fallback] = await GamePlayerModel.aggregate([
+    { $match: baseMatch },
+    { $sample: { size: 1 } },
+  ]);
+  return fallback;
+}
 
 // GET /api/game/user/onboarding - Check if user has a username set
 export async function GET() {
@@ -87,14 +152,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Onboarding already completed", gameUser });
     }
 
-    // Get 5 random starter players in a single aggregation
-    let starterPlayers = await GamePlayerModel.aggregate([
-      { $match: { rarity: { $in: ["Basic", "Common", "Uncommon"] }, overall: { $lte: 82 } } },
-      { $sample: { size: 5 } },
-    ]);
+    // Draw one starter per formation slot, matched to that player's real
+    // position (see pickStarterForSlot above) — sequential so each slot can
+    // exclude players already drawn for an earlier slot in this squad.
+    const starterPlayers: any[] = [];
+    const drawnIds = new Set<string>();
+    for (const position of SLOT_POSITIONS) {
+      const player = await pickStarterForSlot(position, drawnIds);
+      if (player) {
+        starterPlayers.push(player);
+        drawnIds.add(player._id.toString());
+      }
+    }
 
     if (starterPlayers.length < 5) {
-      const extra = await GamePlayerModel.aggregate([{ $sample: { size: 5 - starterPlayers.length } }]);
+      // Last resort so onboarding never hard-fails — shouldn't normally
+      // trigger given the current player pool.
+      const extra = await GamePlayerModel.aggregate([
+        { $match: { _id: { $nin: [...drawnIds].map((id) => new Types.ObjectId(id)) } } },
+        { $sample: { size: 5 - starterPlayers.length } },
+      ]);
       starterPlayers.push(...extra);
     }
 
@@ -103,7 +180,7 @@ export async function POST(request: Request) {
       userId: auth.userId,
       playerId: sp._id,
       in_squad: true,
-      squad_position: POSITIONS[i],
+      squad_position: SLOT_POSITIONS[i],
       squad_slot: i,
     }));
 
@@ -117,7 +194,7 @@ export async function POST(request: Request) {
       players: createdOwned.map((op, i) => ({
         ownedPlayerId: op._id,
         playerId: starterPlayers[i]._id,
-        position: POSITIONS[i],
+        position: SLOT_POSITIONS[i],
         slot: i,
       })),
       is_active: true,
@@ -140,7 +217,7 @@ export async function POST(request: Request) {
       squad: squad.toObject(),
       starterPlayers: starterPlayers.map((sp, i) => ({
         ...sp,
-        position: POSITIONS[i],
+        position: SLOT_POSITIONS[i],
       })),
     });
   } catch (error) {
