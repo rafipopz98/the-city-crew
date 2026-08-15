@@ -61,16 +61,10 @@ export default async function MatchDetailPage({ params }: Props) {
     notFound();
   }
 
-  const matchDate = new Date(match.matchDate);
-  const formattedDate = matchDate.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-  const formattedTime = matchDate.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  // Pass the raw instant to the client and let MatchHero format it in the
+  // viewer's own timezone — formatting it here would bake in the server's
+  // timezone and show every visitor the same (often wrong) time.
+  const matchDateIso = new Date(match.matchDate).toISOString();
 
   // Clean goal scorers
   const cleanGoalScorers =
@@ -123,8 +117,7 @@ export default async function MatchDetailPage({ params }: Props) {
             awayScore={match.awayTeamScore}
             status={match.status}
             venue={match.venue}
-            date={formattedDate}
-            time={formattedTime}
+            matchDate={matchDateIso}
             matchday={match.matchday}
             goalScorers={cleanGoalScorers}
           />

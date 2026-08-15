@@ -20,8 +20,7 @@ type Props = {
   awayScore: number;
   status: string;
   venue?: string;
-  date?: string;
-  time?: string;
+  matchDate?: string;
   matchday?: number;
   goalScorers?: GoalScorer[];
 };
@@ -74,8 +73,7 @@ const MatchHero = ({
   awayScore,
   status,
   venue,
-  date,
-  time,
+  matchDate,
   matchday,
   goalScorers = [],
 }: Props) => {
@@ -84,6 +82,23 @@ const MatchHero = ({
   const isFriendly = competition?.toLowerCase() === "friendly";
   const statusCfg =
     STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.upcoming;
+
+  // Formatted in whichever timezone this component actually renders in — the
+  // viewer's own browser once hydrated, so each visitor sees their own local
+  // kickoff time instead of one time baked in at the server.
+  const date = matchDate
+    ? new Intl.DateTimeFormat(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(matchDate))
+    : undefined;
+  const time = matchDate
+    ? new Intl.DateTimeFormat(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(matchDate))
+    : undefined;
 
   const homeScorers = goalScorers
     .filter((s) => s.team === "home")
@@ -235,13 +250,13 @@ const MatchHero = ({
               {date && (
                 <div className="flex items-center gap-2 text-[10px] sm:text-xs text-black/55">
                   <Calendar size={13} className="text-[#e09225]" />
-                  <span>{date}</span>
+                  <span suppressHydrationWarning>{date}</span>
                 </div>
               )}
               {time && (
                 <div className="flex items-center gap-2 text-[10px] sm:text-xs text-black/55">
                   <Clock3 size={13} className="text-[#e09225]" />
-                  <span>{time}</span>
+                  <span suppressHydrationWarning>{time}</span>
                 </div>
               )}
               {!isFriendly && matchday && (

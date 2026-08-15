@@ -125,8 +125,13 @@ const MatchModal = ({
   useEffect(() => {
     if (match) {
       const matchDate = new Date(match.matchDate);
-      const dateStr = matchDate.toISOString().split("T")[0];
-      const timeStr = matchDate.toTimeString().slice(0, 5);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      // Derive both from local getters so the date shown always matches the
+      // time shown (mixing a UTC date with a local time can show the wrong
+      // day near midnight), and so it lines up with the local -> UTC
+      // conversion done on save below.
+      const dateStr = `${matchDate.getFullYear()}-${pad(matchDate.getMonth() + 1)}-${pad(matchDate.getDate())}`;
+      const timeStr = `${pad(matchDate.getHours())}:${pad(matchDate.getMinutes())}`;
 
       // Always normalize so the City row is the home slot in the form and the
       // opponent is the away slot, regardless of which side City is actually on.
@@ -435,7 +440,7 @@ const MatchModal = ({
                 />
               </SettingRow>
 
-              <SettingRow label="Kick-off (UK)">
+              <SettingRow label="Kick-off">
                 <TCCInput
                   type="time"
                   value={formData.matchTime}
