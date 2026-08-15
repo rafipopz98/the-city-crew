@@ -53,6 +53,9 @@ const DraggablePlayer = ({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Don't initiate dragging when interacting with the remove button
+    if (target.closest("[data-remove-player]")) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     activePointerId.current = e.pointerId;
     hasMoved.current = false;
@@ -151,6 +154,10 @@ const DraggablePlayer = ({
         </div>
         {showRemove && (
           <button
+            type="button"
+            data-remove-player
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onRemove(player.id);
