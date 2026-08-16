@@ -54,15 +54,25 @@ interface PvPResult {
   awayRewards: { xp: number; coins: number };
 }
 
+/** Translates the engine's internal "user"/"opponent" perspective into PvP's "home"/"away". */
+function toHomeAway(actorName: string): string {
+  return actorName === "user" ? "home" : actorName === "opponent" ? "away" : actorName;
+}
+
 /** Starts a PvP match — first half only, pausing for the halftime window. */
 export function simulatePvPFirstHalf(
   homePlayers: MatchPlayer[],
   awayPlayers: MatchPlayer[],
 ): MatchHalfState {
-  return simulateFirstHalf(
+  const state = simulateFirstHalf(
     { players: homePlayers, name: "Home" },
     { players: awayPlayers, name: "Away" },
   );
+  // Translate actorName now, not just at the end of the second half — PvP
+  // streams first-half events live, over the socket, before the second
+  // half is ever computed, so callers need "home"/"away" immediately, not
+  // just in the final combined result.
+  return { ...state, events: state.events.map((e) => ({ ...e, actorName: toHomeAway(e.actorName) })) };
 }
 
 /**
@@ -92,12 +102,15 @@ export function finishPvPSecondHalf(
   const homeShotsOnTarget = result.userShotsOnTarget;
   const awayShotsOnTarget = result.opponentShotsOnTarget;
 
-  // Map events — translate actorName "user" → "home", "opponent" → "away"
+  // Map events — translate actorName "user" → "home", "opponent" → "away".
+  // Idempotent: first-half events here are already "home"/"away" (from
+  // simulatePvPFirstHalf), only the newly-generated second-half events are
+  // still "user"/"opponent" at this point.
   const events: MatchEvent[] = result.events.map((e) => ({
     minute: e.minute,
     type: e.type as MatchEvent["type"],
     description: e.description,
-    actorName: e.actorName === "user" ? "home" : e.actorName === "opponent" ? "away" : e.actorName,
+    actorName: toHomeAway(e.actorName),
   }));
 
   // Determine winner

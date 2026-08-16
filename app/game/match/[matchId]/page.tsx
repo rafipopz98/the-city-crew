@@ -141,7 +141,10 @@ export default function MatchSimulationPage() {
     }
   };
 
-  // Derive live scores from visible goal events
+  // Derive live scores from visible goal events. Delayed slightly so the
+  // goal event text itself renders first — the scoreboard ticking up a
+  // beat later reads as "the goal caused the score to change" instead of
+  // both happening in the same instant.
   useEffect(() => {
     if (!matchData) return;
     const visible = matchData.events.slice(0, visibleEvents);
@@ -152,8 +155,11 @@ export default function MatchSimulationPage() {
         else opponent++;
       }
     }
-    setLiveUserScore(user);
-    setLiveOpponentScore(opponent);
+    const timer = setTimeout(() => {
+      setLiveUserScore(user);
+      setLiveOpponentScore(opponent);
+    }, 600);
+    return () => clearTimeout(timer);
   }, [visibleEvents, matchData]);
 
   const startEventAnimation = (events: MatchEvent[], fromIndex: number, onDone: () => void) => {

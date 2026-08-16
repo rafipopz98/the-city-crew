@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useGameUser, useSquad, useStartMatch } from "@/lib/game/hooks/useGameQuery";
 import { MATCH_FEE } from "@/lib/game/engine/matchEngine";
+import { computeClientSquadRating } from "@/lib/game/utils/clientSquadRating";
 import { LoadingState, ErrorState } from "@/app/game/_components";
 
 type MatchState = "idle" | "searching" | "found" | "starting";
@@ -122,15 +123,10 @@ export default function PlayPage() {
   };
 
   // ─── Hooks must be before early returns! ────────────────────────────────
+  const ownedPlayers = squadData?.ownedPlayers || [];
   const squadRating = useMemo(
-    () =>
-      squad?.players?.length
-        ? Math.round(
-            squad.players.reduce((sum: number, p: any) => sum + (p.playerId?.overall || 0), 0) /
-              squad.players.length,
-          )
-        : 0,
-    [squad],
+    () => computeClientSquadRating(squad, ownedPlayers),
+    [squad, ownedPlayers],
   );
 
   // Stable opponent rating (computed once when opponent is found)

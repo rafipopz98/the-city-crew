@@ -711,6 +711,10 @@ function maybeInjectFoul(
     userRedCards: number; opponentRedCards: number;
     userPenalties: number; opponentPenalties: number;
   },
+  shotStats: {
+    userShots: { current: number }; opponentShots: { current: number };
+    userShotsOnTarget: { current: number }; opponentShotsOnTarget: { current: number };
+  },
 ): boolean {
   // ~14% chance per event iteration to become a foul
   if (Math.random() > 0.14) return false;
@@ -812,14 +816,31 @@ function maybeInjectFoul(
     if (!penaltyOverturned) {
       // 75% chance to score penalty
       if (Math.random() < 0.75) {
-        if (!isUserFouler) userScore.current++;
-        else opponentScore.current++;
+        // Penalty goals/misses previously never touched the shot counters
+        // at all, so a match could show e.g. 3 goals but only 1 shot on
+        // target — every penalty is at minimum a shot, and a scored one is
+        // by definition on target.
+        if (!isUserFouler) {
+          userScore.current++;
+          shotStats.userShots.current++;
+          shotStats.userShotsOnTarget.current++;
+        } else {
+          opponentScore.current++;
+          shotStats.opponentShots.current++;
+          shotStats.opponentShotsOnTarget.current++;
+        }
         events.push({
           minute: penaltyMinute, type: "goal",
           description: penaltyScoredDescs[Math.floor(Math.random() * penaltyScoredDescs.length)](penaltyTaker.short_name),
           playerName: penaltyTaker.short_name, isUserEvent: !isUserFouler, actorName: !isUserFouler ? "user" : "opponent",
         });
       } else {
+        // Missed penalty — still a shot (the description pool covers both
+        // skied-over and saved outcomes; treating it as off-target keeps
+        // the simpler, unambiguous case rather than guessing which flavor
+        // text was picked).
+        if (!isUserFouler) shotStats.userShots.current++;
+        else shotStats.opponentShots.current++;
         events.push({
           minute: penaltyMinute, type: "save",
           description: penaltyMissedDescs[Math.floor(Math.random() * penaltyMissedDescs.length)](penaltyTaker.short_name),
@@ -833,14 +854,23 @@ function maybeInjectFoul(
     const fkTaker = isUserFouler ? pickGoalScorer(oppPlayers) : pickGoalScorer(userPlayers);
     // 20% chance the free kick leads to a goal
     if (Math.random() < 0.2) {
-      if (!isUserFouler) userScore.current++;
-      else opponentScore.current++;
+      if (!isUserFouler) {
+        userScore.current++;
+        shotStats.userShots.current++;
+        shotStats.userShotsOnTarget.current++;
+      } else {
+        opponentScore.current++;
+        shotStats.opponentShots.current++;
+        shotStats.opponentShotsOnTarget.current++;
+      }
       events.push({
         minute: fkMinute, type: "goal",
         description: userGoalDescs[Math.floor(Math.random() * userGoalDescs.length)](fkTaker.short_name),
         playerName: fkTaker.short_name, isUserEvent: !isUserFouler, actorName: !isUserFouler ? "user" : "opponent",
       });
     } else {
+      if (!isUserFouler) shotStats.userShots.current++;
+      else shotStats.opponentShots.current++;
       events.push({
         minute: fkMinute, type: "chance",
         description: freeKickDescs[Math.floor(Math.random() * freeKickDescs.length)](fkTaker.short_name),
@@ -894,10 +924,11 @@ export function simulateFirstHalf(
   const events: MatchEvent[] = [];
   const userScore = { current: 0 };
   const opponentScore = { current: 0 };
-  let userShots = 0,
-    opponentShots = 0;
-  let userShotsOnTarget = 0,
-    opponentShotsOnTarget = 0;
+  const userShots = { current: 0 };
+  const opponentShots = { current: 0 };
+  const userShotsOnTarget = { current: 0 };
+  const opponentShotsOnTarget = { current: 0 };
+  const shotStats = { userShots, opponentShots, userShotsOnTarget, opponentShotsOnTarget };
 
   // Discipline & set-piece stats (mutable — passed by reference to sub-fns)
   const stats = {
@@ -942,7 +973,7 @@ export function simulateFirstHalf(
     const isUserAttack = Math.random() * 100 < userPossession;
 
     // Check for foul before regular play
-    if (maybeInjectFoul(minute, isUserAttack, userPlayers, oppPlayers, events, userScore, opponentScore, stats)) continue;
+    if (maybeInjectFoul(minute, isUserAttack, userPlayers, oppPlayers, events, userScore, opponentScore, stats, shotStats)) continue;
 
     // Offside check (~8%) — forwards get caught offside more
     const attackingPlayers = isUserAttack ? userPlayers : oppPlayers;
@@ -952,10 +983,10 @@ export function simulateFirstHalf(
     if (maybeInjectControversial(minute, events, pickOutfieldPlayer(attackingPlayers), isUserAttack)) continue;
 
     if (isUserAttack) {
-      userShots++;
+      userShots.current++;
       const onTarget = Math.random() < 0.55;
       if (onTarget) {
-        userShotsOnTarget++;
+        userShotsOnTarget.current++;
         const scorer = pickGoalScorer(userPlayers);
         const scores = Math.random() < 0.35 + (userRating.attack / (userRating.attack + opponentRating.goalkeeping)) * 0.15;
         if (scores) {
@@ -991,10 +1022,10 @@ export function simulateFirstHalf(
         }
       }
     } else {
-      opponentShots++;
+      opponentShots.current++;
       const onTarget = Math.random() < 0.45;
       if (onTarget) {
-        opponentShotsOnTarget++;
+        opponentShotsOnTarget.current++;
         const scorer = pickGoalScorer(oppPlayers);
         const scores = Math.random() < 0.3 + (opponentRating.attack / (opponentRating.attack + userRating.goalkeeping)) * 0.15;
         if (scores) {
@@ -1032,6 +1063,14 @@ export function simulateFirstHalf(
     }
   }
 
+  // Events are pushed in whatever order they were rolled, each with an
+  // independently randomized minute — sort chronologically before handing
+  // back. simulateSecondHalf sorts the full (first+second half) list again
+  // at the end, but callers that stream/display the first half on its own
+  // (PvP) need it sorted here too, since there's no later sort to fall
+  // back on for that partial slice.
+  events.sort((a, b) => a.minute - b.minute);
+
   // Half time
   events.push({
     minute: 45,
@@ -1048,10 +1087,10 @@ export function simulateFirstHalf(
     events,
     userScore: userScore.current,
     opponentScore: opponentScore.current,
-    userShots,
-    opponentShots,
-    userShotsOnTarget,
-    opponentShotsOnTarget,
+    userShots: userShots.current,
+    opponentShots: opponentShots.current,
+    userShotsOnTarget: userShotsOnTarget.current,
+    opponentShotsOnTarget: opponentShotsOnTarget.current,
     stats,
   };
 }
@@ -1076,10 +1115,11 @@ export function simulateSecondHalf(
   const events = [...state.events]; // copy — don't mutate the caller's state.events in place
   const userScore = { current: state.userScore };
   const opponentScore = { current: state.opponentScore };
-  let userShots = state.userShots;
-  let opponentShots = state.opponentShots;
-  let userShotsOnTarget = state.userShotsOnTarget;
-  let opponentShotsOnTarget = state.opponentShotsOnTarget;
+  const userShots = { current: state.userShots };
+  const opponentShots = { current: state.opponentShots };
+  const userShotsOnTarget = { current: state.userShotsOnTarget };
+  const opponentShotsOnTarget = { current: state.opponentShotsOnTarget };
+  const shotStats = { userShots, opponentShots, userShotsOnTarget, opponentShotsOnTarget };
   const stats = state.stats;
 
   const homeName = userSquad.name || "Your Team";
@@ -1104,7 +1144,7 @@ export function simulateSecondHalf(
     const isUserAttack = Math.random() * 100 < userPossession;
 
     // Check for foul before regular play
-    if (maybeInjectFoul(minute, isUserAttack, userPlayers, oppPlayers, events, userScore, opponentScore, stats)) continue;
+    if (maybeInjectFoul(minute, isUserAttack, userPlayers, oppPlayers, events, userScore, opponentScore, stats, shotStats)) continue;
 
     // Offside check (~8%) — forwards get caught offside more
     const attackingPlayers = isUserAttack ? userPlayers : oppPlayers;
@@ -1114,10 +1154,10 @@ export function simulateSecondHalf(
     if (maybeInjectControversial(minute, events, pickOutfieldPlayer(attackingPlayers), isUserAttack)) continue;
 
     if (isUserAttack) {
-      userShots++;
+      userShots.current++;
       const onTarget = Math.random() < 0.55;
       if (onTarget) {
-        userShotsOnTarget++;
+        userShotsOnTarget.current++;
         const scorer = pickGoalScorer(userPlayers);
         const scores = Math.random() < 0.3;
         if (scores) {
@@ -1153,10 +1193,10 @@ export function simulateSecondHalf(
         }
       }
     } else {
-      opponentShots++;
+      opponentShots.current++;
       const onTarget = Math.random() < 0.45;
       if (onTarget) {
-        opponentShotsOnTarget++;
+        opponentShotsOnTarget.current++;
         const scorer = pickGoalScorer(oppPlayers);
         const scores = Math.random() < 0.25;
         if (scores) {
@@ -1226,10 +1266,10 @@ export function simulateSecondHalf(
     opponentScore: opponentScore.current,
     userPossession,
     opponentPossession: 100 - userPossession,
-    userShots,
-    opponentShots,
-    userShotsOnTarget,
-    opponentShotsOnTarget,
+    userShots: userShots.current,
+    opponentShots: opponentShots.current,
+    userShotsOnTarget: userShotsOnTarget.current,
+    opponentShotsOnTarget: opponentShotsOnTarget.current,
     userFouls: stats.userFouls,
     opponentFouls: stats.opponentFouls,
     userYellowCards: stats.userYellowCards,

@@ -24,6 +24,7 @@ import {
 import { useSocket } from "@/lib/game/socket/client";
 import type { ServerMessage } from "@/lib/game/socket/protocol";
 import { ErrorState, HalftimeModal, type HalftimeSquadChange } from "@/app/game/_components";
+import { computeClientSquadRating } from "@/lib/game/utils/clientSquadRating";
 import api from "@/lib/api/axios";
 
 interface MatchSocketEvent {
@@ -59,6 +60,7 @@ export default function PvPPage() {
   const [showHalftime, setShowHalftime] = useState(false);
   const [gameUser, setGameUser] = useState<any>(null);
   const [squad, setSquad] = useState<any>(null);
+  const [ownedPlayers, setOwnedPlayers] = useState<any[]>([]);
   const [queuePosition, setQueuePosition] = useState(0);
   const [opponent, setOpponent] = useState<{ username: string; squadRating: number } | null>(null);
   const [playerSide, setPlayerSide] = useState<"home" | "away">("home");
@@ -107,6 +109,7 @@ export default function PvPPage() {
 
         console.log("[PvP] Squad valid with", sq.players.length, "players");
         setSquad(sq);
+        setOwnedPlayers(squadData.ownedPlayers || []);
         console.log("[PvP] Setting state to 'connecting'");
         setPvpState("connecting");
       })
@@ -133,10 +136,7 @@ export default function PvPPage() {
       return;
     }
 
-    const rating = Math.round(
-      squad.players.reduce((sum: number, p: any) => sum + (p.playerId?.overall || 0), 0) /
-        squad.players.length,
-    );
+    const rating = computeClientSquadRating(squad, ownedPlayers);
 
     const playerNames = squad.players.map((p: any) => p.playerId?.short_name || "Player");
     const playerPositions = squad.players.map((p: any) => p.position || "MID");
@@ -158,7 +158,7 @@ export default function PvPPage() {
       setPvpState("error");
       setErrorMsg("Could not connect to the game server. Make sure the socket server is running.");
     });
-  }, [connected, gameUser, squad, pvpState, joinQueue]);
+  }, [connected, gameUser, squad, ownedPlayers, pvpState, joinQueue]);
 
   // Queue timer
   useEffect(() => {
@@ -244,8 +244,13 @@ export default function PvPPage() {
               const awayGoals = updated.filter(
                 (e) => e.type === "goal" && e.actorName === "away",
               ).length;
-              console.log("[PvP] Score update:", homeGoals + "-" + awayGoals);
-              setMatchScore({ home: homeGoals, away: awayGoals });
+              // Let the goal event itself render first — the scoreboard
+              // ticking up a beat later reads as "the goal caused the
+              // score to change" instead of both happening at once.
+              setTimeout(() => {
+                console.log("[PvP] Score update:", homeGoals + "-" + awayGoals);
+                setMatchScore({ home: homeGoals, away: awayGoals });
+              }, 600);
             }
             return updated;
           });
@@ -329,12 +334,7 @@ export default function PvPPage() {
     router.push("/game/home");
   };
 
-  const squadRating = squad?.players?.length
-    ? Math.round(
-        squad.players.reduce((sum: number, p: any) => sum + (p.playerId?.overall || 0), 0) /
-          squad.players.length,
-      )
-    : 0;
+  const squadRating = computeClientSquadRating(squad, ownedPlayers);
 
   const getEventIcon = (type: string) => {
     switch (type) {
