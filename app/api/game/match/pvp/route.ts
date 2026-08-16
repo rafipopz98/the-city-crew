@@ -4,10 +4,21 @@ import { GameUserModel } from "@/lib/game/models/GameUser";
 import { GameMatchModel } from "@/lib/game/models/GameMatch";
 import { logError } from "@/lib/errorLogger";
 import { MATCH_FEE } from "@/lib/game/engine/matchEngine";
+import { claimPvPResult } from "@/lib/game/socket/pvpResults";
 import { verifyToken } from "@/lib/auth/jwt";
 import { cookies } from "next/headers";
 
-// POST /api/game/match/pvp - Save PvP match result and awards rewards
+// POST /api/game/match/pvp - Claim a PvP match's rewards.
+//
+// Previously this trusted whatever result/score/xp/coins a client POSTed
+// directly, with no link back to what the match actually produced — a
+// client could forge an arbitrary win, or replay one real match repeatedly
+// to farm rewards. It now looks up the true outcome the server itself
+// computed and stored when the match ended (see lib/game/socket/handler.ts
+// + pvpResults.ts), keyed by matchId, and claims this user's own side of
+// it exactly once. Only `matchId` (plus cosmetic display fields — events,
+// for the match-history record) are taken from the client; everything that
+// affects currency/stats comes from the stored server-authoritative result.
 export async function POST(request: Request) {
   try {
     const accessToken = (await cookies()).get("accessToken")?.value;
@@ -18,69 +29,65 @@ export async function POST(request: Request) {
     if (!payload || !payload.userId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+    const userId = payload.userId as string;
 
     await connectDB();
 
-    const {
-      matchId: socketMatchId,
-      opponentName,
-      userScore,
-      opponentScore,
-      userPossession,
-      opponentPossession,
-      userShots,
-      opponentShots,
-      userShotsOnTarget,
-      opponentShotsOnTarget,
-      xpEarned,
-      coinsEarned,
-      result,
-      events,
-      playerOfTheMatch,
-    } = await request.json();
+    const { matchId, events } = await request.json();
+    if (!matchId || typeof matchId !== "string") {
+      return NextResponse.json({ message: "matchId is required" }, { status: 400 });
+    }
 
-    const gameUser = await GameUserModel.findOne({ userId: payload.userId });
+    const claim = await claimPvPResult(matchId, userId);
+    if (!claim) {
+      return NextResponse.json(
+        { message: "Match result not found, not yours, or already claimed" },
+        { status: 400 },
+      );
+    }
+
+    const gameUser = await GameUserModel.findOne({ userId });
     if (!gameUser) {
       return NextResponse.json({ message: "Game user not found" }, { status: 404 });
     }
 
     // Save match to DB
     const match = await GameMatchModel.create({
-      userId: payload.userId,
+      userId,
       user_squad: [],
-      opponent_name: opponentName || "PvP Opponent",
+      opponent_name: claim.opponentName,
       opponent_squad: [],
-      user_score: userScore || 0,
-      opponent_score: opponentScore || 0,
-      user_possession: userPossession || 50,
-      opponent_possession: opponentPossession || 50,
-      user_shots: userShots || 0,
-      opponent_shots: opponentShots || 0,
-      user_shots_on_target: userShotsOnTarget || 0,
-      opponent_shots_on_target: opponentShotsOnTarget || 0,
-      events: events || [],
+      user_score: claim.userScore,
+      opponent_score: claim.opponentScore,
+      user_possession: claim.userPossession,
+      opponent_possession: claim.opponentPossession,
+      user_shots: claim.userShots,
+      opponent_shots: claim.opponentShots,
+      user_shots_on_target: claim.userShotsOnTarget,
+      opponent_shots_on_target: claim.opponentShotsOnTarget,
+      events: Array.isArray(events) ? events : [],
       player_of_match: {
         playerId: "",
-        shortName: playerOfTheMatch || "Unknown",
+        shortName: claim.playerOfTheMatch || "Unknown",
       },
-      result: result || "draw",
-      xp_earned: xpEarned || 0,
-      coins_earned: coinsEarned || 0,
+      result: claim.result,
+      xp_earned: claim.rewards.xp,
+      coins_earned: claim.rewards.coins,
       duration_seconds: 25,
     });
 
     // Update user stats
     gameUser.total_matches += 1;
-    gameUser.goals_scored += userScore || 0;
-    gameUser.goals_conceded += opponentScore || 0;
+    gameUser.goals_scored += claim.userScore;
+    gameUser.goals_conceded += claim.opponentScore;
 
-    if (result === "win") {
+    if (claim.result === "win") {
       gameUser.total_wins += 1;
       gameUser.current_streak += 1;
       if (gameUser.current_streak > gameUser.longest_streak) {
         gameUser.longest_streak = gameUser.current_streak;
       }
-    } else if (result === "loss") {
+    } else if (claim.result === "loss") {
       gameUser.total_losses += 1;
       gameUser.current_streak = 0;
     } else {
@@ -96,8 +103,8 @@ export async function POST(request: Request) {
     }
     gameUser.coins -= MATCH_FEE;
 
-    gameUser.xp += xpEarned || 0;
-    gameUser.coins += coinsEarned || 0;
+    gameUser.xp += claim.rewards.xp;
+    gameUser.coins += claim.rewards.coins;
     await gameUser.save();
 
     return NextResponse.json({

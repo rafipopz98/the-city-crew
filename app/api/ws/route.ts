@@ -12,10 +12,16 @@ import type { WebSocketData } from "@vercel/functions";
 import { handleMessage, streamRemoteMatch, clearRecentlyJoined } from "@/lib/game/socket/handler";
 import { hub, setHubCallbacks } from "@/lib/game/socket/hub";
 import { matchmaking, setOnMatchReady } from "@/lib/game/socket/matchmaking";
+import { verifyWsAuth } from "@/lib/game/socket/auth";
 import type { ClientMessage } from "@/lib/game/socket/protocol";
 import type { WebSocket } from "ws";
 
-export function GET() {
+export async function GET(request: Request) {
+  // Verify the session cookie sent with the upgrade request — never trust
+  // a client-supplied userId in the join payload (that was the previous,
+  // exploitable behavior).
+  const authUserId = await verifyWsAuth(request.headers.get("cookie"));
+
   // Wire up cross-instance match streaming (inside GET so it's lazy)
   if (typeof setOnMatchReady === "function") {
     setOnMatchReady(async (ws: WebSocket, matchId: string, opponentUserId: string) => {
@@ -32,6 +38,13 @@ export function GET() {
   });
   return experimental_upgradeWebSocket((ws) => {
     console.log("[PvP-Server-Vercel] ⚡ New WebSocket connection via /api/ws");
+
+    if (!authUserId) {
+      console.warn("[PvP-Server-Vercel] rejecting unauthenticated connection");
+      ws.close(4001, "Unauthorized");
+      return;
+    }
+    (ws as any).authUserId = authUserId;
 
     ws.on("message", (data: WebSocketData) => {
       let raw = "";

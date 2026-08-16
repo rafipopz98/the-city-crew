@@ -10,12 +10,12 @@ import {
 import { toast } from "sonner";
 import { useSquad, useSaveSquad } from "@/lib/game/hooks/useGameQuery";
 import { SkeletonSquadSlots } from "@/app/game/_components";
-import { playerMatchesCategory, getPrimaryCategory } from "@/lib/game/utils/positionMapping";
+import { playerMatchesCategory, getPrimaryCategory, calculateEffectiveOverall } from "@/lib/game/utils/positionMapping";
+import { getPositionEffectiveness, calculateSquadRating } from "@/lib/game/engine/matchEngine";
+import { SQUAD_FORMATIONS, DEFAULT_FORMATION, type GamePosition } from "@/lib/game/utils/positions";
 import { ErrorState } from "@/app/game/_components";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
-const POSITIONS = ["GK", "DEF", "MID", "MID", "FWD"] as const;
-
 const POSITION_META: Record<string, { label: string; color: string; short: string }> = {
   GK:  { label: "Goalkeeper", color: "#f59e0b", short: "GK" },
   DEF: { label: "Defender",   color: "#3b82f6", short: "DEF" },
@@ -26,13 +26,47 @@ const POSITION_META: Record<string, { label: string; color: string; short: strin
 const GOLD = "#e09225";
 const NAVY = "#06182e";
 
-const PITCH_LAYOUT = [
-  { pos: "GK",  x: 50, y: 14 },
-  { pos: "DEF", x: 50, y: 34 },
-  { pos: "MID", x: 28, y: 56 },
-  { pos: "MID", x: 72, y: 56 },
-  { pos: "FWD", x: 50, y: 78 },
-];
+// One pitch coordinate layout per formation, keyed by formation name — each
+// entry's `pos` order must exactly match that formation's `slots` array.
+const PITCH_LAYOUTS: Record<string, { pos: GamePosition; x: number; y: number }[]> = {
+  "1-1-2-1": [
+    { pos: "GK",  x: 50, y: 14 },
+    { pos: "DEF", x: 50, y: 34 },
+    { pos: "MID", x: 28, y: 56 },
+    { pos: "MID", x: 72, y: 56 },
+    { pos: "FWD", x: 50, y: 78 },
+  ],
+  "1-2-1-1": [
+    { pos: "GK",  x: 50, y: 14 },
+    { pos: "DEF", x: 30, y: 32 },
+    { pos: "DEF", x: 70, y: 32 },
+    { pos: "MID", x: 50, y: 56 },
+    { pos: "FWD", x: 50, y: 78 },
+  ],
+  "1-1-3-0": [
+    { pos: "GK",  x: 50, y: 14 },
+    { pos: "DEF", x: 50, y: 30 },
+    { pos: "MID", x: 20, y: 58 },
+    { pos: "MID", x: 50, y: 62 },
+    { pos: "MID", x: 80, y: 58 },
+  ],
+  "1-0-2-2": [
+    { pos: "GK",  x: 50, y: 14 },
+    { pos: "MID", x: 30, y: 40 },
+    { pos: "MID", x: 70, y: 40 },
+    { pos: "FWD", x: 30, y: 74 },
+    { pos: "FWD", x: 70, y: 74 },
+  ],
+};
+
+// Purely decorative connector lines between slots, per formation — index
+// pairs into that formation's PITCH_LAYOUTS entry.
+const PITCH_CONNECTIONS: Record<string, [number, number][]> = {
+  "1-1-2-1": [[0, 1], [1, 2], [1, 3], [2, 4], [3, 4]],
+  "1-2-1-1": [[0, 1], [0, 2], [1, 3], [2, 3], [3, 4]],
+  "1-1-3-0": [[0, 1], [1, 2], [1, 3], [1, 4]],
+  "1-0-2-2": [[0, 1], [0, 2], [1, 3], [2, 4]],
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ─── PITCH SVG ────────────────────────────────────────────────────────────
@@ -174,14 +208,26 @@ function PlayerTooltip({ player, position }: { player: any; position: string }) 
 // ═══════════════════════════════════════════════════════════════════════════
 function PitchView({
   slots,
+  layout,
+  connections,
+  formationName,
   selectedSlot,
   onSlotClick,
   onRemove,
+  getEffectiveOverall,
+  isMismatch,
+  getEffectivePlayer,
 }: {
   slots: (any | null)[];
+  layout: { pos: GamePosition; x: number; y: number }[];
+  connections: [number, number][];
+  formationName: string;
   selectedSlot: number | null;
   onSlotClick: (i: number) => void;
   onRemove: (i: number) => void;
+  getEffectiveOverall: (player: any, position: string) => number;
+  isMismatch: (player: any, position: string) => boolean;
+  getEffectivePlayer: (player: any) => any;
 }) {
   const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
 
@@ -191,11 +237,9 @@ function PitchView({
 
       {/* Connection lines */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
-        {[
-          [0, 1], [1, 2], [1, 3], [2, 4], [3, 4],
-        ].map(([from, to], li) => {
-          const fp = PITCH_LAYOUT[from];
-          const tp = PITCH_LAYOUT[to];
+        {connections.map(([from, to], li) => {
+          const fp = layout[from];
+          const tp = layout[to];
           const show = !!slots[from] && !!slots[to];
           return (
             <line
@@ -211,12 +255,14 @@ function PitchView({
       </svg>
 
       {/* Players & slots */}
-      {PITCH_LAYOUT.map((pp, i) => {
+      {layout.map((pp, i) => {
         const player = slots[i];
         const meta = POSITION_META[pp.pos];
         const isSelected = selectedSlot === i;
         const isHovered = hoveredSlot === i;
         const occupied = !!player;
+        const mismatch = occupied && isMismatch(player, pp.pos);
+        const effectiveOverall = occupied ? getEffectiveOverall(player, pp.pos) : 0;
 
         return (
           <button
@@ -251,17 +297,34 @@ function PitchView({
                 {/* Tooltip on hover */}
                 <AnimatePresence>
                   {isHovered && !isSelected && (
-                    <PlayerTooltip player={player} position={pp.pos} />
+                    <PlayerTooltip player={getEffectivePlayer(player)} position={pp.pos} />
                   )}
                 </AnimatePresence>
 
-                {/* Rating badge — top of circle */}
+                {/* Rating badge — top of circle. Shows the real effective
+                    rating for this slot (upgrades folded in, out-of-position
+                    penalty applied) — not the player's raw card overall. */}
                 <div
-                  className="absolute -top-1 left-1/2 -translate-x-1/2 z-10 px-1.5 py-[1px] rounded-full text-[9px] font-black leading-tight border border-black/30 shadow-lg"
-                  style={{ backgroundColor: meta.color, color: "#000" }}
+                  className="absolute -top-1 left-1/2 -translate-x-1/2 z-10 px-1.5 py-[1px] rounded-full text-[9px] font-black leading-tight border shadow-lg"
+                  style={
+                    mismatch
+                      ? { backgroundColor: "#ef4444", color: "#fff", borderColor: "#000000" }
+                      : { backgroundColor: meta.color, color: "#000", borderColor: "rgba(0,0,0,0.3)" }
+                  }
+                  title={mismatch ? `Out of position — playing at reduced effectiveness` : undefined}
                 >
-                  {player.overall}
+                  {effectiveOverall}
                 </div>
+
+                {/* Out-of-position warning */}
+                {mismatch && (
+                  <div
+                    className="absolute top-2 -right-1 z-20 w-3.5 h-3.5 rounded-full bg-red-500 border border-[#06182e] flex items-center justify-center text-[7px] font-black text-white"
+                    title="Out of position — reduced effectiveness"
+                  >
+                    !
+                  </div>
+                )}
 
                 {/* Player image circle */}
                 <div
@@ -313,7 +376,7 @@ function PitchView({
 
       {/* Formation label */}
       <div className="absolute top-2.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 border border-[#e09225]/15 text-[8px] text-[#e09225]/50 font-bold tracking-widest backdrop-blur-sm">
-        1-1-2-1
+        {formationName}
       </div>
     </div>
   );
@@ -341,6 +404,22 @@ function BenchPlayerCard({
   const posCat = getPrimaryCategory(p.positions);
   const posMeta = POSITION_META[posCat] || POSITION_META.MID;
   const [hovered, setHovered] = useState(false);
+
+  // API already folds upgrades into effective_* fields — use them when
+  // present so this card shows what the player can actually do, not just
+  // their base card (a fully-upgraded player should look better on the
+  // bench than an unupgraded copy of the same card).
+  const effectiveOverall = player.effective_overall ?? p.overall;
+  const effectivePlayer = {
+    ...p,
+    pace: player.effective_pace ?? p.pace,
+    shooting: player.effective_shooting ?? p.shooting,
+    passing: player.effective_passing ?? p.passing,
+    dribbling: player.effective_dribbling ?? p.dribbling,
+    defending: player.effective_defending ?? p.defending,
+    physic: player.effective_physic ?? p.physic,
+    overall: effectiveOverall,
+  };
 
   return (
     <motion.button
@@ -378,7 +457,7 @@ function BenchPlayerCard({
           className="absolute -top-1 left-1/2 -translate-x-1/2 px-1.5 py-[1px] rounded-full text-[8px] font-black border border-black/30 leading-tight"
           style={{ backgroundColor: posMeta.color, color: "#000" }}
         >
-          {p.overall}
+          {effectiveOverall}
         </div>
         {/* Position badge bottom-right */}
         <div
@@ -393,7 +472,7 @@ function BenchPlayerCard({
       <AnimatePresence>
         {hovered && !disabled && showTooltip && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50">
-            <PlayerTooltip player={p} position={posCat} />
+            <PlayerTooltip player={effectivePlayer} position={posCat} />
           </div>
         )}
       </AnimatePresence>
@@ -421,19 +500,21 @@ function BenchPlayerCard({
 // ═══════════════════════════════════════════════════════════════════════════
 function BenchSection({
   players,
+  positions,
   assignedIds,
   selectedSlot,
   onAssign,
   onAutoFill,
 }: {
   players: any[];
+  positions: readonly GamePosition[];
   assignedIds: Set<string>;
   selectedSlot: number | null;
   onAssign: (player: any) => void;
   onAutoFill: () => void;
 }) {
   const router = useRouter();
-  const targetPos = selectedSlot !== null ? POSITIONS[selectedSlot] : null;
+  const targetPos = selectedSlot !== null ? positions[selectedSlot] : null;
   const hasSelection = selectedSlot !== null;
   const [filterPos, setFilterPos] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -596,10 +677,10 @@ function BenchSection({
                 return (
                   <BenchPlayerCard
                     key={p._id?.toString() || op._id}
-                    player={p}
+                    player={op}
                     onClick={() => !isAssigned && onAssign(p)}
                     disabled={isAssigned}
-                    isSelected={selectedSlot !== null && playerMatchesCategory(p.positions, POSITIONS[selectedSlot])}
+                    isSelected={selectedSlot !== null && playerMatchesCategory(p.positions, positions[selectedSlot])}
                     showTooltip={!isAssigned}
                   />
                 );
@@ -641,14 +722,23 @@ export default function SquadPage() {
 
   const [squadSlots, setSquadSlots] = useState<(any | null)[]>([null, null, null, null, null]);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [formation, setFormation] = useState(DEFAULT_FORMATION);
+  const POSITIONS = formation.slots;
 
-  // Load existing squad
+  // Load existing squad — also restores its saved formation. Resolved
+  // locally (not via the `formation` state var) since state set in this
+  // effect wouldn't be visible until next render, and slot-building needs
+  // it immediately.
   useEffect(() => {
     if (existingSquad?.players) {
+      const resolvedFormation =
+        SQUAD_FORMATIONS.find((f) => f.name === existingSquad.formation) || DEFAULT_FORMATION;
+      setFormation(resolvedFormation);
+
       const slots: (any | null)[] = [null, null, null, null, null];
       existingSquad.players.forEach((p: any) => {
-        for (let i = 0; i < POSITIONS.length; i++) {
-          if (POSITIONS[i] === p.position && slots[i] === null) {
+        for (let i = 0; i < resolvedFormation.slots.length; i++) {
+          if (resolvedFormation.slots[i] === p.position && slots[i] === null) {
             slots[i] = p.playerId;
             break;
           }
@@ -657,6 +747,29 @@ export default function SquadPage() {
       setSquadSlots(slots);
     }
   }, [existingSquad]);
+
+  // Switch formation — keeps currently-assigned players who still fit a
+  // slot in the new layout (matched by real position), drops the rest back
+  // to the bench (they're still owned, just unassigned).
+  const handleFormationChange = useCallback((newFormation: typeof DEFAULT_FORMATION) => {
+    setFormation(newFormation);
+    setSquadSlots((prev) => {
+      const currentPlayers = prev.filter(Boolean) as any[];
+      const usedIds = new Set<string>();
+      const newSlots: (any | null)[] = new Array(5).fill(null);
+      newFormation.slots.forEach((pos, i) => {
+        const match = currentPlayers.find(
+          (p) => !usedIds.has(p._id?.toString()) && playerMatchesCategory(p.positions, pos),
+        );
+        if (match) {
+          newSlots[i] = match;
+          usedIds.add(match._id.toString());
+        }
+      });
+      return newSlots;
+    });
+    setSelectedSlot(null);
+  }, []);
 
   // Auto-assign on first load
   useEffect(() => {
@@ -817,13 +930,13 @@ export default function SquadPage() {
           slot: i,
         };
       });
-      await saveSquad.mutateAsync(players);
+      await saveSquad.mutateAsync({ players, formation: formation.name });
       toast.success("Squad saved!");
       if (isOnboarding) router.push("/game/home");
     } catch (err: any) {
       toast.error(err.message || "Failed to save squad");
     }
-  }, [squadSlots, ownedPlayers, saveSquad, isOnboarding, router]);
+  }, [squadSlots, ownedPlayers, saveSquad, isOnboarding, router, formation]);
 
   const assignedIds = useMemo(() => {
     const ids = new Set<string>();
@@ -833,10 +946,83 @@ export default function SquadPage() {
     return ids;
   }, [squadSlots]);
 
+  // Upgrades live on the owned-player record, not the base player card —
+  // look them up by player id so ratings reflect coins actually spent.
+  const getUpgradesFor = useCallback(
+    (playerId?: string) => {
+      const owned = ownedPlayers.find(
+        (op: any) => op.playerId?._id?.toString() === playerId,
+      );
+      return owned?.upgrades || {};
+    },
+    [ownedPlayers],
+  );
+
+  // Base + upgrades, before any position-fit penalty is applied.
+  const getUpgradedOverall = useCallback(
+    (player: any) =>
+      calculateEffectiveOverall(player, getUpgradesFor(player?._id?.toString()), player?.positions),
+    [getUpgradesFor],
+  );
+
+  // Same math the match engine actually uses when you play — so what you
+  // see here is what you'll get, including the out-of-position penalty.
+  const getSlotEffectiveOverall = useCallback(
+    (player: any, slotPosition: string) => {
+      if (!player) return 0;
+      const upgraded = getUpgradedOverall(player);
+      const eff = getPositionEffectiveness(
+        { ...player, overall: upgraded, position: slotPosition } as any,
+        slotPosition,
+      );
+      return Math.round(upgraded * eff);
+    },
+    [getUpgradedOverall],
+  );
+
+  const isSlotMismatch = useCallback(
+    (player: any, slotPosition: string) =>
+      !!player && !playerMatchesCategory(player.positions, slotPosition),
+    [],
+  );
+
+  // Merges upgrades into every displayed stat (not just overall) so
+  // tooltips show what the player can actually do, not just their base card.
+  const getEffectivePlayer = useCallback(
+    (player: any) => {
+      if (!player) return player;
+      const upgrades = getUpgradesFor(player._id?.toString());
+      const clamp = (key: string) => Math.min(99, (player[key] || 0) + (upgrades[key] || 0));
+      return {
+        ...player,
+        pace: clamp("pace"),
+        shooting: clamp("shooting"),
+        passing: clamp("passing"),
+        dribbling: clamp("dribbling"),
+        defending: clamp("defending"),
+        physic: clamp("physic"),
+        overall: getUpgradedOverall(player),
+      };
+    },
+    [getUpgradesFor, getUpgradedOverall],
+  );
+
   const filledCount = squadSlots.filter(Boolean).length;
-  const squadRating = filledCount > 0
-    ? Math.round(squadSlots.filter(Boolean).reduce((sum, p) => sum + (p?.overall || 0), 0) / filledCount)
-    : 0;
+
+  // Real squad rating: upgrades folded in, then the position-effectiveness
+  // penalty applied once (inside calculateSquadRating) — the exact same
+  // pipeline app/api/game/match/start/route.ts uses to build a match squad.
+  const squadRating = useMemo(() => {
+    if (filledCount === 0) return 0;
+    const matchPlayers = squadSlots
+      .map((p, i) =>
+        p
+          ? { ...p, position: POSITIONS[i] as any, overall: getUpgradedOverall(p) }
+          : null,
+      )
+      .filter(Boolean) as any[];
+    return calculateSquadRating({ players: matchPlayers }).overall;
+  }, [squadSlots, filledCount, getUpgradedOverall]);
 
   // ── Loading ──
   if (isLoading) {
@@ -905,15 +1091,45 @@ export default function SquadPage() {
           </div>
         </div>
 
+        {/* ── Formation selector ── */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+          {SQUAD_FORMATIONS.map((f) => (
+            <button
+              key={f.name}
+              onClick={() => f.name !== formation.name && handleFormationChange(f)}
+              className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl border transition-all ${
+                f.name === formation.name
+                  ? "border-[#e09225] bg-[#e09225]/10"
+                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
+              }`}
+            >
+              <span
+                className={`text-[10px] font-black tracking-wide ${
+                  f.name === formation.name ? "text-[#e09225]" : "text-white/60"
+                }`}
+              >
+                {f.name}
+              </span>
+              <span className="text-[8px] text-white/30">{f.label}</span>
+            </button>
+          ))}
+        </div>
+
         {/* ── Main layout: Pitch (left) + Bench (right) ── */}
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Left: Pitch */}
           <div className="w-full lg:w-1/2 xl:w-[45%] shrink-0">
             <PitchView
               slots={squadSlots}
+              layout={PITCH_LAYOUTS[formation.name]}
+              connections={PITCH_CONNECTIONS[formation.name]}
+              formationName={formation.name}
               selectedSlot={selectedSlot}
               onSlotClick={handleSlotClick}
               onRemove={handleRemoveFromSlot}
+              getEffectiveOverall={getSlotEffectiveOverall}
+              isMismatch={isSlotMismatch}
+              getEffectivePlayer={getEffectivePlayer}
             />
           </div>
 
@@ -936,6 +1152,7 @@ export default function SquadPage() {
             ) : (
               <BenchSection
                 players={ownedPlayers}
+                positions={POSITIONS}
                 assignedIds={assignedIds}
                 selectedSlot={selectedSlot}
                 onAssign={handleAssignFromBench}
@@ -956,12 +1173,14 @@ export default function SquadPage() {
                     key={i}
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[7px] font-black border ${
                       p
-                        ? "text-[#06182e] border-transparent"
+                        ? isSlotMismatch(p, POSITIONS[i])
+                          ? "text-white border-transparent bg-red-500"
+                          : "text-[#06182e] border-transparent"
                         : "text-white/20 border-white/10 bg-white/5"
                     }`}
-                    style={p ? { backgroundColor: POSITION_META[POSITIONS[i]].color } : {}}
+                    style={p && !isSlotMismatch(p, POSITIONS[i]) ? { backgroundColor: POSITION_META[POSITIONS[i]].color } : {}}
                   >
-                    {p ? p.overall : POSITIONS[i].slice(0, 2)}
+                    {p ? getSlotEffectiveOverall(p, POSITIONS[i]) : POSITIONS[i].slice(0, 2)}
                   </div>
                 ))}
               </div>

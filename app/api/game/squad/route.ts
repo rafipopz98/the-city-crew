@@ -5,6 +5,7 @@ import { GameSquadModel } from "@/lib/game/models/GameSquad";
 import { GameOwnedPlayerModel } from "@/lib/game/models/GameOwnedPlayer";
 import { logError } from "@/lib/errorLogger";
 import { getUserIdFromAuth } from "@/lib/game/utils/auth";
+import { SQUAD_FORMATIONS, DEFAULT_FORMATION } from "@/lib/game/utils/positions";
 
 // GET /api/game/squad - Get active squad
 export async function GET() {
@@ -70,11 +71,22 @@ export async function PUT(request: Request) {
 
     await connectDB();
 
-    const { players } = await request.json();
+    const { players, formation: formationName } = await request.json();
 
     if (!players || players.length !== 5) {
       return NextResponse.json({ message: "Squad must have exactly 5 players" }, { status: 400 });
     }
+
+    const uniqueOwnedIds = new Set(players.map((p: any) => String(p.ownedPlayerId)));
+    if (uniqueOwnedIds.size !== players.length) {
+      return NextResponse.json(
+        { message: "The same player can't occupy two slots" },
+        { status: 400 },
+      );
+    }
+
+    const chosenFormation =
+      SQUAD_FORMATIONS.find((f) => f.name === formationName) || DEFAULT_FORMATION;
 
     // Validate positions
     const validPositions = ["GK", "DEF", "MID", "FWD"];
@@ -86,8 +98,22 @@ export async function PUT(request: Request) {
       positionCount[p.position] = (positionCount[p.position] || 0) + 1;
     }
 
-    if ((positionCount["GK"] || 0) !== 1) {
-      return NextResponse.json({ message: "Squad must have exactly 1 goalkeeper" }, { status: 400 });
+    // Must exactly match the chosen formation's slot composition — not just
+    // "1 GK", since different formations need different DEF/MID/FWD counts.
+    const expectedCount: Record<string, number> = {};
+    for (const pos of chosenFormation.slots) {
+      expectedCount[pos] = (expectedCount[pos] || 0) + 1;
+    }
+    const countsMatch = validPositions.every(
+      (pos) => (positionCount[pos] || 0) === (expectedCount[pos] || 0),
+    );
+    if (!countsMatch) {
+      return NextResponse.json(
+        {
+          message: `Squad doesn't match the ${chosenFormation.name} formation (needs ${chosenFormation.slots.join(", ")})`,
+        },
+        { status: 400 },
+      );
     }
 
     // Bulk operations — single DB call instead of loop
@@ -116,7 +142,7 @@ export async function PUT(request: Request) {
       {
         $set: {
           name: "My Squad",
-          formation: "1-1-2-1",
+          formation: chosenFormation.name,
           players: players.map((p: any) => ({
             ownedPlayerId: p.ownedPlayerId,
             playerId: p.playerId,

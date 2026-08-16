@@ -10,15 +10,22 @@
 import type { WebSocket } from "ws";
 import { hub } from "./hub";
 import { matchmaking } from "./matchmaking";
-import { simulatePvPMatch } from "./matchEngine";
+import { simulatePvPFirstHalf, finishPvPSecondHalf } from "./matchEngine";
 import { getPlayerInfo } from "./redis";
+import { savePvPResult } from "./pvpResults";
+import { openHalftimeWait, submitHalftimeChange, waitForHalftimeChanges } from "./halftimeWait";
+import { loadSquadMatchPlayers, buildMatchPlayersFromSelection } from "@/lib/game/utils/loadSquadMatchPlayers";
+import { calculateSquadRating, type MatchHalfState } from "@/lib/game/engine/matchEngine";
 import type {
   ClientMessage,
   ServerMessage,
   QueueEntry,
   MatchEndPayload,
   MatchEventPayload,
+  MatchSubsPayload,
 } from "./protocol";
+
+const HALFTIME_WINDOW_MS = 30_000;
 
 // ─── Duplicate Join Prevention ─────────────────────────────────────────────
 // React Strict Mode double-mounts components, causing TWO matchmaking:join
@@ -50,9 +57,19 @@ export async function handleMessage(ws: WebSocket, message: ClientMessage): Prom
     case "matchmaking:leave":
       await handleLeave(ws);
       break;
+    case "match:subs":
+      handleSubs(ws, message.payload);
+      break;
     case "match:ready":
       break;
   }
+}
+
+/** Records a player's halftime substitution/formation-change submission. */
+function handleSubs(ws: WebSocket, payload: MatchSubsPayload): void {
+  const userId = (ws as any).authUserId as string | undefined;
+  if (!userId) return;
+  submitHalftimeChange(payload.matchId, userId, payload.updatedSquad);
 }
 
 async function handleJoin(
@@ -60,19 +77,40 @@ async function handleJoin(
   payload: { userId: string; squadRating: number; username: string; squadPlayers?: string[]; squadPlayerPositions?: string[] },
   ackId?: string,
 ): Promise<void> {
-  const { userId, squadRating, username, squadPlayers, squadPlayerPositions } = payload;
+  // The real userId comes from the verified session cookie checked at
+  // connection time (see auth.ts), never from client-supplied payload
+  // fields — otherwise a client could join as (impersonate) any user.
+  const userId = (ws as any).authUserId as string | undefined;
+  const { username, squadPlayers, squadPlayerPositions } = payload;
 
-  console.log(`[PvP-Server] handleJoin: user=${username}(${userId}) rating=${squadRating}`);
-
-  if (squadRating <= 0) {
-    console.warn(`[PvP-Server] Invalid squad rating for ${username}`);
+  if (!userId) {
+    console.warn("[PvP-Server] handleJoin: no authenticated userId on connection, rejecting");
     send(ws, {
       type: "match:ack",
       id: ackId || "",
-      payload: { success: false, message: "Invalid squad rating" },
+      payload: { success: false, message: "Unauthorized" },
     });
     return;
   }
+
+  // Load the real squad and compute the rating used for matchmaking
+  // server-side — the client-reported squadRating/squadPlayers/positions
+  // are no longer trusted for anything match-outcome-relevant (they were
+  // previously used to fabricate synthetic stats with zero connection to
+  // what the player actually owns and has upgraded).
+  const realSquad = await loadSquadMatchPlayers(userId);
+  if (!realSquad) {
+    console.warn(`[PvP-Server] ${username}(${userId}) has no complete squad — rejecting join`);
+    send(ws, {
+      type: "match:ack",
+      id: ackId || "",
+      payload: { success: false, message: "You need a complete 5-player squad to play PvP" },
+    });
+    return;
+  }
+  const squadRating = calculateSquadRating({ players: realSquad }).overall;
+
+  console.log(`[PvP-Server] handleJoin: user=${username}(${userId}) rating=${squadRating}`);
 
   // ── Prevent duplicate joins from React Strict Mode ───────────────────
   if (recentlyJoined.has(userId)) {
@@ -259,18 +297,73 @@ async function runMatch(
   homePlayer: QueueEntry,
   awayPlayer: QueueEntry,
 ): Promise<void> {
-  const result = simulatePvPMatch(
-    homePlayer.squadRating,
-    awayPlayer.squadRating,
-    homePlayer.squadPlayerNames,
-    awayPlayer.squadPlayerNames,
-    homePlayer.squadPlayerPositions,
-    awayPlayer.squadPlayerPositions,
+  // Load fresh real squads right at execution time — never trust whatever
+  // was cached in the QueueEntry at join time, since a squad can change
+  // between queueing and being matched.
+  const [homeSquad, awaySquad] = await Promise.all([
+    loadSquadMatchPlayers(homeUserId),
+    loadSquadMatchPlayers(awayUserId),
+  ]);
+  if (!homeSquad || !awaySquad) {
+    const msg: ServerMessage = {
+      type: "match:error",
+      payload: { message: "One of the squads is no longer complete — match cancelled" },
+    };
+    sendToUser(homeUserId, msg);
+    sendToUser(awayUserId, msg);
+    return;
+  }
+
+  const halfState = simulatePvPFirstHalf(homeSquad, awaySquad);
+
+  // Stream first-half events — uses sendToUser so it always picks up the
+  // latest WebSocket from the hub (handles reconnects mid-match).
+  for (const event of halfState.events) {
+    await delay(1000 + Math.random() * 1000);
+    const msg = {
+      type: "match:event" as const,
+      payload: {
+        minute: event.minute,
+        type: event.type,
+        description: event.description,
+        actorName: event.actorName,
+      },
+    };
+    sendToUser(homeUserId, msg);
+    sendToUser(awayUserId, msg);
+  }
+
+  // ── Halftime window: real 30s wait for both players ────────────────────
+  openHalftimeWait(matchId);
+  const halftimeMsg: ServerMessage = {
+    type: "match:halftime",
+    payload: {
+      matchId,
+      homeScore: halfState.userScore,
+      awayScore: halfState.opponentScore,
+      seconds: HALFTIME_WINDOW_MS / 1000,
+    },
+  };
+  sendToUser(homeUserId, halftimeMsg);
+  sendToUser(awayUserId, halftimeMsg);
+
+  const submissions = await waitForHalftimeChanges(
+    matchId,
+    [homeUserId, awayUserId],
+    HALFTIME_WINDOW_MS,
   );
 
-  // Stream events — uses sendToUser so it always picks up the latest
-  // WebSocket from the hub (handles reconnects mid-match).
-  for (const event of result.events) {
+  const [updatedHomeSquad, updatedAwaySquad] = await Promise.all([
+    resolveHalftimeSquad(homeUserId, submissions.get(homeUserId)),
+    resolveHalftimeSquad(awayUserId, submissions.get(awayUserId)),
+  ]);
+
+  const result = finishPvPSecondHalf(halfState, updatedHomeSquad, updatedAwaySquad);
+
+  // Stream just the second-half events — the first half was already
+  // streamed above, before the halftime pause.
+  const secondHalfEvents = result.events.filter((e) => e.minute > 45);
+  for (const event of secondHalfEvents) {
     await delay(1000 + Math.random() * 1000);
     const msg = {
       type: "match:event" as const,
@@ -319,6 +412,26 @@ async function runMatch(
     awayRewards: result.awayRewards,
   };
 
+  // Persist the true, server-computed outcome keyed by matchId so
+  // /api/game/match/pvp can pay out against it instead of trusting
+  // whatever a client reports back.
+  await savePvPResult(matchId, {
+    homeUserId,
+    awayUserId,
+    homeScore: result.homeScore,
+    awayScore: result.awayScore,
+    homePossession: result.homePossession,
+    awayPossession: result.awayPossession,
+    homeShots: result.homeShots,
+    awayShots: result.awayShots,
+    homeShotsOnTarget: result.homeShotsOnTarget,
+    awayShotsOnTarget: result.awayShotsOnTarget,
+    winner: result.winner,
+    homeRewards: result.homeRewards,
+    awayRewards: result.awayRewards,
+    playerOfTheMatch: result.playerOfTheMatch,
+  });
+
   sendToUser(homeUserId, { type: "match:end", payload: finalResult });
   sendToUser(awayUserId, { type: "match:end", payload: finalResult });
 }
@@ -332,14 +445,72 @@ async function runMatchAndStore(
   awayPlayer: QueueEntry,
   side: "home" | "away",
 ): Promise<void> {
-  const result = simulatePvPMatch(
-    homePlayer.squadRating,
-    awayPlayer.squadRating,
-    homePlayer.squadPlayerNames,
-    awayPlayer.squadPlayerNames,
-    homePlayer.squadPlayerPositions,
-    awayPlayer.squadPlayerPositions,
-  );
+  // Load fresh real squads right at execution time — see runMatch for why.
+  const [homeSquad, awaySquad] = await Promise.all([
+    loadSquadMatchPlayers(homePlayer.userId),
+    loadSquadMatchPlayers(awayPlayer.userId),
+  ]);
+  if (!homeSquad || !awaySquad) {
+    send(homeWs, {
+      type: "match:error",
+      payload: { message: "One of the squads is no longer complete — match cancelled" },
+    });
+    return;
+  }
+
+  const halfState = simulatePvPFirstHalf(homeSquad, awaySquad);
+
+  // Stream first-half events to the local player only.
+  for (const event of halfState.events) {
+    await delay(1000 + Math.random() * 1000);
+    send(homeWs, {
+      type: "match:event",
+      payload: {
+        minute: event.minute,
+        type: event.type,
+        description: event.description,
+        actorName: event.actorName,
+      },
+    });
+  }
+
+  // ── Halftime window ─────────────────────────────────────────────────────
+  // Note: only the local (host-instance) player gets a real substitution
+  // window here — homePlayer is always the local joining user for this
+  // cross-instance path (see handleJoin). Giving the remote player the same
+  // window would need cross-instance messaging for match:subs, which isn't
+  // implemented; their squad simply carries over unchanged into the second
+  // half.
+  openHalftimeWait(matchId);
+  send(homeWs, {
+    type: "match:halftime",
+    payload: {
+      matchId,
+      homeScore: halfState.userScore,
+      awayScore: halfState.opponentScore,
+      seconds: HALFTIME_WINDOW_MS / 1000,
+    },
+  });
+
+  const submissions = await waitForHalftimeChanges(matchId, [homePlayer.userId], HALFTIME_WINDOW_MS);
+  const updatedHomeSquad = await resolveHalftimeSquad(homePlayer.userId, submissions.get(homePlayer.userId));
+
+  const result = finishPvPSecondHalf(halfState, updatedHomeSquad, undefined);
+
+  // Stream just the second-half events to the local player.
+  const secondHalfEvents = result.events.filter((e) => e.minute > 45);
+  for (const event of secondHalfEvents) {
+    await delay(1000 + Math.random() * 1000);
+    send(homeWs, {
+      type: "match:event",
+      payload: {
+        minute: event.minute,
+        type: event.type,
+        description: event.description,
+        actorName: event.actorName,
+      },
+    });
+  }
 
   // Store full result in Redis for the remote instance
   const finalResult: MatchEndPayload = {
@@ -376,19 +547,25 @@ async function runMatchAndStore(
 
   await matchmaking.storeResult(matchId, JSON.stringify(finalResult));
 
-  // Stream events to local player
-  for (const event of result.events) {
-    await delay(1000 + Math.random() * 1000);
-    send(homeWs, {
-      type: "match:event",
-      payload: {
-        minute: event.minute,
-        type: event.type,
-        description: event.description,
-        actorName: event.actorName,
-      },
-    });
-  }
+  // Persist the true, server-computed outcome keyed by matchId so
+  // /api/game/match/pvp can pay out against it instead of trusting
+  // whatever a client reports back.
+  await savePvPResult(matchId, {
+    homeUserId: homePlayer.userId,
+    awayUserId: awayPlayer.userId,
+    homeScore: result.homeScore,
+    awayScore: result.awayScore,
+    homePossession: result.homePossession,
+    awayPossession: result.awayPossession,
+    homeShots: result.homeShots,
+    awayShots: result.awayShots,
+    homeShotsOnTarget: result.homeShotsOnTarget,
+    awayShotsOnTarget: result.awayShotsOnTarget,
+    winner: result.winner,
+    homeRewards: result.homeRewards,
+    awayRewards: result.awayRewards,
+    playerOfTheMatch: result.playerOfTheMatch,
+  });
 
   await delay(1000);
 
@@ -458,6 +635,27 @@ export async function streamRemoteMatch(
 
   await delay(1000);
   send(ws, { type: "match:end", payload: result });
+}
+
+// ─── Halftime Squad Resolution ──────────────────────────────────────────────
+
+/**
+ * Resolves a player's halftime submission into a real MatchPlayer[], or
+ * undefined to keep their squad unchanged (no submission, timed out, or an
+ * invalid selection — never trust the shape of what a client sent without
+ * verifying every ownedPlayerId actually belongs to this user).
+ */
+async function resolveHalftimeSquad(
+  userId: string,
+  submission: import("./halftimeWait").HalftimeSquadChange | null | undefined,
+) {
+  if (!submission || !submission.players) return undefined;
+  const players = await buildMatchPlayersFromSelection(userId, submission.players);
+  if (!players) {
+    console.warn(`[PvP-Server] Invalid halftime submission from ${userId} — keeping original squad`);
+    return undefined;
+  }
+  return players;
 }
 
 // ─── Utilities ─────────────────────────────────────────────────────────────

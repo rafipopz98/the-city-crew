@@ -7,6 +7,8 @@ export type MessageType =
   | "matchmaking:found"
   | "match:countdown"
   | "match:event"
+  | "match:halftime"
+  | "match:subs"
   | "match:end"
   | "match:error"
   | "match:ready";
@@ -28,10 +30,19 @@ export interface MatchReadyPayload {
   matchId: string;
 }
 
+export interface MatchSubsPayload {
+  matchId: string;
+  /** Omit or leave players unset for "no changes". */
+  updatedSquad?: {
+    players: { ownedPlayerId: string; position: "GK" | "DEF" | "MID" | "FWD" }[];
+  };
+}
+
 export type ClientMessage =
   | { type: "matchmaking:join"; payload: MatchmakingJoinPayload; id?: string }
   | { type: "matchmaking:leave"; payload?: MatchmakingLeavePayload; id?: string }
-  | { type: "match:ready"; payload: MatchReadyPayload; id?: string };
+  | { type: "match:ready"; payload: MatchReadyPayload; id?: string }
+  | { type: "match:subs"; payload: MatchSubsPayload; id?: string };
 
 // ─── Server → Client Messages ──────────────────────────────────────────────
 
@@ -87,11 +98,20 @@ export interface MatchErrorPayload {
   message: string;
 }
 
+export interface MatchHalftimePayload {
+  matchId: string;
+  homeScore: number;
+  awayScore: number;
+  /** How long the substitution/formation-change window lasts. */
+  seconds: number;
+}
+
 export type ServerMessage =
   | { type: "matchmaking:waiting"; payload: MatchmakingWaitingPayload }
   | { type: "matchmaking:found"; payload: MatchmakingFoundPayload }
   | { type: "match:countdown"; payload: MatchCountdownPayload }
   | { type: "match:event"; payload: MatchEventPayload }
+  | { type: "match:halftime"; payload: MatchHalftimePayload }
   | { type: "match:end"; payload: MatchEndPayload }
   | { type: "match:error"; payload: MatchErrorPayload }
   | { type: "match:ack"; payload: { success: boolean; message?: string }; id: string };

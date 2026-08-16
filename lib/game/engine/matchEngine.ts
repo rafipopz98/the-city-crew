@@ -6,6 +6,8 @@
  * Positions matter - playing out of position reduces effectiveness.
  */
 
+import { POSITION_GROUPS, playerMatchesCategory } from "@/lib/game/utils/positionMapping";
+
 export interface MatchPlayer {
   _id: string;
   player_id?: number;
@@ -18,6 +20,13 @@ export interface MatchPlayer {
   defending: number;
   physic: number;
   position: "GK" | "DEF" | "MID" | "FWD";
+  /**
+   * Real specific positions (e.g. ["ST"], ["CB", "LB"]) from the player's
+   * card data — ground truth for out-of-position checks. Only present for
+   * real DB players (bot-match squads); synthetic PvP/bot-opponent players
+   * don't have this and fall back to a stat-based guess instead.
+   */
+  positions?: string[];
   // All attributes available
   attacking_finishing?: number;
   mentality_positioning?: number;
@@ -65,17 +74,47 @@ export interface MatchResult {
   duration_seconds: number;
 }
 
-interface SquadWithPlayers {
+export interface SquadWithPlayers {
   players: MatchPlayer[];
   name?: string;
 }
 
 // ─── Position Effectiveness ─────────────────────────────────────────────────
-function getPositionEffectiveness(player: MatchPlayer, assignedPosition: string): number {
+// Broad categories adjacent to each slot — a real MID playing DEF is a
+// smaller mismatch than a real FWD playing DEF, so it's penalized less.
+const ADJACENT_CATEGORIES: Record<string, string[]> = {
+  DEF: ["MID"],
+  MID: ["DEF", "FWD"],
+  FWD: ["MID"],
+};
+
+// Exported so the squad-builder UI can preview the exact same effectiveness
+// a player will get in an actual match, instead of a naive flat average.
+export function getPositionEffectiveness(player: MatchPlayer, assignedPosition: string): number {
+  // Ground truth when we have it: the player's real positions (e.g. a
+  // striker's ["ST"]) never change just because we dragged them into a
+  // different slot — unlike the old check, this can't be tricked into
+  // reporting a striker as a natural goalkeeper by assigning them to GK.
+  if (player.positions && player.positions.length > 0) {
+    if (playerMatchesCategory(player.positions, assignedPosition)) return 1.0;
+
+    if (assignedPosition === "GK") {
+      // A real outfield player has essentially no goalkeeping ability,
+      // regardless of how good their outfield stats are.
+      return (player.goalkeeping_diving ?? 0) > 50 ? 0.6 : 0.3;
+    }
+
+    const isAdjacent = ADJACENT_CATEGORIES[assignedPosition]?.some((cat) =>
+      playerMatchesCategory(player.positions, cat),
+    );
+    return isAdjacent ? 0.85 : 0.65;
+  }
+
+  // No real position data available (synthetic bot-opponent/PvP players) —
+  // fall back to inferring a rough archetype from raw attribute thresholds.
   const naturalPositions = getNaturalPositions(player);
 
   if (assignedPosition === "GK") {
-    // Only GK-rated players should play GK
     if (naturalPositions.includes("GK")) return 1.0;
     if (player.goalkeeping_diving && player.goalkeeping_diving > 50) return 0.6;
     return 0.3;
@@ -83,17 +122,11 @@ function getPositionEffectiveness(player: MatchPlayer, assignedPosition: string)
 
   if (naturalPositions.includes(assignedPosition)) return 1.0;
 
-  // Check related positions
-  const related: Record<string, string[]> = {
-    DEF: ["CDM", "LB", "RB", "LWB", "RWB"],
-    MID: ["CM", "CDM", "CAM", "LM", "RM"],
-    FWD: ["ST", "CF", "LW", "RW", "LF", "RF"],
-  };
-
-  const isRelated = naturalPositions.some((np) => related[assignedPosition]?.includes(np));
+  const isRelated = ADJACENT_CATEGORIES[assignedPosition]?.some((cat) =>
+    naturalPositions.includes(cat),
+  );
   if (isRelated) return 0.85;
 
-  // Out of position penalty
   return 0.65;
 }
 
@@ -112,7 +145,7 @@ function getNaturalPositions(player: MatchPlayer): string[] {
 }
 
 // ─── Squad Rating Calculation ───────────────────────────────────────────────
-function calculateSquadRating(squad: SquadWithPlayers): {
+export function calculateSquadRating(squad: SquadWithPlayers): {
   overall: number;
   attack: number;
   midfield: number;
@@ -819,11 +852,41 @@ function maybeInjectFoul(
   return true; // consumed this event iteration — no further shot logic
 }
 
-// ─── Match Simulation ───────────────────────────────────────────────────────
-export function simulateMatch(
+// ─── Halftime-splittable Match Simulation ──────────────────────────────────
+// Carries everything needed to resume a match after halftime — including a
+// possibly-updated squad (substitutions/formation change) — as a plain,
+// serializable object so it can round-trip through an API response/request
+// or sit in server-side storage between the two halves.
+export interface MatchHalfState {
+  userSquad: SquadWithPlayers;
+  opponent: SquadWithPlayers;
+  events: MatchEvent[];
+  userScore: number;
+  opponentScore: number;
+  userShots: number;
+  opponentShots: number;
+  userShotsOnTarget: number;
+  opponentShotsOnTarget: number;
+  stats: {
+    userFouls: number; opponentFouls: number;
+    userYellowCards: number; opponentYellowCards: number;
+    userRedCards: number; opponentRedCards: number;
+    userPenalties: number; opponentPenalties: number;
+    userCorners: number; opponentCorners: number;
+  };
+}
+
+/**
+ * Simulates the first half only, stopping right after the half_time event.
+ * Returns the running state needed to resume — the caller can offer a
+ * substitution/formation-change window here before calling
+ * simulateSecondHalf, and that change will genuinely affect the second
+ * half's ratings/possession/outcome (not just be cosmetic).
+ */
+export function simulateFirstHalf(
   userSquad: SquadWithPlayers,
   opponentSquad?: SquadWithPlayers,
-): MatchResult {
+): MatchHalfState {
   const userRating = calculateSquadRating(userSquad);
   const opponent = opponentSquad || generateOpponentSquad(userRating.overall);
   const opponentRating = calculateSquadRating(opponent);
@@ -856,7 +919,6 @@ export function simulateMatch(
   const userPossession = Math.round(20 + clamped * 60) + 2;
 
   const homeName = userSquad.name || "Your Team";
-  const awayName = opponent.name || "Opponent";
 
   // Build player info arrays for weighted selection
   const userPlayers = userSquad.players;
@@ -979,6 +1041,60 @@ export function simulateMatch(
     isUserEvent: true,
     actorName: "",
   });
+
+  return {
+    userSquad,
+    opponent,
+    events,
+    userScore: userScore.current,
+    opponentScore: opponentScore.current,
+    userShots,
+    opponentShots,
+    userShotsOnTarget,
+    opponentShotsOnTarget,
+    stats,
+  };
+}
+
+/**
+ * Resumes and finishes a match from the state returned by
+ * simulateFirstHalf. Pass `updatedUserSquad` / `updatedOpponentSquad` if
+ * either side made substitutions or changed formation at halftime —
+ * ratings and possession are recalculated from them, so the change
+ * genuinely affects the second half rather than being cosmetic.
+ */
+export function simulateSecondHalf(
+  state: MatchHalfState,
+  updatedUserSquad?: SquadWithPlayers,
+  updatedOpponentSquad?: SquadWithPlayers,
+): MatchResult {
+  const userSquad = updatedUserSquad || state.userSquad;
+  const opponent = updatedOpponentSquad || state.opponent;
+  const userRating = calculateSquadRating(userSquad);
+  const opponentRating = calculateSquadRating(opponent);
+
+  const events = [...state.events]; // copy — don't mutate the caller's state.events in place
+  const userScore = { current: state.userScore };
+  const opponentScore = { current: state.opponentScore };
+  let userShots = state.userShots;
+  let opponentShots = state.opponentShots;
+  let userShotsOnTarget = state.userShotsOnTarget;
+  let opponentShotsOnTarget = state.opponentShotsOnTarget;
+  const stats = state.stats;
+
+  const homeName = userSquad.name || "Your Team";
+
+  // Recompute possession the same way as the first half — a substitution
+  // or formation change should be able to shift it, not just be cosmetic.
+  const midRatio = userRating.midfield / (userRating.midfield + opponentRating.midfield);
+  const overallRatio = userRating.overall / (userRating.overall + opponentRating.overall);
+  const blendedRatio = midRatio * 0.6 + overallRatio * 0.4;
+  const amplified = (blendedRatio - 0.5) * 1.8 + 0.5;
+  const clamped = Math.max(0.15, Math.min(0.85, amplified));
+  const userPossession = Math.round(20 + clamped * 60) + 2;
+
+  const userPlayers = userSquad.players;
+  const oppPlayers = opponent.players;
 
   // ── SECOND HALF ────────────────────────────────────────────────────────
   const secondHalfEvents = Math.floor(Math.random() * 3) + 4; // 4-6
@@ -1128,6 +1244,19 @@ export function simulateMatch(
     playerOfTheMatch: potm,
     duration_seconds: 25 + Math.floor(Math.random() * 10),
   };
+}
+
+/**
+ * Full match in one call, no halftime pause — composes
+ * simulateFirstHalf + simulateSecondHalf. Kept for callers that don't need
+ * (or don't yet support) a mid-match substitution window.
+ */
+export function simulateMatch(
+  userSquad: SquadWithPlayers,
+  opponentSquad?: SquadWithPlayers,
+): MatchResult {
+  const halfState = simulateFirstHalf(userSquad, opponentSquad);
+  return simulateSecondHalf(halfState);
 }
 
 // ─── Rewards Calculation ────────────────────────────────────────────────────

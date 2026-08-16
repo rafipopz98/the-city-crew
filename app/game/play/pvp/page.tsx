@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useSocket } from "@/lib/game/socket/client";
 import type { ServerMessage } from "@/lib/game/socket/protocol";
-import { ErrorState } from "@/app/game/_components";
+import { ErrorState, HalftimeModal, type HalftimeSquadChange } from "@/app/game/_components";
 import api from "@/lib/api/axios";
 
 interface MatchSocketEvent {
@@ -54,8 +54,9 @@ type PvPState = "loading" | "no_squad" | "no_coins" | "connecting" | "queue" | "
 
 export default function PvPPage() {
   const router = useRouter();
-  const { connected, registerListeners, joinQueue, leaveQueue } = useSocket();
+  const { connected, sendMessage, registerListeners, joinQueue, leaveQueue } = useSocket();
   const [pvpState, setPvpState] = useState<PvPState>("loading");
+  const [showHalftime, setShowHalftime] = useState(false);
   const [gameUser, setGameUser] = useState<any>(null);
   const [squad, setSquad] = useState<any>(null);
   const [queuePosition, setQueuePosition] = useState(0);
@@ -252,9 +253,16 @@ export default function PvPPage() {
           break;
         }
 
+        case "match:halftime":
+          console.log("[PvP] Half time:", message.payload);
+          setMatchScore({ home: message.payload.homeScore, away: message.payload.awayScore });
+          setShowHalftime(true);
+          break;
+
         case "match:end":
           console.log("[PvP] Match ended!", message.payload);
           setMatchResult(message.payload);
+          setShowHalftime(false);
           setPvpState("result");
           savePvPRewards(message.payload);
           break;
@@ -285,36 +293,33 @@ export default function PvPPage() {
     return () => clearTimeout(timer);
   }, [pvpState, savingRewards, router]);
 
-  // Save PvP rewards to backend
+  // Claim PvP rewards from backend. Only matchId (+ events, for the
+  // match-history display) are sent — score/possession/result/xp/coins are
+  // no longer trusted from the client at all; the server looks up what it
+  // actually computed and stored when the match ended, and pays out this
+  // user's own side of it exactly once.
   const savePvPRewards = async (result: MatchSocketResult) => {
     setSavingRewards(true);
     try {
-      const isHome = playerSide === "home";
-      const rewards = isHome ? result.homeRewards : result.awayRewards;
-
       await api.post("/game/match/pvp", {
         matchId: result.matchId,
-        opponentName: opponent?.username || "Opponent",
-        userScore: isHome ? result.homeScore : result.awayScore,
-        opponentScore: isHome ? result.awayScore : result.homeScore,
-        userPossession: isHome ? result.homePossession : result.awayPossession,
-        opponentPossession: isHome ? result.awayPossession : result.homePossession,
-        userShots: isHome ? result.homeShots : result.awayShots,
-        opponentShots: isHome ? result.awayShots : result.homeShots,
-        userShotsOnTarget: isHome ? result.homeShotsOnTarget : result.awayShotsOnTarget,
-        opponentShotsOnTarget: isHome ? result.awayShotsOnTarget : result.homeShotsOnTarget,
-        xpEarned: rewards.xp,
-        coinsEarned: rewards.coins,
-        result: isHome ? result.winner === "home" ? "win" : result.winner === "away" ? "loss" : "draw"
-                : result.winner === "away" ? "win" : result.winner === "home" ? "loss" : "draw",
         events: result.events,
-        playerOfTheMatch: result.playerOfTheMatch,
       });
     } catch (err) {
       console.error("Failed to save PvP rewards:", err);
     } finally {
       setSavingRewards(false);
     }
+  };
+
+  // Halftime — send the (optional) substitution/formation change to the
+  // server, which is what actually decides the second half. Fires either
+  // when the player confirms, or the 30s countdown in HalftimeModal runs out.
+  const handleHalftimeSubmit = (change?: HalftimeSquadChange) => {
+    if (matchId) {
+      sendMessage({ type: "match:subs", payload: { matchId, updatedSquad: change } });
+    }
+    setShowHalftime(false);
   };
 
   // Cancel queue — go home
@@ -374,6 +379,13 @@ export default function PvPPage() {
 
   return (
     <div className="h-full overflow-y-auto">
+      {showHalftime && (
+        <HalftimeModal
+          userScore={playerSide === "home" ? matchScore.home : matchScore.away}
+          opponentScore={playerSide === "home" ? matchScore.away : matchScore.home}
+          onSubmit={handleHalftimeSubmit}
+        />
+      )}
       <div className="max-w-2xl mx-auto p-4 md:p-6">
         <AnimatePresence mode="wait">
           {/* Loading */}

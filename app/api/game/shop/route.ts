@@ -120,15 +120,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Player not found" }, { status: 404 });
     }
 
-    // Atomic check-and-buy using a single findOneAndUpdate for the user
-    const alreadyOwned = await GameOwnedPlayerModel.findOne({
-      userId: auth.userId,
-      playerId,
-    });
-    if (alreadyOwned) {
-      return NextResponse.json({ message: "Player already owned" }, { status: 400 });
-    }
-
     if (gameUser.xp < (player.required_xp || 0)) {
       return NextResponse.json(
         { message: `Need ${player.required_xp} XP to unlock this player` },
@@ -144,17 +135,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // Deduct + grant in parallel
-    const [updatedUser] = await Promise.all([
-      GameUserModel.findOneAndUpdate(
-        { userId: auth.userId, coins: { $gte: price } },
-        { $inc: { coins: -price } },
-        { returnDocument: "after" },
-      ),
-      GameOwnedPlayerModel.create({ userId: auth.userId, playerId }),
-    ]);
+    // Grant ownership FIRST — the unique (userId, playerId) index naturally
+    // serializes concurrent duplicate-purchase attempts (double-click, retry,
+    // two tabs): only one `create` can ever succeed for the same pair, so
+    // there's no window where two requests both pass a pre-check and both
+    // deduct coins for a single player.
+    let owned;
+    try {
+      owned = await GameOwnedPlayerModel.create({ userId: auth.userId, playerId });
+    } catch (err: any) {
+      if (err?.code === 11000) {
+        return NextResponse.json({ message: "Player already owned" }, { status: 400 });
+      }
+      throw err;
+    }
+
+    // Only spend coins once ownership is confirmed granted. If this fails
+    // (insufficient balance, or lost a race against another purchase that
+    // drained the balance first), roll back the grant so nothing is given
+    // away for free.
+    const updatedUser = await GameUserModel.findOneAndUpdate(
+      { userId: auth.userId, coins: { $gte: price } },
+      { $inc: { coins: -price } },
+      { returnDocument: "after" },
+    );
 
     if (!updatedUser) {
+      await GameOwnedPlayerModel.deleteOne({ _id: owned._id });
       return NextResponse.json({ message: "Insufficient coins" }, { status: 400 });
     }
 

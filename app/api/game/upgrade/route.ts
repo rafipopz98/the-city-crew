@@ -114,36 +114,47 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Atomic upgrade: deduct coins + apply upgrade ─────────────────────
-    const upgradeKey = `upgrades.${stat}`;
-
-    const [updatedUser] = await Promise.all([
-      GameUserModel.findOneAndUpdate(
-        { userId: payload.userId, coins: { $gte: coinCost } },
-        { $inc: { coins: -coinCost } },
-        { returnDocument: "after" },
-      ),
-      GameOwnedPlayerModel.findOneAndUpdate(
-        { playerId: ownedPlayerId, userId: payload.userId },
-        {
-          $inc: {
-            [upgradeKey]: 1,
-            total_upgrade_cost: coinCost,
-          },
-        },
-        { returnDocument: "after" },
-      ),
-    ]);
+    // ── Deduct coins FIRST, guarded by balance — only apply the stat
+    // increment if the deduction actually succeeded. Running these as an
+    // unguarded Promise.all previously let the upgrade apply even when the
+    // coin deduction lost a race and failed the balance check (free upgrade).
+    const updatedUser = await GameUserModel.findOneAndUpdate(
+      { userId: payload.userId, coins: { $gte: coinCost } },
+      { $inc: { coins: -coinCost } },
+      { returnDocument: "after" },
+    );
 
     if (!updatedUser) {
       return NextResponse.json({ message: "Insufficient coins" }, { status: 400 });
+    }
+
+    const upgradeKey = `upgrades.${stat}`;
+    const updatedOwnedPlayer = await GameOwnedPlayerModel.findOneAndUpdate(
+      { playerId: ownedPlayerId, userId: payload.userId },
+      { $inc: { [upgradeKey]: 1, total_upgrade_cost: coinCost } },
+      { returnDocument: "after" },
+    );
+
+    if (!updatedOwnedPlayer) {
+      // Extremely unlikely (the player existed moments ago), but if it
+      // happens, refund the coins already taken rather than keeping them
+      // for an upgrade that was never applied.
+      await GameUserModel.updateOne(
+        { userId: payload.userId },
+        { $inc: { coins: coinCost } },
+      );
+      return NextResponse.json({ message: "Player not found" }, { status: 404 });
     }
 
     return NextResponse.json({
       message: `${player.short_name}'s ${stat} upgraded to ${newValue}! 🎯`,
       stat,
       newValue,
-      effectiveOverall: calculateEffectiveOverall(player, ownedPlayer.upgrades),
+      effectiveOverall: calculateEffectiveOverall(
+        player,
+        updatedOwnedPlayer.upgrades as any,
+        player.positions,
+      ),
       coins: updatedUser.coins,
       xp: updatedUser.xp,
       upgradeLevel: upgradeLevel + 1,

@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, Trophy, Clock, Zap, Target, Shield, Award, Frown, Handshake } from "lucide-react";
-import { ErrorState, SkeletonMatchDetail } from "@/app/game/_components";
+import { ErrorState, SkeletonMatchDetail, HalftimeModal, type HalftimeSquadChange } from "@/app/game/_components";
+import { useContinueMatch } from "@/lib/game/hooks/useGameQuery";
 import api from "@/lib/api/axios";
 
 interface MatchEvent {
@@ -54,6 +55,8 @@ export default function MatchSimulationPage() {
   const [loadError, setLoadError] = useState("");
   const [visibleEvents, setVisibleEvents] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
+  const [showHalftime, setShowHalftime] = useState(false);
+  const [halftimeError, setHalftimeError] = useState("");
   const [liveUserScore, setLiveUserScore] = useState(0);
   const [liveOpponentScore, setLiveOpponentScore] = useState(0);
   const [gameUser, setGameUser] = useState<any>(null);
@@ -61,6 +64,7 @@ export default function MatchSimulationPage() {
   const loadedRef = useRef(false);
   const cameFromMatch = useRef(false);
   const [isHistoryView, setIsHistoryView] = useState(false);
+  const continueMatch = useContinueMatch();
 
   useEffect(() => {
     if (loadedRef.current) return;
@@ -75,9 +79,18 @@ export default function MatchSimulationPage() {
       if (stored) {
         cameFromMatch.current = true;
         const data = JSON.parse(stored);
-        setMatchData(data);
         sessionStorage.removeItem("lastMatchResult");
-        startEventAnimation(data.events || []);
+
+        if (data.isFirstHalf) {
+          // Only the first half has been played — pause for the halftime
+          // window once the reveal reaches the end of it, instead of
+          // going straight to the result screen.
+          setMatchData({ events: data.events } as MatchResult);
+          startEventAnimation(data.events || [], 0, () => setShowHalftime(true));
+        } else {
+          setMatchData(data);
+          startEventAnimation(data.events || [], 0, () => setShowResult(true));
+        }
         setLoading(false);
         return;
       }
@@ -143,16 +156,38 @@ export default function MatchSimulationPage() {
     setLiveOpponentScore(opponent);
   }, [visibleEvents, matchData]);
 
-  const startEventAnimation = (events: MatchEvent[]) => {
-    let i = 0;
+  const startEventAnimation = (events: MatchEvent[], fromIndex: number, onDone: () => void) => {
+    let i = fromIndex;
     const interval = setInterval(() => {
       i++;
       setVisibleEvents(i);
       if (i >= events.length) {
         clearInterval(interval);
-        setTimeout(() => setShowResult(true), 1500);
+        setTimeout(onDone, 1200);
       }
     }, 1500);
+  };
+
+  // Called when the halftime window closes (either the player confirmed
+  // changes, or the 30s countdown ran out). Plays the second half and
+  // resumes the reveal animation from where it paused.
+  const handleHalftimeSubmit = async (change?: HalftimeSquadChange) => {
+    setHalftimeError("");
+    try {
+      const data = await continueMatch.mutateAsync({
+        matchId: matchId as string,
+        updatedSquad: change,
+      });
+      setShowHalftime(false);
+
+      const fullEvents = [...(matchData?.events || []), ...data.secondHalfEvents];
+      const resumeFrom = visibleEvents;
+      setMatchData({ ...data.result, events: fullEvents });
+      startEventAnimation(fullEvents, resumeFrom, () => setShowResult(true));
+    } catch (err) {
+      console.error("Failed to continue match:", err);
+      setHalftimeError("Failed to continue the match. Please try again.");
+    }
   };
 
   const getResultColor = (result: string) => {
@@ -219,6 +254,26 @@ export default function MatchSimulationPage() {
 
   return (
     <div className="h-full flex flex-col">
+      {showHalftime && (
+        <HalftimeModal
+          userScore={liveUserScore}
+          opponentScore={liveOpponentScore}
+          onSubmit={handleHalftimeSubmit}
+        />
+      )}
+      {halftimeError && !showHalftime && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-sm w-full bg-[#0a1628] border border-red-500/20 rounded-2xl p-6 text-center space-y-4">
+            <p className="text-red-400 text-sm">{halftimeError}</p>
+            <button
+              onClick={() => handleHalftimeSubmit(undefined)}
+              className="w-full py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-500/90 transition"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
       <AnimatePresence mode="wait">          {!showResult ? (
           <motion.div
             key="simulation"

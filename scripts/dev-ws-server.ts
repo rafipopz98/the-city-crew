@@ -20,6 +20,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { handleMessage, streamRemoteMatch, clearRecentlyJoined } from "../lib/game/socket/handler";
 import { hub, setHubCallbacks } from "../lib/game/socket/hub";
 import { matchmaking, setOnMatchReady } from "../lib/game/socket/matchmaking";
+import { verifyWsAuth } from "../lib/game/socket/auth";
 import type { ClientMessage } from "../lib/game/socket/protocol";
 
 // Wire up cross-instance match streaming
@@ -39,9 +40,20 @@ const wss = new WebSocketServer({ port: PORT });
 
 console.log(`\x1b[36m[dev-ws]\x1b[0m WebSocket server running on ws://localhost:${PORT}`);
 
-wss.on("connection", (ws: WebSocket) => {
+wss.on("connection", async (ws: WebSocket, request) => {
   console.log("\x1b[36m[dev-ws]\x1b[0m client connected");
   console.log("[PvP-Server] New WebSocket connection (total:", wss.clients.size, ")");
+
+  // Verify the session cookie sent with the upgrade request — never trust
+  // a client-supplied userId in the join payload (that was the previous,
+  // exploitable behavior).
+  const authUserId = await verifyWsAuth(request.headers.cookie);
+  if (!authUserId) {
+    console.warn("\x1b[36m[dev-ws]\x1b[0m rejecting unauthenticated connection");
+    ws.close(4001, "Unauthorized");
+    return;
+  }
+  (ws as any).authUserId = authUserId;
 
   ws.on("message", (data: Buffer) => {
     let raw = "";

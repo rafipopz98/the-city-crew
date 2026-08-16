@@ -126,8 +126,8 @@ export function useSquad() {
 export function useSaveSquad() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (players: any[]) => {
-      const { data } = await api.put("/game/squad", { players });
+    mutationFn: async (payload: { players: any[]; formation?: string }) => {
+      const { data } = await api.put("/game/squad", payload);
       return data;
     },
     onSuccess: () => {
@@ -143,6 +143,22 @@ export function useStartMatch() {
   return useMutation({
     mutationFn: async () => {
       const { data } = await api.post("/game/match/start");
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["game", "user"] });
+    },
+  });
+}
+
+export function useContinueMatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      matchId: string;
+      updatedSquad?: { players: { ownedPlayerId: string; position: string }[] };
+    }) => {
+      const { data } = await api.post("/game/match/continue", payload);
       return data;
     },
     onSuccess: () => {

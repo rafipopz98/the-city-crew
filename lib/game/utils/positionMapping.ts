@@ -112,24 +112,27 @@ export function getPrimaryCategory(
 }
 
 /**
- * Calculate the effective overall rating from base stats + upgrade levels.
- * Handles both field players (pace, shooting, etc.) and GK (goalkeeping_diving, etc.)
+ * Calculate the effective overall rating: the player's real curated
+ * `overall` (NOT a recomputed average of 6 raw stats — that doesn't match
+ * how card overalls are actually derived and badly mismatches real cards,
+ * e.g. a flat stat average has no sane way to reflect a goalkeeper's true
+ * ability from outfield-shaped fields) plus a modest bonus from upgrades,
+ * averaged across the 6 upgradeable stats so a single +1 upgrade barely
+ * moves the needle while a heavily-upgraded player measurably improves.
  */
 export function calculateEffectiveOverall(
-  basePlayer: { pace: number; shooting: number; passing: number; dribbling: number; defending: number; physic: number } & Record<string, number>,
+  basePlayer: { overall: number } & Record<string, number>,
   upgrades: Record<string, number> = {},
   positions?: string[] | null,
 ): number {
-  const isPlayerGK = isGK(positions);
-  const statKeys = isPlayerGK
-    ? ["goalkeeping_diving", "goalkeeping_handling", "goalkeeping_kicking", "goalkeeping_positioning", "goalkeeping_reflexes", "goalkeeping_speed"] as const
-    : ["pace", "shooting", "passing", "dribbling", "defending", "physic"] as const;
+  // Goalkeepers can't currently be upgraded — the upgrade schema only
+  // tracks outfield stats (pace/shooting/passing/dribbling/defending/physic)
+  // — so their effective overall is just their real card rating.
+  if (isGK(positions)) return basePlayer.overall;
 
-  let total = 0;
-  for (const stat of statKeys) {
-    const base = basePlayer[stat] || 0;
-    const upg = upgrades[stat] || 0;
-    total += base + upg;
-  }
-  return Math.round(total / statKeys.length);
+  const statKeys = ["pace", "shooting", "passing", "dribbling", "defending", "physic"] as const;
+  const totalUpgrade = statKeys.reduce((sum, key) => sum + (upgrades[key] || 0), 0);
+  const bonus = totalUpgrade / statKeys.length;
+
+  return Math.min(99, Math.round(basePlayer.overall + bonus));
 }

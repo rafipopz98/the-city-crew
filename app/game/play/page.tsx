@@ -89,7 +89,17 @@ export default function PlayPage() {
     try {
       const data = await startMatch.mutateAsync();
       if (data.matchId) {
-        sessionStorage.setItem("lastMatchResult", JSON.stringify(data.result));
+        // Only the first half is played now — the match page pauses at
+        // halftime for a real substitution/formation-change window, then
+        // calls /game/match/continue to finish the second half.
+        sessionStorage.setItem(
+          "lastMatchResult",
+          JSON.stringify({
+            matchId: data.matchId,
+            isFirstHalf: true,
+            events: data.firstHalf.events,
+          }),
+        );
         router.push(`/game/match/${data.matchId}`);
       } else {
         console.error("Match start failed:", data);
