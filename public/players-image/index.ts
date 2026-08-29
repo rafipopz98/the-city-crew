@@ -295,4 +295,12 @@ export const playerImages = [
     alt: "Enzo Fernández",
     value: "enzo-fernandez",
   },
+    {
+    name: "Ayyoub Bouaddi",
+    prefferedName: "Bouaddi",
+    verticalImage: "/players-image/IMG_1050.webp",
+    roundImage: "/players-image/IMG_1049.png",
+    alt: "Ayyoub Bouaddi",
+    value: "ayyoub-bouaddi",
+  },
 ];
